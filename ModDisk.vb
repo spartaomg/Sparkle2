@@ -1273,8 +1273,8 @@ Err:
 
 		If BundleDone() = False Then GoTo NoDisk
 		If CompressBundle() = False Then GoTo NoDisk
-		If NewCloseBundle(0, True) = False Then GoTo NoDisk
-		If NewCloseBuffer() = False Then GoTo NoDisk
+		If CloseBundle(0, True) = False Then GoTo NoDisk
+		If CloseBuffer() = False Then GoTo NoDisk
 
 		'Now add compressed parts to disk
 		If AddCompressedBundlesToDisk() = False Then GoTo NoDisk
@@ -1398,7 +1398,7 @@ TryAgain:
 				'Before finishing the previous bundle, calculate I/O status of the LAST BYTE of the first file of this bundle
 				'(Files already sorted)
 				Dim ThisBundleIO As Integer = If(FileIOA.Count > 0, CheckNextIO(FileAddrA(0), FileLenA(0), FileIOA(0)), 0)
-				If NewCloseBundle(ThisBundleIO, False) = False Then GoTo NoComp
+				If CloseBundle(ThisBundleIO, False) = False Then GoTo NoComp
 			End If
 		End If
 
@@ -1427,7 +1427,7 @@ TryAgain:
 				PrgAdd = Convert.ToInt32(FileAddrA(I + 1), 16)
 				PrgLen = Prgs(I + 1).Length ' Convert.ToInt32(FileLenA(I + 1), 16)
 				FileUnderIO = FileIOA(I + 1)
-				NewCloseFile()
+				CloseFile()
 			End If
 		Next
 

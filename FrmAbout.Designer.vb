@@ -34,11 +34,11 @@ Partial Class FrmAbout
 		'lblDescription
 		'
 		Me.lblDescription.AutoSize = True
-		Me.lblDescription.Location = New System.Drawing.Point(28, 70)
+		Me.lblDescription.Location = New System.Drawing.Point(13, 70)
 		Me.lblDescription.Name = "lblDescription"
-		Me.lblDescription.Size = New System.Drawing.Size(243, 13)
+		Me.lblDescription.Size = New System.Drawing.Size(271, 13)
 		Me.lblDescription.TabIndex = 1
-		Me.lblDescription.Text = "A Trackmo Loader Solution for the Commodore 64"
+		Me.lblDescription.Text = "An Integrated Fastloader Solution for the Commodore 64"
 		'
 		'lblMe
 		'

@@ -4269,7 +4269,7 @@ TryAgain:
 			SetNewBlock = False             'And NewBlock will fire at the desired bundle
 		Else
 			Dim ThisPartIO As Integer = If(FileIOA.Count > 0, CheckNextIO(FileAddrA(0), FileLenA(0), FileIOA(0)), 0)
-			NewCloseBundle(ThisPartIO, False, True)
+			CloseBundle(ThisPartIO, False, True)
 		End If
 
 		If BufferCnt = 1 Then
