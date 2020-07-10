@@ -2524,7 +2524,7 @@ Err:
 	End Function
 
 	Private Sub BtnLoad_Click(sender As Object, e As EventArgs) Handles BtnLoad.Click
-		'On Error GoTo Err
+		On Error GoTo Err
 
 		OpenFile("Sparkle Loader Script files", "Sparkle Loader Script files (*.sls)|*.sls")
 		If NewFile <> "" Then
