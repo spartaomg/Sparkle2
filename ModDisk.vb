@@ -89,6 +89,7 @@ Friend Module ModDisk
 	Public CurrentFile As Integer = -1
 	Public CurrentScript As Integer = -1
 	Public BundleNo As Integer = -1
+	Public MaxBundleNoExceeded As Boolean = False
 
 	Public D64NameA(), DiskHeaderA(), DiskIDA(), DemoNameA(), DemoStartA(), DirArtA() As String
 	Public FileNameA(), FileAddrA(), FileOffsA(), FileLenA() As String
@@ -559,11 +560,14 @@ Err:
 		'DirBlocks(1) = EORtransform(Sector)
 		'DirBlocks(2) = EORtransform(Remaining sectors on track)
 		'DirBlocks(3) = BitPtr
+		If (BundleNo >= 0) Then
+			For I As Integer = BundleNo + 1 To 127
+				DirBlocks((I * 4) + 3) = DirBlocks((BundleNo * 4) + 3)
+				DirPtr(I) = DirPtr(BundleNo)
+			Next
+		End If
 
 		For I As Integer = 0 To 127
-			'If DirPtr(I) <> 0 Then
-			'Debug.Print(DirPtr(I).ToString + vbTab + TabT(DirPtr(I)).ToString + vbTab + TabS(DirPtr(I)).ToString)
-			'End If
 			DirBlocks(I * 4) = EORtransform(TabT(DirPtr(I)))
 			DirBlocks((I * 4) + 1) = EORtransform(TabStartS(TabT(DirPtr(I))))
 			DirBlocks((I * 4) + 2) = EORtransform(TabSCnt(DirPtr(I)))
@@ -1276,6 +1280,11 @@ Err:
 		If CloseBundle(0, True) = False Then GoTo NoDisk
 		If CloseBuffer() = False Then GoTo NoDisk
 
+		If MaxBundleNoExceeded Then
+			MsgBox("The number of file bundles is greater than 128 on this disk!" + vbNewLine + vbNewLine +
+				   "You can only access bundles 0-127 by bundle index." + vbNewLine + "The rest can only be loaded using the LoadNext function.", vbOKOnly + vbInformation, "More than 128 bundles on disk")
+		End If
+
 		'Now add compressed parts to disk
 		If AddCompressedBundlesToDisk() = False Then GoTo NoDisk
 		If AddHeaderAndID() = False Then GoTo NoDisk
@@ -1408,13 +1417,17 @@ TryAgain:
 
 		If FromEditor = False Then
 			'Only if we are NOT in the Editor
-			DirBlocks((BundleNo * 4) + 3) = BitPtr
-			DirPtr(BundleNo) = BufferCnt
-			BundleNo += 1
+			If BundleNo < 128 Then
+				DirBlocks((BundleNo * 4) + 3) = BitPtr
+				DirPtr(BundleNo) = BufferCnt
+				BundleNo += 1
+			Else
+				MaxBundleNoExceeded = True
+			End If
 		End If
-		'-------------------------------------------------------
+			'-------------------------------------------------------
 
-		NewBundle = True
+			NewBundle = True
 		LastFileOfBundle = False
 		For I As Integer = 0 To Prgs.Count - 1
 			'Mark the last file in a bundle for better compression
@@ -1934,6 +1947,7 @@ Err:
 
 		BufferCnt = 0
 		BundleNo = 0
+		MaxBundleNoExceeded = False
 
 		ReDim ByteSt(-1)
 		ResetBuffer()

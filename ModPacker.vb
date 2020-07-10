@@ -449,19 +449,6 @@ Done:
 
 		AddLitSequence()        'See if any remaining literals need to be added, space has been previously reserved for them
 
-		'Dim BitsLeftSI As Integer = ((Seq(LastBlockSI + 1).Bytes + Int(Seq(LastBlockSI + 1).Nibbles / 2) + (Seq(LastBlockSI + 1).Nibbles Mod 2)) * 8) + Seq(LastBlockSI + 1).Bits
-		'Dim BitsLeft As Integer = ((BytesLeftInBlock + Int(NibblesLeftInBlock / 2) + (NibblesLeftInBlock Mod 2)) * 8) + BitsLeftInBlock
-		'If LastBlockOfBundle Then
-		'LastBlockOfBundle = False
-		'If Seq(LastBlockSI + 1).Bits < BitsLeftInBlock Then
-		'MsgBox("Hiba a hátralevő bitek kiszámításában!")
-		'End If
-		'MsgBox(vbTab + Seq(LastBlockSI + 1).Bytes.ToString + vbTab + BytesLeftInBlock.ToString + vbNewLine +
-		'vbTab + Seq(LastBlockSI + 1).Nibbles.ToString + vbTab + NibblesLeftInBlock.ToString + vbNewLine +
-		'vbTab + Seq(LastBlockSI + 1).Bits.ToString + vbTab + BitsLeftInBlock.ToString + vbNewLine + vbNewLine +
-		'Seq(LastBlockSI + 1).TotalBits.ToString + vbTab + BitsLeftSI.ToString + vbTab + BitsLeft.ToString)
-		'End If
-
 		Exit Sub
 Err:
 		ErrCode = Err.Number
@@ -978,7 +965,6 @@ NextPart:   'Match Bit is not needed if this is the beginning of the next block
 				BytePtr -= 3
 				If FromEditor = False Then
 					'Only if we are NOT in the Editor
-					'MsgBox(BundleNo.ToString + vbNewLine + BitPtr.ToString + vbNewLine + BufferCnt.ToString)
 					DirBlocks((BundleNo * 4) + 3) = BitPtr
 					DirPtr(BundleNo) = BufferCnt
 					'BundleNo += 1
