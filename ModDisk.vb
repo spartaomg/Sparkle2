@@ -2425,9 +2425,9 @@ Err:
 		On Error GoTo Err
 
 		IL0 = EORtransform(If(Disk(Track(18) + (0 * 256) + 250) <> 0, Disk(Track(18) + (0 * 256) + 250), 4))
-		IL1 = EORtransform(If(Disk(Track(18) + (0 * 256) + 251) <> 0, 256 - Disk(Track(18) + (0 * 256) + 251), 3))
-		IL2 = EORtransform(If(Disk(Track(18) + (0 * 256) + 252) <> 0, 256 - Disk(Track(18) + (0 * 256) + 252), 3))
-		IL3 = EORtransform(If(Disk(Track(18) + (0 * 256) + 253) <> 0, 256 - Disk(Track(18) + (0 * 256) + 253), 3))
+		IL1 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 251) <> 0, Disk(Track(18) + (0 * 256) + 251), 253))
+		IL2 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 252) <> 0, Disk(Track(18) + (0 * 256) + 252), 253))
+		IL3 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 253) <> 0, Disk(Track(18) + (0 * 256) + 253), 253))
 
 		Exit Sub
 Err:
