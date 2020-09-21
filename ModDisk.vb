@@ -147,7 +147,7 @@ Friend Module ModDisk
 	Public SetNewBlock As Boolean = False      'This will fire at the previous bundle and will set NewBlock2
 	Public NewBlock As Boolean = False     'This will fire at the specified bundle
 
-	Private DirTrack, DirSector, DirPos As Integer
+	Public DirTrack, DirSector, DirPos As Integer
 	Public DirArt As String = ""
 	Public DirArtName As String = ""
 	Private DirEntry As String = ""
@@ -391,33 +391,47 @@ Err:
 
 	End Function
 
-	Private Sub FindNextFreeSector()
+	Private Function FindNextFreeSector()
 		On Error GoTo Err
 
+		FindNextFreeSector = True
+
+		Dim Counter As Integer = 0
+		Dim MaxS As Integer
 CheckB:
 		If SectorOK(CT, CS) = False Then
 			CS += 1
+			Counter += 1
 			Select Case CT
 				Case 1 To 17
+					MaxS = 21
 					If CS = 21 Then CS = 0
 				Case 18 To 24
+					MaxS = 19
 					If CS = 19 Then CS = 0
 				Case 25 To 30
+					MaxS = 18
 					If CS = 18 Then CS = 0
 				Case 31 To 35
+					MaxS = 17
 					If CS = 17 Then CS = 0
 			End Select
-			GoTo CheckB
+			If Counter < MaxS Then
+				GoTo CheckB
+			Else
+				FindNextFreeSector = False
+			End If
 		End If
 
-		Exit Sub
+		Exit Function
 Err:
 		ErrCode = Err.Number
 		MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+		FindNextFreeSector = False
 
-	End Sub
+	End Function
 
-	Private Sub DeleteBit(T As Byte, S As Byte, Optional UpdateBlocksFree As Boolean = True)
+	Public Sub DeleteBit(T As Byte, S As Byte, Optional UpdateBlocksFree As Boolean = True)
 		On Error GoTo Err
 
 		Dim BP As Integer   'BAM Position for Bit Change
@@ -440,7 +454,7 @@ Err:
 
 	End Sub
 
-	Private Function AddInterleave(Optional IL As Byte = 5) As Boolean
+	Public Function AddInterleave(Optional IL As Byte = 5) As Boolean
 		On Error GoTo Err
 
 		AddInterleave = True
@@ -464,7 +478,8 @@ Err:
 		Else
 			CalcNextSector(IL)
 		End If
-		FindNextFreeSector()
+
+		AddInterleave = FindNextFreeSector()
 
 		Exit Function
 Err:
@@ -502,7 +517,7 @@ Err:
 					CS -= 21
 					If CS > 0 Then CS -= 1
 				End If
-				CS += 4     'IL=4 always
+				CS += IL     'IL=4 always
 				If CS > 20 Then
 					CS -= 21
 					If CS > 0 Then CS -= 1
@@ -515,17 +530,17 @@ Err:
 
 			Case 19 To 24   '19 sectors, 0-18
 				If CS > 18 Then CS -= 19
-				CS += 3     'IL=3 always
+				CS += IL     'IL=3 always
 				If CS > 18 Then CS -= 19
 
 			Case 25 To 30   '18 sectors, 0-17
 				If CS > 17 Then CS -= 18
-				CS += 3     'IL=3 always
+				CS += IL     'IL=3 always
 				If CS > 17 Then CS -= 18
 
 			Case 31 To 35   '17 sectors, 0-16
 				If CS > 16 Then CS -= 17
-				CS += 3     'IL=3 always
+				CS += IL     'IL=3 always
 				If CS > 16 Then CS -= 17
 
 		End Select
@@ -687,7 +702,7 @@ Err:
 			Loader = My.Resources.SLT
 		End If
 
-		For I = 0 To Loader.Length - 3      'Find JMP $0180 instruction (JMP Load)
+		For I = 0 To Loader.Length - 3      'Find JMP $0181 instruction (JMP Load)
 			If (Loader(I) = &H4C) And (Loader(I + 1) = &H81) And (Loader(I + 2) = &H1) Then
 				Loader(I - 2) = AdLo        'Lo Byte return address at the end of Loader
 				Loader(I - 5) = AdHi        'Hi Byte return address at the end of Loader
@@ -2122,7 +2137,7 @@ NextSector:
 			If DirPos <> 0 Then
 				Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 0) = &H82   '"PRG" -  all dir entries will point at first file in dir
 				Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 1) = 18     'Track 18 (track pointer of boot loader)
-				Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2) = 7      'Sector 5 (sector pointer of boot loader)
+				Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2) = 7      'Sector 7 (sector pointer of boot loader)
 
 				For I As Integer = 0 To 15
 					Select Case DA(B + I)
@@ -2173,7 +2188,7 @@ NextSector:
 				If DirPos <> 0 Then
 					Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 0) = &H82   '"PRG" -  all dir entries will point at first file in dir
 					Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 1) = 18     'Track 18 (track pointer of boot loader)
-					Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2) = 5      'Sector 5 (sector pointer of boot loader)
+					Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2) = 7      'Sector 7 (sector pointer of boot loader)
 
 					For I As Integer = 0 To 15
 						Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 3 + I) = DA(DAPtr + B + 3 + I)
@@ -2215,7 +2230,7 @@ NextSector:
 
 		Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 0) = &H82   '"PRG" -  all dir entries will point at first file in dir
 		Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 1) = 18     'Track 18 (track pointer of boot loader)
-		Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2) = 5      'Sector 5 (sector pointer of boot loader)
+		Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2) = 7      'Sector 7 (sector pointer of boot loader)
 
 		'Remove vbNewLine characters and add 16 SHIFT+SPACE tail characters
 		DirEntry += StrDup(16, Chr(160))
@@ -2235,7 +2250,7 @@ Err:
 
 	End Sub
 
-	Private Sub FindNextDirPos()
+	Public Sub FindNextDirPos()
 		On Error GoTo Err
 
 		DirPos = 0

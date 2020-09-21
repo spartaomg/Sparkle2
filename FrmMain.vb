@@ -13,6 +13,7 @@ Public Class FrmMain
 	Private PartT() As Integer, PartS(), PartDiskLoc(), PartNo As Integer
 	Private ReadOnly PETSCII As Image = My.Resources.PETSCII_BW
 	Private ReadOnly BM As New Bitmap(256, 256)
+	Private PrgT, PrgS, PrgB As Byte
 
 	Private Sub FrmMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 		On Error GoTo Err
@@ -1453,6 +1454,181 @@ Err:
 		MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
 
 	End Sub
+
+	Private Sub TsbAddFile_Click(sender As Object, e As EventArgs) Handles TsbAddFile.Click
+		On Error GoTo Err
+
+		Dim OpenDLG As New OpenFileDialog
+		Dim PrgFileName As String
+		Dim PrgFile() As Byte
+
+		With OpenDLG
+			.Filter = "PRG Files (*.prg)|*.prg"
+			.Title = "Add PRG File to disk"
+			.RestoreDirectory = True
+
+			DialogResult = OpenDLG.ShowDialog
+
+			If DialogResult = DialogResult.OK Then
+				PrgFileName = .FileName
+				If File.Exists(PrgFileName) Then
+					PrgFile = File.ReadAllBytes(PrgFileName)
+
+					For I As Integer = 1 To 36
+						If I = 36 Then
+							MsgBox("Prg file could not be added to the disk", vbOKOnly + vbInformation, "Could not add PRG")
+							Exit For
+						End If
+
+						If I = 18 Then I += 1
+
+						If Disk(Track(18) + (I * 4)) > 0 Then
+
+							If AddPrgToDisk(PrgFile, I) = False Then
+								MsgBox("Prg file could not be added to the disk", vbOKOnly + vbInformation, "Could not add PRG")
+							Else
+								AddPrgToDir(PrgFileName)
+
+								CT = DirTrack
+								CS = DirSector
+
+								ShowSector()
+							End If
+							Exit For
+						End If
+
+					Next
+				End If
+			End If
+		End With
+
+		Exit Sub
+Err:
+		ErrCode = Err.Number
+		MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+	End Sub
+
+	Private Sub AddPrgToDir(Name As String)
+
+		Name = Replace(LCase(Name), ".prg", "")
+
+		For I As Integer = Strings.Len(Name) To 0 Step -1
+			If Strings.Mid(Name, I, 1) = "\" Then
+				Name = Strings.Right(Name, Len(Name) - I)
+				Exit For
+			End If
+		Next
+
+		Name += StrDup(16, Chr(160))
+
+		DirTrack = 18
+		DirSector = 1
+
+		FindNextDirPos()
+
+		If DirPos <> 0 Then
+			Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 0) = &H82   '"PRG" -  all dir entries will point at first file in dir
+			Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 1) = PrgT     'Track 18 (track pointer of boot loader)
+			Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2) = PrgS      'Sector 7 (sector pointer of boot loader)
+			Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 28) = PrgB      'Sector 7 (sector pointer of boot loader)
+
+			'Copy only the first 16 characters of the edited DirEntry to the Disk Directory
+			For I As Integer = 1 To 16
+				Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2 + I) = Asc(Mid(UCase(Name), I, 1))
+			Next
+		End If
+
+	End Sub
+
+	Private Function AddPrgToDisk(Prg() As Byte, T As Integer) As Boolean
+		On Error GoTo Err
+
+		AddPrgToDisk = True
+
+		Dim Ptr As Integer = 0
+		Dim S As Integer = 255
+		Dim LastS As Integer = 0
+		Dim LastT As Integer = 0
+		Dim SMax As Integer
+
+		CT = T
+
+FindFirstS:
+		Select Case CT
+			Case 1 To 17
+				SMax = 20
+			Case 18 To 24
+				SMax = 18
+			Case 25 To 30
+				SMax = 17
+			Case Else
+				SMax = 16
+		End Select
+
+		For I As Integer = 0 To SMax
+			If Disk(Track(CT) + (I * 256)) = 0 Then
+				S = I
+				Exit For
+			End If
+		Next
+
+		If S = 255 Then
+			CT += 1
+			If CT <= 35 Then
+				GoTo FindFirstS
+			Else
+				GoTo NoGo
+			End If
+		End If
+
+		CS = S
+
+		PrgT = CT
+		PrgS = CS
+		PrgB = 0
+AddBlock:
+		PrgB += 1
+		If LastT <> 0 Then
+			Disk(Track(LastT) + (LastS * 256) + 0) = CT
+			Disk(Track(LastT) + (LastS * 256) + 1) = CS
+		End If
+
+		LastT = CT
+		LastS = CS
+
+		DeleteBit(CT, CS, True)
+
+		For J As Integer = 0 To 253
+			If Ptr + J < Prg.Count Then
+				Disk(Track(CT) + (CS * 256) + 2 + J) = Prg(Ptr + J)
+			Else
+				Disk(Track(CT) + (CS * 256) + 1) = J + 1
+				Exit For
+			End If
+		Next
+
+		If Ptr + 254 < Prg.Count Then
+			Ptr += 254
+			If AddInterleave(10) = True Then
+				GoTo AddBlock
+			Else
+				GoTo NoGo
+			End If
+		End If
+
+		Exit Function
+Err:
+		ErrCode = Err.Number
+		MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+NoGo:
+		AddPrgToDisk = False
+
+	End Function
+
+	Private Function FindNextSector(T As Integer, S As Integer) As Boolean
+
+	End Function
 
 	Private Sub FrmMain_DragEnter(sender As Object, e As DragEventArgs) Handles Me.DragEnter
 		On Error GoTo Err
