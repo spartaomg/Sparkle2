@@ -24,18 +24,34 @@ Partial Class FrmMain
     Private Sub InitializeComponent()
 		Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(FrmMain))
 		Me.ToolStrip2 = New System.Windows.Forms.ToolStrip()
+		Me.tsbBAM = New System.Windows.Forms.ToolStripButton()
+		Me.tsbDir = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator10 = New System.Windows.Forms.ToolStripSeparator()
+		Me.tsbFirstTrack = New System.Windows.Forms.ToolStripButton()
+		Me.tsbPrevTrack = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator4 = New System.Windows.Forms.ToolStripSeparator()
+		Me.tsbNextTrack = New System.Windows.Forms.ToolStripButton()
+		Me.tsbLastTrack = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator5 = New System.Windows.Forms.ToolStripSeparator()
 		Me.ToolStripSeparator6 = New System.Windows.Forms.ToolStripSeparator()
+		Me.tsbSector0 = New System.Windows.Forms.ToolStripButton()
+		Me.tsbPrevSector = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator7 = New System.Windows.Forms.ToolStripSeparator()
+		Me.tsbNextSector = New System.Windows.Forms.ToolStripButton()
+		Me.tsbLastSector = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator8 = New System.Windows.Forms.ToolStripSeparator()
 		Me.ToolStripSeparator9 = New System.Windows.Forms.ToolStripSeparator()
+		Me.TsbFirstPart = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator17 = New System.Windows.Forms.ToolStripSeparator()
+		Me.TsbPrevPart = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator14 = New System.Windows.Forms.ToolStripSeparator()
+		Me.tsbPrevSector4 = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator11 = New System.Windows.Forms.ToolStripSeparator()
+		Me.tsbNextSector4 = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator16 = New System.Windows.Forms.ToolStripSeparator()
+		Me.TsbNextPart = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator18 = New System.Windows.Forms.ToolStripSeparator()
+		Me.TsbLastPart = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator12 = New System.Windows.Forms.ToolStripSeparator()
 		Me.ToolStripSeparator13 = New System.Windows.Forms.ToolStripSeparator()
 		Me.ToolStripLabel1 = New System.Windows.Forms.ToolStripLabel()
@@ -46,12 +62,30 @@ Partial Class FrmMain
 		Me.ssStatus = New System.Windows.Forms.StatusStrip()
 		Me.ssLabel = New System.Windows.Forms.ToolStripStatusLabel()
 		Me.ToolStrip1 = New System.Windows.Forms.ToolStrip()
+		Me.tsbNew = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator3 = New System.Windows.Forms.ToolStripSeparator()
+		Me.tsbOpen = New System.Windows.Forms.ToolStripButton()
+		Me.tsbSave = New System.Windows.Forms.ToolStripButton()
+		Me.tsbSaveAs = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator1 = New System.Windows.Forms.ToolStripSeparator()
+		Me.tsbUndo = New System.Windows.Forms.ToolStripButton()
+		Me.ToolStripSeparator20 = New System.Windows.Forms.ToolStripSeparator()
+		Me.TsbAddFile = New System.Windows.Forms.ToolStripButton()
 		Me.ToolStripSeparator2 = New System.Windows.Forms.ToolStripSeparator()
+		Me.tsbBuildDisk = New System.Windows.Forms.ToolStripSplitButton()
+		Me.tsmRebuildDisk = New System.Windows.Forms.ToolStripMenuItem()
+		Me.TssSep = New System.Windows.Forms.ToolStripSeparator()
+		Me.TsmTestDisk = New System.Windows.Forms.ToolStripMenuItem()
 		Me.ToolStripSeparator15 = New System.Windows.Forms.ToolStripSeparator()
+		Me.TsbScriptEditor = New System.Windows.Forms.ToolStripButton()
+		Me.TsbAbout = New System.Windows.Forms.ToolStripButton()
 		Me.TssAdmin = New System.Windows.Forms.ToolStripSeparator()
+		Me.TsbAdmin = New System.Windows.Forms.ToolStripDropDownButton()
+		Me.TsmAssociate = New System.Windows.Forms.ToolStripMenuItem()
+		Me.ToolStripSeparator19 = New System.Windows.Forms.ToolStripSeparator()
+		Me.TsmDeleteAssociation = New System.Windows.Forms.ToolStripMenuItem()
 		Me.Panel1 = New System.Windows.Forms.Panel()
+		Me.Pbx = New System.Windows.Forms.PictureBox()
 		Me.Label18 = New System.Windows.Forms.Label()
 		Me.txtSector = New System.Windows.Forms.RichTextBox()
 		Me.Label17 = New System.Windows.Forms.Label()
@@ -71,40 +105,6 @@ Partial Class FrmMain
 		Me.Label3 = New System.Windows.Forms.Label()
 		Me.Label2 = New System.Windows.Forms.Label()
 		Me.Label1 = New System.Windows.Forms.Label()
-		Me.ToolStripSeparator20 = New System.Windows.Forms.ToolStripSeparator()
-		Me.tsbBAM = New System.Windows.Forms.ToolStripButton()
-		Me.tsbDir = New System.Windows.Forms.ToolStripButton()
-		Me.tsbFirstTrack = New System.Windows.Forms.ToolStripButton()
-		Me.tsbPrevTrack = New System.Windows.Forms.ToolStripButton()
-		Me.tsbNextTrack = New System.Windows.Forms.ToolStripButton()
-		Me.tsbLastTrack = New System.Windows.Forms.ToolStripButton()
-		Me.tsbSector0 = New System.Windows.Forms.ToolStripButton()
-		Me.tsbPrevSector = New System.Windows.Forms.ToolStripButton()
-		Me.tsbNextSector = New System.Windows.Forms.ToolStripButton()
-		Me.tsbLastSector = New System.Windows.Forms.ToolStripButton()
-		Me.TsbFirstPart = New System.Windows.Forms.ToolStripButton()
-		Me.TsbPrevPart = New System.Windows.Forms.ToolStripButton()
-		Me.tsbPrevSector4 = New System.Windows.Forms.ToolStripButton()
-		Me.tsbNextSector4 = New System.Windows.Forms.ToolStripButton()
-		Me.TsbNextPart = New System.Windows.Forms.ToolStripButton()
-		Me.TsbLastPart = New System.Windows.Forms.ToolStripButton()
-		Me.tsbNew = New System.Windows.Forms.ToolStripButton()
-		Me.tsbOpen = New System.Windows.Forms.ToolStripButton()
-		Me.tsbSave = New System.Windows.Forms.ToolStripButton()
-		Me.tsbSaveAs = New System.Windows.Forms.ToolStripButton()
-		Me.tsbUndo = New System.Windows.Forms.ToolStripButton()
-		Me.TsbAddFile = New System.Windows.Forms.ToolStripButton()
-		Me.tsbBuildDisk = New System.Windows.Forms.ToolStripSplitButton()
-		Me.tsmRebuildDisk = New System.Windows.Forms.ToolStripMenuItem()
-		Me.TssSep = New System.Windows.Forms.ToolStripSeparator()
-		Me.TsmTestDisk = New System.Windows.Forms.ToolStripMenuItem()
-		Me.TsbScriptEditor = New System.Windows.Forms.ToolStripButton()
-		Me.TsbAbout = New System.Windows.Forms.ToolStripButton()
-		Me.TsbAdmin = New System.Windows.Forms.ToolStripDropDownButton()
-		Me.TsmAssociate = New System.Windows.Forms.ToolStripMenuItem()
-		Me.ToolStripSeparator19 = New System.Windows.Forms.ToolStripSeparator()
-		Me.TsmDeleteAssociation = New System.Windows.Forms.ToolStripMenuItem()
-		Me.Pbx = New System.Windows.Forms.PictureBox()
 		Me.ToolStrip2.SuspendLayout()
 		Me.ssStatus.SuspendLayout()
 		Me.ToolStrip1.SuspendLayout()
@@ -123,15 +123,75 @@ Partial Class FrmMain
 		Me.ToolStrip2.TabIndex = 29
 		Me.ToolStrip2.Text = "ToolStrip2"
 		'
+		'tsbBAM
+		'
+		Me.tsbBAM.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbBAM.Image = CType(resources.GetObject("tsbBAM.Image"), System.Drawing.Image)
+		Me.tsbBAM.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbBAM.Name = "tsbBAM"
+		Me.tsbBAM.Size = New System.Drawing.Size(24, 24)
+		Me.tsbBAM.Text = "Load BAM"
+		Me.tsbBAM.ToolTipText = "Load BAM (Ctrl+B)"
+		'
+		'tsbDir
+		'
+		Me.tsbDir.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbDir.Image = CType(resources.GetObject("tsbDir.Image"), System.Drawing.Image)
+		Me.tsbDir.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbDir.Name = "tsbDir"
+		Me.tsbDir.Size = New System.Drawing.Size(24, 24)
+		Me.tsbDir.Text = "Load First Sector of Directory"
+		Me.tsbDir.ToolTipText = "Load First Sector of Directory (Ctrl+D)"
+		'
 		'ToolStripSeparator10
 		'
 		Me.ToolStripSeparator10.Name = "ToolStripSeparator10"
 		Me.ToolStripSeparator10.Size = New System.Drawing.Size(6, 27)
 		'
+		'tsbFirstTrack
+		'
+		Me.tsbFirstTrack.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbFirstTrack.Image = CType(resources.GetObject("tsbFirstTrack.Image"), System.Drawing.Image)
+		Me.tsbFirstTrack.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbFirstTrack.Name = "tsbFirstTrack"
+		Me.tsbFirstTrack.Size = New System.Drawing.Size(24, 24)
+		Me.tsbFirstTrack.Text = "First Track"
+		Me.tsbFirstTrack.ToolTipText = "Step to First Track (Ctrl+Home)"
+		'
+		'tsbPrevTrack
+		'
+		Me.tsbPrevTrack.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbPrevTrack.Image = CType(resources.GetObject("tsbPrevTrack.Image"), System.Drawing.Image)
+		Me.tsbPrevTrack.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbPrevTrack.Name = "tsbPrevTrack"
+		Me.tsbPrevTrack.Size = New System.Drawing.Size(24, 24)
+		Me.tsbPrevTrack.Text = "ToolStripButton2"
+		Me.tsbPrevTrack.ToolTipText = "Step to Previous Track (Ctrl+PgUp)"
+		'
 		'ToolStripSeparator4
 		'
 		Me.ToolStripSeparator4.Name = "ToolStripSeparator4"
 		Me.ToolStripSeparator4.Size = New System.Drawing.Size(6, 27)
+		'
+		'tsbNextTrack
+		'
+		Me.tsbNextTrack.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbNextTrack.Image = CType(resources.GetObject("tsbNextTrack.Image"), System.Drawing.Image)
+		Me.tsbNextTrack.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbNextTrack.Name = "tsbNextTrack"
+		Me.tsbNextTrack.Size = New System.Drawing.Size(24, 24)
+		Me.tsbNextTrack.Text = "ToolStripButton3"
+		Me.tsbNextTrack.ToolTipText = "Step to Next Track (Ctrl+PgDn)"
+		'
+		'tsbLastTrack
+		'
+		Me.tsbLastTrack.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbLastTrack.Image = CType(resources.GetObject("tsbLastTrack.Image"), System.Drawing.Image)
+		Me.tsbLastTrack.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbLastTrack.Name = "tsbLastTrack"
+		Me.tsbLastTrack.Size = New System.Drawing.Size(24, 24)
+		Me.tsbLastTrack.Text = "ToolStripButton4"
+		Me.tsbLastTrack.ToolTipText = "Step to Last Track (Ctrl+End)"
 		'
 		'ToolStripSeparator5
 		'
@@ -143,10 +203,50 @@ Partial Class FrmMain
 		Me.ToolStripSeparator6.Name = "ToolStripSeparator6"
 		Me.ToolStripSeparator6.Size = New System.Drawing.Size(6, 27)
 		'
+		'tsbSector0
+		'
+		Me.tsbSector0.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbSector0.Image = CType(resources.GetObject("tsbSector0.Image"), System.Drawing.Image)
+		Me.tsbSector0.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbSector0.Name = "tsbSector0"
+		Me.tsbSector0.Size = New System.Drawing.Size(24, 24)
+		Me.tsbSector0.Text = "ToolStripButton5"
+		Me.tsbSector0.ToolTipText = "Load Sector 0 in Track (Shift+Home)"
+		'
+		'tsbPrevSector
+		'
+		Me.tsbPrevSector.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbPrevSector.Image = CType(resources.GetObject("tsbPrevSector.Image"), System.Drawing.Image)
+		Me.tsbPrevSector.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbPrevSector.Name = "tsbPrevSector"
+		Me.tsbPrevSector.Size = New System.Drawing.Size(24, 24)
+		Me.tsbPrevSector.Text = "ToolStripButton6"
+		Me.tsbPrevSector.ToolTipText = "Load Previous Sector in Track (Shift+PgUp)"
+		'
 		'ToolStripSeparator7
 		'
 		Me.ToolStripSeparator7.Name = "ToolStripSeparator7"
 		Me.ToolStripSeparator7.Size = New System.Drawing.Size(6, 27)
+		'
+		'tsbNextSector
+		'
+		Me.tsbNextSector.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbNextSector.Image = CType(resources.GetObject("tsbNextSector.Image"), System.Drawing.Image)
+		Me.tsbNextSector.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbNextSector.Name = "tsbNextSector"
+		Me.tsbNextSector.Size = New System.Drawing.Size(24, 24)
+		Me.tsbNextSector.Text = "ToolStripButton7"
+		Me.tsbNextSector.ToolTipText = "Load Next Sector in Track (Shift+PgDn)"
+		'
+		'tsbLastSector
+		'
+		Me.tsbLastSector.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbLastSector.Image = CType(resources.GetObject("tsbLastSector.Image"), System.Drawing.Image)
+		Me.tsbLastSector.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbLastSector.Name = "tsbLastSector"
+		Me.tsbLastSector.Size = New System.Drawing.Size(24, 24)
+		Me.tsbLastSector.Text = "ToolStripButton8"
+		Me.tsbLastSector.ToolTipText = "Load Last Sector in Track (Shift+End)"
 		'
 		'ToolStripSeparator8
 		'
@@ -158,30 +258,90 @@ Partial Class FrmMain
 		Me.ToolStripSeparator9.Name = "ToolStripSeparator9"
 		Me.ToolStripSeparator9.Size = New System.Drawing.Size(6, 27)
 		'
+		'TsbFirstPart
+		'
+		Me.TsbFirstPart.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.TsbFirstPart.Image = CType(resources.GetObject("TsbFirstPart.Image"), System.Drawing.Image)
+		Me.TsbFirstPart.ImageTransparentColor = System.Drawing.Color.White
+		Me.TsbFirstPart.Name = "TsbFirstPart"
+		Me.TsbFirstPart.Size = New System.Drawing.Size(24, 24)
+		Me.TsbFirstPart.Text = "First Bundle"
+		Me.TsbFirstPart.ToolTipText = "Load First Sector of First Bundle  (Home)"
+		'
 		'ToolStripSeparator17
 		'
 		Me.ToolStripSeparator17.Name = "ToolStripSeparator17"
 		Me.ToolStripSeparator17.Size = New System.Drawing.Size(6, 27)
+		'
+		'TsbPrevPart
+		'
+		Me.TsbPrevPart.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.TsbPrevPart.Image = CType(resources.GetObject("TsbPrevPart.Image"), System.Drawing.Image)
+		Me.TsbPrevPart.ImageTransparentColor = System.Drawing.Color.White
+		Me.TsbPrevPart.Name = "TsbPrevPart"
+		Me.TsbPrevPart.Size = New System.Drawing.Size(24, 24)
+		Me.TsbPrevPart.Text = "Previous Bundle"
+		Me.TsbPrevPart.ToolTipText = "Load First Sector of Previous Bundle (PgUp)"
 		'
 		'ToolStripSeparator14
 		'
 		Me.ToolStripSeparator14.Name = "ToolStripSeparator14"
 		Me.ToolStripSeparator14.Size = New System.Drawing.Size(6, 27)
 		'
+		'tsbPrevSector4
+		'
+		Me.tsbPrevSector4.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbPrevSector4.Image = CType(resources.GetObject("tsbPrevSector4.Image"), System.Drawing.Image)
+		Me.tsbPrevSector4.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbPrevSector4.Name = "tsbPrevSector4"
+		Me.tsbPrevSector4.Size = New System.Drawing.Size(24, 24)
+		Me.tsbPrevSector4.Text = "Previous Sector"
+		Me.tsbPrevSector4.ToolTipText = "Load Previous Sector in Sequence using Interleave (-)"
+		'
 		'ToolStripSeparator11
 		'
 		Me.ToolStripSeparator11.Name = "ToolStripSeparator11"
 		Me.ToolStripSeparator11.Size = New System.Drawing.Size(6, 27)
+		'
+		'tsbNextSector4
+		'
+		Me.tsbNextSector4.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbNextSector4.Image = CType(resources.GetObject("tsbNextSector4.Image"), System.Drawing.Image)
+		Me.tsbNextSector4.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbNextSector4.Name = "tsbNextSector4"
+		Me.tsbNextSector4.Size = New System.Drawing.Size(24, 24)
+		Me.tsbNextSector4.Text = "Next Sector"
+		Me.tsbNextSector4.ToolTipText = "Load Next Sector in Sequence using Interleave (+)"
 		'
 		'ToolStripSeparator16
 		'
 		Me.ToolStripSeparator16.Name = "ToolStripSeparator16"
 		Me.ToolStripSeparator16.Size = New System.Drawing.Size(6, 27)
 		'
+		'TsbNextPart
+		'
+		Me.TsbNextPart.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.TsbNextPart.Image = CType(resources.GetObject("TsbNextPart.Image"), System.Drawing.Image)
+		Me.TsbNextPart.ImageTransparentColor = System.Drawing.Color.White
+		Me.TsbNextPart.Name = "TsbNextPart"
+		Me.TsbNextPart.Size = New System.Drawing.Size(24, 24)
+		Me.TsbNextPart.Text = "Next Bundle"
+		Me.TsbNextPart.ToolTipText = "Load First Sector of Next Bundle (PgDn)"
+		'
 		'ToolStripSeparator18
 		'
 		Me.ToolStripSeparator18.Name = "ToolStripSeparator18"
 		Me.ToolStripSeparator18.Size = New System.Drawing.Size(6, 27)
+		'
+		'TsbLastPart
+		'
+		Me.TsbLastPart.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.TsbLastPart.Image = CType(resources.GetObject("TsbLastPart.Image"), System.Drawing.Image)
+		Me.TsbLastPart.ImageTransparentColor = System.Drawing.Color.White
+		Me.TsbLastPart.Name = "TsbLastPart"
+		Me.TsbLastPart.Size = New System.Drawing.Size(24, 24)
+		Me.TsbLastPart.Text = "Last Bundle"
+		Me.TsbLastPart.ToolTipText = "Load Last Sector of Last Bundle (End)"
 		'
 		'ToolStripSeparator12
 		'
@@ -264,30 +424,176 @@ Partial Class FrmMain
 		Me.ToolStrip1.TabIndex = 27
 		Me.ToolStrip1.Text = "ToolStrip1"
 		'
+		'tsbNew
+		'
+		Me.tsbNew.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbNew.Image = CType(resources.GetObject("tsbNew.Image"), System.Drawing.Image)
+		Me.tsbNew.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbNew.Name = "tsbNew"
+		Me.tsbNew.Size = New System.Drawing.Size(24, 24)
+		Me.tsbNew.Text = "New D64 file"
+		Me.tsbNew.ToolTipText = "New D64 File (Ctrl+N)"
+		'
 		'ToolStripSeparator3
 		'
 		Me.ToolStripSeparator3.Name = "ToolStripSeparator3"
 		Me.ToolStripSeparator3.Size = New System.Drawing.Size(6, 27)
+		'
+		'tsbOpen
+		'
+		Me.tsbOpen.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbOpen.Image = CType(resources.GetObject("tsbOpen.Image"), System.Drawing.Image)
+		Me.tsbOpen.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbOpen.Name = "tsbOpen"
+		Me.tsbOpen.Size = New System.Drawing.Size(24, 24)
+		Me.tsbOpen.Text = "Open D64 file"
+		Me.tsbOpen.ToolTipText = "Open D64 File (Ctrl+O)"
+		'
+		'tsbSave
+		'
+		Me.tsbSave.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbSave.Image = CType(resources.GetObject("tsbSave.Image"), System.Drawing.Image)
+		Me.tsbSave.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbSave.Name = "tsbSave"
+		Me.tsbSave.Size = New System.Drawing.Size(24, 24)
+		Me.tsbSave.Text = "Save D64 file"
+		Me.tsbSave.ToolTipText = "Save D64 File (Ctrl+S)"
+		'
+		'tsbSaveAs
+		'
+		Me.tsbSaveAs.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbSaveAs.Image = CType(resources.GetObject("tsbSaveAs.Image"), System.Drawing.Image)
+		Me.tsbSaveAs.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbSaveAs.Name = "tsbSaveAs"
+		Me.tsbSaveAs.Size = New System.Drawing.Size(24, 24)
+		Me.tsbSaveAs.Text = "Save D64 file as..."
+		Me.tsbSaveAs.ToolTipText = "Save D64 File As... (F12)"
 		'
 		'ToolStripSeparator1
 		'
 		Me.ToolStripSeparator1.Name = "ToolStripSeparator1"
 		Me.ToolStripSeparator1.Size = New System.Drawing.Size(6, 27)
 		'
+		'tsbUndo
+		'
+		Me.tsbUndo.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.tsbUndo.Enabled = False
+		Me.tsbUndo.Image = CType(resources.GetObject("tsbUndo.Image"), System.Drawing.Image)
+		Me.tsbUndo.ImageTransparentColor = System.Drawing.Color.White
+		Me.tsbUndo.Name = "tsbUndo"
+		Me.tsbUndo.Size = New System.Drawing.Size(24, 24)
+		Me.tsbUndo.Text = "Undo (Ctrl+Z)"
+		'
+		'ToolStripSeparator20
+		'
+		Me.ToolStripSeparator20.Name = "ToolStripSeparator20"
+		Me.ToolStripSeparator20.Size = New System.Drawing.Size(6, 27)
+		'
+		'TsbAddFile
+		'
+		Me.TsbAddFile.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
+		Me.TsbAddFile.Image = CType(resources.GetObject("TsbAddFile.Image"), System.Drawing.Image)
+		Me.TsbAddFile.ImageTransparentColor = System.Drawing.Color.White
+		Me.TsbAddFile.Name = "TsbAddFile"
+		Me.TsbAddFile.Size = New System.Drawing.Size(24, 24)
+		Me.TsbAddFile.ToolTipText = "Add file to Sparkle disk"
+		'
 		'ToolStripSeparator2
 		'
 		Me.ToolStripSeparator2.Name = "ToolStripSeparator2"
 		Me.ToolStripSeparator2.Size = New System.Drawing.Size(6, 27)
+		'
+		'tsbBuildDisk
+		'
+		Me.tsbBuildDisk.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
+		Me.tsbBuildDisk.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.tsmRebuildDisk, Me.TssSep, Me.TsmTestDisk})
+		Me.tsbBuildDisk.Image = CType(resources.GetObject("tsbBuildDisk.Image"), System.Drawing.Image)
+		Me.tsbBuildDisk.ImageTransparentColor = System.Drawing.Color.Magenta
+		Me.tsbBuildDisk.Name = "tsbBuildDisk"
+		Me.tsbBuildDisk.Size = New System.Drawing.Size(137, 24)
+		Me.tsbBuildDisk.Text = "Build Disk from Script"
+		Me.tsbBuildDisk.ToolTipText = "Build Disk from Script (F5)"
+		'
+		'tsmRebuildDisk
+		'
+		Me.tsmRebuildDisk.Name = "tsmRebuildDisk"
+		Me.tsmRebuildDisk.Size = New System.Drawing.Size(201, 22)
+		Me.tsmRebuildDisk.Text = "Rebuild Disk from Script"
+		Me.tsmRebuildDisk.ToolTipText = "Rebuild Disk from previously loaded Script (Shift+F5)"
+		'
+		'TssSep
+		'
+		Me.TssSep.Name = "TssSep"
+		Me.TssSep.Size = New System.Drawing.Size(198, 6)
+		'
+		'TsmTestDisk
+		'
+		Me.TsmTestDisk.Name = "TsmTestDisk"
+		Me.TsmTestDisk.Size = New System.Drawing.Size(201, 22)
+		Me.TsmTestDisk.Text = "Build Test Disk"
 		'
 		'ToolStripSeparator15
 		'
 		Me.ToolStripSeparator15.Name = "ToolStripSeparator15"
 		Me.ToolStripSeparator15.Size = New System.Drawing.Size(6, 27)
 		'
+		'TsbScriptEditor
+		'
+		Me.TsbScriptEditor.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
+		Me.TsbScriptEditor.Image = CType(resources.GetObject("TsbScriptEditor.Image"), System.Drawing.Image)
+		Me.TsbScriptEditor.ImageTransparentColor = System.Drawing.Color.Magenta
+		Me.TsbScriptEditor.Name = "TsbScriptEditor"
+		Me.TsbScriptEditor.Size = New System.Drawing.Size(107, 24)
+		Me.TsbScriptEditor.Text = "Open Script Editor"
+		Me.TsbScriptEditor.ToolTipText = "Open Script Editor (Ctrl+E)"
+		'
+		'TsbAbout
+		'
+		Me.TsbAbout.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right
+		Me.TsbAbout.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
+		Me.TsbAbout.Image = CType(resources.GetObject("TsbAbout.Image"), System.Drawing.Image)
+		Me.TsbAbout.ImageTransparentColor = System.Drawing.Color.Magenta
+		Me.TsbAbout.Name = "TsbAbout"
+		Me.TsbAbout.Size = New System.Drawing.Size(44, 24)
+		Me.TsbAbout.Text = "About"
+		Me.TsbAbout.ToolTipText = "About Sparkle (Ctrl+A)"
+		'
 		'TssAdmin
 		'
 		Me.TssAdmin.Name = "TssAdmin"
 		Me.TssAdmin.Size = New System.Drawing.Size(6, 27)
+		'
+		'TsbAdmin
+		'
+		Me.TsbAdmin.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
+		Me.TsbAdmin.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TsmAssociate, Me.ToolStripSeparator19, Me.TsmDeleteAssociation})
+		Me.TsbAdmin.ForeColor = System.Drawing.SystemColors.ActiveCaptionText
+		Me.TsbAdmin.Image = CType(resources.GetObject("TsbAdmin.Image"), System.Drawing.Image)
+		Me.TsbAdmin.ImageTransparentColor = System.Drawing.Color.Magenta
+		Me.TsbAdmin.Name = "TsbAdmin"
+		Me.TsbAdmin.Size = New System.Drawing.Size(90, 24)
+		Me.TsbAdmin.Text = "Admin Mode"
+		Me.TsbAdmin.ToolTipText = "Administrator Mode Functions"
+		Me.TsbAdmin.Visible = False
+		'
+		'TsmAssociate
+		'
+		Me.TsmAssociate.Name = "TsmAssociate"
+		Me.TsmAssociate.Size = New System.Drawing.Size(210, 22)
+		Me.TsmAssociate.Text = "Associate .sls with Sparkle"
+		Me.TsmAssociate.ToolTipText = "Associate the .sls File Extension with Sparkle"
+		'
+		'ToolStripSeparator19
+		'
+		Me.ToolStripSeparator19.Name = "ToolStripSeparator19"
+		Me.ToolStripSeparator19.Size = New System.Drawing.Size(207, 6)
+		'
+		'TsmDeleteAssociation
+		'
+		Me.TsmDeleteAssociation.Name = "TsmDeleteAssociation"
+		Me.TsmDeleteAssociation.Size = New System.Drawing.Size(210, 22)
+		Me.TsmDeleteAssociation.Text = "Delete .sls file association"
+		Me.TsmDeleteAssociation.ToolTipText = "Delete the Association of the .sls File Extension with Sparkle"
 		'
 		'Panel1
 		'
@@ -315,6 +621,17 @@ Partial Class FrmMain
 		Me.Panel1.Name = "Panel1"
 		Me.Panel1.Size = New System.Drawing.Size(692, 280)
 		Me.Panel1.TabIndex = 26
+		'
+		'Pbx
+		'
+		Me.Pbx.BackColor = System.Drawing.Color.White
+		Me.Pbx.Location = New System.Drawing.Point(421, 16)
+		Me.Pbx.Margin = New System.Windows.Forms.Padding(0)
+		Me.Pbx.Name = "Pbx"
+		Me.Pbx.Padding = New System.Windows.Forms.Padding(1)
+		Me.Pbx.Size = New System.Drawing.Size(260, 260)
+		Me.Pbx.TabIndex = 37
+		Me.Pbx.TabStop = False
 		'
 		'Label18
 		'
@@ -524,323 +841,6 @@ Partial Class FrmMain
 		Me.Label1.Size = New System.Drawing.Size(384, 16)
 		Me.Label1.TabIndex = 19
 		Me.Label1.Text = "00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F"
-		'
-		'ToolStripSeparator20
-		'
-		Me.ToolStripSeparator20.Name = "ToolStripSeparator20"
-		Me.ToolStripSeparator20.Size = New System.Drawing.Size(6, 27)
-		'
-		'tsbBAM
-		'
-		Me.tsbBAM.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbBAM.Image = CType(resources.GetObject("tsbBAM.Image"), System.Drawing.Image)
-		Me.tsbBAM.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbBAM.Name = "tsbBAM"
-		Me.tsbBAM.Size = New System.Drawing.Size(24, 24)
-		Me.tsbBAM.Text = "Load BAM"
-		Me.tsbBAM.ToolTipText = "Load BAM (Ctrl+B)"
-		'
-		'tsbDir
-		'
-		Me.tsbDir.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbDir.Image = CType(resources.GetObject("tsbDir.Image"), System.Drawing.Image)
-		Me.tsbDir.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbDir.Name = "tsbDir"
-		Me.tsbDir.Size = New System.Drawing.Size(24, 24)
-		Me.tsbDir.Text = "Load First Sector of Directory"
-		Me.tsbDir.ToolTipText = "Load First Sector of Directory (Ctrl+D)"
-		'
-		'tsbFirstTrack
-		'
-		Me.tsbFirstTrack.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbFirstTrack.Image = CType(resources.GetObject("tsbFirstTrack.Image"), System.Drawing.Image)
-		Me.tsbFirstTrack.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbFirstTrack.Name = "tsbFirstTrack"
-		Me.tsbFirstTrack.Size = New System.Drawing.Size(24, 24)
-		Me.tsbFirstTrack.Text = "First Track"
-		Me.tsbFirstTrack.ToolTipText = "Step to First Track (Ctrl+Home)"
-		'
-		'tsbPrevTrack
-		'
-		Me.tsbPrevTrack.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbPrevTrack.Image = CType(resources.GetObject("tsbPrevTrack.Image"), System.Drawing.Image)
-		Me.tsbPrevTrack.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbPrevTrack.Name = "tsbPrevTrack"
-		Me.tsbPrevTrack.Size = New System.Drawing.Size(24, 24)
-		Me.tsbPrevTrack.Text = "ToolStripButton2"
-		Me.tsbPrevTrack.ToolTipText = "Step to Previous Track (Ctrl+PgUp)"
-		'
-		'tsbNextTrack
-		'
-		Me.tsbNextTrack.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbNextTrack.Image = CType(resources.GetObject("tsbNextTrack.Image"), System.Drawing.Image)
-		Me.tsbNextTrack.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbNextTrack.Name = "tsbNextTrack"
-		Me.tsbNextTrack.Size = New System.Drawing.Size(24, 24)
-		Me.tsbNextTrack.Text = "ToolStripButton3"
-		Me.tsbNextTrack.ToolTipText = "Step to Next Track (Ctrl+PgDn)"
-		'
-		'tsbLastTrack
-		'
-		Me.tsbLastTrack.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbLastTrack.Image = CType(resources.GetObject("tsbLastTrack.Image"), System.Drawing.Image)
-		Me.tsbLastTrack.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbLastTrack.Name = "tsbLastTrack"
-		Me.tsbLastTrack.Size = New System.Drawing.Size(24, 24)
-		Me.tsbLastTrack.Text = "ToolStripButton4"
-		Me.tsbLastTrack.ToolTipText = "Step to Last Track (Ctrl+End)"
-		'
-		'tsbSector0
-		'
-		Me.tsbSector0.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbSector0.Image = CType(resources.GetObject("tsbSector0.Image"), System.Drawing.Image)
-		Me.tsbSector0.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbSector0.Name = "tsbSector0"
-		Me.tsbSector0.Size = New System.Drawing.Size(24, 24)
-		Me.tsbSector0.Text = "ToolStripButton5"
-		Me.tsbSector0.ToolTipText = "Load Sector 0 in Track (Shift+Home)"
-		'
-		'tsbPrevSector
-		'
-		Me.tsbPrevSector.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbPrevSector.Image = CType(resources.GetObject("tsbPrevSector.Image"), System.Drawing.Image)
-		Me.tsbPrevSector.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbPrevSector.Name = "tsbPrevSector"
-		Me.tsbPrevSector.Size = New System.Drawing.Size(24, 24)
-		Me.tsbPrevSector.Text = "ToolStripButton6"
-		Me.tsbPrevSector.ToolTipText = "Load Previous Sector in Track (Shift+PgUp)"
-		'
-		'tsbNextSector
-		'
-		Me.tsbNextSector.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbNextSector.Image = CType(resources.GetObject("tsbNextSector.Image"), System.Drawing.Image)
-		Me.tsbNextSector.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbNextSector.Name = "tsbNextSector"
-		Me.tsbNextSector.Size = New System.Drawing.Size(24, 24)
-		Me.tsbNextSector.Text = "ToolStripButton7"
-		Me.tsbNextSector.ToolTipText = "Load Next Sector in Track (Shift+PgDn)"
-		'
-		'tsbLastSector
-		'
-		Me.tsbLastSector.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbLastSector.Image = CType(resources.GetObject("tsbLastSector.Image"), System.Drawing.Image)
-		Me.tsbLastSector.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbLastSector.Name = "tsbLastSector"
-		Me.tsbLastSector.Size = New System.Drawing.Size(24, 24)
-		Me.tsbLastSector.Text = "ToolStripButton8"
-		Me.tsbLastSector.ToolTipText = "Load Last Sector in Track (Shift+End)"
-		'
-		'TsbFirstPart
-		'
-		Me.TsbFirstPart.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.TsbFirstPart.Image = CType(resources.GetObject("TsbFirstPart.Image"), System.Drawing.Image)
-		Me.TsbFirstPart.ImageTransparentColor = System.Drawing.Color.White
-		Me.TsbFirstPart.Name = "TsbFirstPart"
-		Me.TsbFirstPart.Size = New System.Drawing.Size(24, 24)
-		Me.TsbFirstPart.Text = "First Bundle"
-		Me.TsbFirstPart.ToolTipText = "Load First Sector of First Bundle  (Home)"
-		'
-		'TsbPrevPart
-		'
-		Me.TsbPrevPart.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.TsbPrevPart.Image = CType(resources.GetObject("TsbPrevPart.Image"), System.Drawing.Image)
-		Me.TsbPrevPart.ImageTransparentColor = System.Drawing.Color.White
-		Me.TsbPrevPart.Name = "TsbPrevPart"
-		Me.TsbPrevPart.Size = New System.Drawing.Size(24, 24)
-		Me.TsbPrevPart.Text = "Previous Bundle"
-		Me.TsbPrevPart.ToolTipText = "Load First Sector of Previous Bundle (PgUp)"
-		'
-		'tsbPrevSector4
-		'
-		Me.tsbPrevSector4.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbPrevSector4.Image = CType(resources.GetObject("tsbPrevSector4.Image"), System.Drawing.Image)
-		Me.tsbPrevSector4.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbPrevSector4.Name = "tsbPrevSector4"
-		Me.tsbPrevSector4.Size = New System.Drawing.Size(24, 24)
-		Me.tsbPrevSector4.Text = "Previous Sector"
-		Me.tsbPrevSector4.ToolTipText = "Load Previous Sector in Sequence using Interleave (-)"
-		'
-		'tsbNextSector4
-		'
-		Me.tsbNextSector4.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbNextSector4.Image = CType(resources.GetObject("tsbNextSector4.Image"), System.Drawing.Image)
-		Me.tsbNextSector4.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbNextSector4.Name = "tsbNextSector4"
-		Me.tsbNextSector4.Size = New System.Drawing.Size(24, 24)
-		Me.tsbNextSector4.Text = "Next Sector"
-		Me.tsbNextSector4.ToolTipText = "Load Next Sector in Sequence using Interleave (+)"
-		'
-		'TsbNextPart
-		'
-		Me.TsbNextPart.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.TsbNextPart.Image = CType(resources.GetObject("TsbNextPart.Image"), System.Drawing.Image)
-		Me.TsbNextPart.ImageTransparentColor = System.Drawing.Color.White
-		Me.TsbNextPart.Name = "TsbNextPart"
-		Me.TsbNextPart.Size = New System.Drawing.Size(24, 24)
-		Me.TsbNextPart.Text = "Next Bundle"
-		Me.TsbNextPart.ToolTipText = "Load First Sector of Next Bundle (PgDn)"
-		'
-		'TsbLastPart
-		'
-		Me.TsbLastPart.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.TsbLastPart.Image = CType(resources.GetObject("TsbLastPart.Image"), System.Drawing.Image)
-		Me.TsbLastPart.ImageTransparentColor = System.Drawing.Color.White
-		Me.TsbLastPart.Name = "TsbLastPart"
-		Me.TsbLastPart.Size = New System.Drawing.Size(24, 24)
-		Me.TsbLastPart.Text = "Last Bundle"
-		Me.TsbLastPart.ToolTipText = "Load Last Sector of Last Bundle (End)"
-		'
-		'tsbNew
-		'
-		Me.tsbNew.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbNew.Image = CType(resources.GetObject("tsbNew.Image"), System.Drawing.Image)
-		Me.tsbNew.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbNew.Name = "tsbNew"
-		Me.tsbNew.Size = New System.Drawing.Size(24, 24)
-		Me.tsbNew.Text = "New D64 file"
-		Me.tsbNew.ToolTipText = "New D64 File (Ctrl+N)"
-		'
-		'tsbOpen
-		'
-		Me.tsbOpen.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbOpen.Image = CType(resources.GetObject("tsbOpen.Image"), System.Drawing.Image)
-		Me.tsbOpen.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbOpen.Name = "tsbOpen"
-		Me.tsbOpen.Size = New System.Drawing.Size(24, 24)
-		Me.tsbOpen.Text = "Open D64 file"
-		Me.tsbOpen.ToolTipText = "Open D64 File (Ctrl+O)"
-		'
-		'tsbSave
-		'
-		Me.tsbSave.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbSave.Image = CType(resources.GetObject("tsbSave.Image"), System.Drawing.Image)
-		Me.tsbSave.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbSave.Name = "tsbSave"
-		Me.tsbSave.Size = New System.Drawing.Size(24, 24)
-		Me.tsbSave.Text = "Save D64 file"
-		Me.tsbSave.ToolTipText = "Save D64 File (Ctrl+S)"
-		'
-		'tsbSaveAs
-		'
-		Me.tsbSaveAs.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbSaveAs.Image = CType(resources.GetObject("tsbSaveAs.Image"), System.Drawing.Image)
-		Me.tsbSaveAs.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbSaveAs.Name = "tsbSaveAs"
-		Me.tsbSaveAs.Size = New System.Drawing.Size(24, 24)
-		Me.tsbSaveAs.Text = "Save D64 file as..."
-		Me.tsbSaveAs.ToolTipText = "Save D64 File As... (F12)"
-		'
-		'tsbUndo
-		'
-		Me.tsbUndo.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.tsbUndo.Enabled = False
-		Me.tsbUndo.Image = CType(resources.GetObject("tsbUndo.Image"), System.Drawing.Image)
-		Me.tsbUndo.ImageTransparentColor = System.Drawing.Color.White
-		Me.tsbUndo.Name = "tsbUndo"
-		Me.tsbUndo.Size = New System.Drawing.Size(24, 24)
-		Me.tsbUndo.Text = "Undo (Ctrl+Z)"
-		'
-		'TsbAddFile
-		'
-		Me.TsbAddFile.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image
-		Me.TsbAddFile.Image = CType(resources.GetObject("TsbAddFile.Image"), System.Drawing.Image)
-		Me.TsbAddFile.ImageTransparentColor = System.Drawing.Color.Magenta
-		Me.TsbAddFile.Name = "TsbAddFile"
-		Me.TsbAddFile.Size = New System.Drawing.Size(24, 24)
-		Me.TsbAddFile.ToolTipText = "Add file to Sparkle disk"
-		'
-		'tsbBuildDisk
-		'
-		Me.tsbBuildDisk.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
-		Me.tsbBuildDisk.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.tsmRebuildDisk, Me.TssSep, Me.TsmTestDisk})
-		Me.tsbBuildDisk.Image = CType(resources.GetObject("tsbBuildDisk.Image"), System.Drawing.Image)
-		Me.tsbBuildDisk.ImageTransparentColor = System.Drawing.Color.Magenta
-		Me.tsbBuildDisk.Name = "tsbBuildDisk"
-		Me.tsbBuildDisk.Size = New System.Drawing.Size(137, 24)
-		Me.tsbBuildDisk.Text = "Build Disk from Script"
-		Me.tsbBuildDisk.ToolTipText = "Build Disk from Script (F5)"
-		'
-		'tsmRebuildDisk
-		'
-		Me.tsmRebuildDisk.Name = "tsmRebuildDisk"
-		Me.tsmRebuildDisk.Size = New System.Drawing.Size(201, 22)
-		Me.tsmRebuildDisk.Text = "Rebuild Disk from Script"
-		Me.tsmRebuildDisk.ToolTipText = "Rebuild Disk from previously loaded Script (Shift+F5)"
-		'
-		'TssSep
-		'
-		Me.TssSep.Name = "TssSep"
-		Me.TssSep.Size = New System.Drawing.Size(198, 6)
-		'
-		'TsmTestDisk
-		'
-		Me.TsmTestDisk.Name = "TsmTestDisk"
-		Me.TsmTestDisk.Size = New System.Drawing.Size(201, 22)
-		Me.TsmTestDisk.Text = "Build Test Disk"
-		'
-		'TsbScriptEditor
-		'
-		Me.TsbScriptEditor.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
-		Me.TsbScriptEditor.Image = CType(resources.GetObject("TsbScriptEditor.Image"), System.Drawing.Image)
-		Me.TsbScriptEditor.ImageTransparentColor = System.Drawing.Color.Magenta
-		Me.TsbScriptEditor.Name = "TsbScriptEditor"
-		Me.TsbScriptEditor.Size = New System.Drawing.Size(107, 24)
-		Me.TsbScriptEditor.Text = "Open Script Editor"
-		Me.TsbScriptEditor.ToolTipText = "Open Script Editor (Ctrl+E)"
-		'
-		'TsbAbout
-		'
-		Me.TsbAbout.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right
-		Me.TsbAbout.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
-		Me.TsbAbout.Image = CType(resources.GetObject("TsbAbout.Image"), System.Drawing.Image)
-		Me.TsbAbout.ImageTransparentColor = System.Drawing.Color.Magenta
-		Me.TsbAbout.Name = "TsbAbout"
-		Me.TsbAbout.Size = New System.Drawing.Size(44, 24)
-		Me.TsbAbout.Text = "About"
-		Me.TsbAbout.ToolTipText = "About Sparkle (Ctrl+A)"
-		'
-		'TsbAdmin
-		'
-		Me.TsbAdmin.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
-		Me.TsbAdmin.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TsmAssociate, Me.ToolStripSeparator19, Me.TsmDeleteAssociation})
-		Me.TsbAdmin.ForeColor = System.Drawing.SystemColors.ActiveCaptionText
-		Me.TsbAdmin.Image = CType(resources.GetObject("TsbAdmin.Image"), System.Drawing.Image)
-		Me.TsbAdmin.ImageTransparentColor = System.Drawing.Color.Magenta
-		Me.TsbAdmin.Name = "TsbAdmin"
-		Me.TsbAdmin.Size = New System.Drawing.Size(90, 24)
-		Me.TsbAdmin.Text = "Admin Mode"
-		Me.TsbAdmin.ToolTipText = "Administrator Mode Functions"
-		Me.TsbAdmin.Visible = False
-		'
-		'TsmAssociate
-		'
-		Me.TsmAssociate.Name = "TsmAssociate"
-		Me.TsmAssociate.Size = New System.Drawing.Size(210, 22)
-		Me.TsmAssociate.Text = "Associate .sls with Sparkle"
-		Me.TsmAssociate.ToolTipText = "Associate the .sls File Extension with Sparkle"
-		'
-		'ToolStripSeparator19
-		'
-		Me.ToolStripSeparator19.Name = "ToolStripSeparator19"
-		Me.ToolStripSeparator19.Size = New System.Drawing.Size(207, 6)
-		'
-		'TsmDeleteAssociation
-		'
-		Me.TsmDeleteAssociation.Name = "TsmDeleteAssociation"
-		Me.TsmDeleteAssociation.Size = New System.Drawing.Size(210, 22)
-		Me.TsmDeleteAssociation.Text = "Delete .sls file association"
-		Me.TsmDeleteAssociation.ToolTipText = "Delete the Association of the .sls File Extension with Sparkle"
-		'
-		'Pbx
-		'
-		Me.Pbx.BackColor = System.Drawing.Color.White
-		Me.Pbx.Location = New System.Drawing.Point(421, 16)
-		Me.Pbx.Margin = New System.Windows.Forms.Padding(0)
-		Me.Pbx.Name = "Pbx"
-		Me.Pbx.Padding = New System.Windows.Forms.Padding(1)
-		Me.Pbx.Size = New System.Drawing.Size(260, 260)
-		Me.Pbx.TabIndex = 37
-		Me.Pbx.TabStop = False
 		'
 		'FrmMain
 		'

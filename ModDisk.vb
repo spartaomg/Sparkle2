@@ -1764,13 +1764,16 @@ NoSort:
 		For I As Integer = 1 To ScriptEntryArray.Count - 1
 
 			'Remove HEX prefix
-			If InStr(ScriptEntryArray(I), "$") <> 0 Then        'C64
-				Replace(ScriptEntryArray(I), "$", "")
-			ElseIf InStr(ScriptEntryArray(I), "&H") <> 0 Then   'VB
-				Replace(ScriptEntryArray(I), "&H", "")
-			ElseIf InStr(ScriptEntryArray(I), "0x") <> 0 Then   'C, C++, C#, Java, Python, etc.
-				Replace(ScriptEntryArray(I), "0x", "")
-			End If
+			'If InStr(ScriptEntryArray(I), "$") <> 0 Then        'C64
+			Replace(ScriptEntryArray(I), "$", "")
+			'ElseIf InStr(ScriptEntryArray(I), "&H") <> 0 Then   'VB
+			Replace(ScriptEntryArray(I), "&H", "")
+			'ElseIf InStr(ScriptEntryArray(I), "0x") <> 0 Then   'C, C++, C#, Java, Python, etc.
+			Replace(ScriptEntryArray(I), "0x", "")
+			'End If
+
+			'Remove unwanted spaces
+			Replace(ScriptEntryArray(I), " ", "")
 
 			Select Case I
 				Case 2      'File Offset max. $ffff ffff (dword)

@@ -3270,6 +3270,7 @@ Err:
 					NewD = False
 					If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
 
+					CorrectFileParameterFormat()
 					AddFileToScriptNode(BaseNode, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
 					NewBundle = False
 				Case "new block", "next block", "new sector", "align bundle", "align"
@@ -3551,6 +3552,7 @@ Done:
 					NewD = False
 					If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
 
+					CorrectFileParameterFormat()
 					AddFileToScriptNode(SN, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
 					NewBundle = False
 				Case "new block", "next block", "new sector", "align bundle", "align"
@@ -3566,6 +3568,50 @@ Err:
 		MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
 
 	End Sub
+
+	Private Sub CorrectFileParameterFormat()
+		On Error GoTo Err
+
+		'Correct file parameter lengths to 4-8 characters
+		For I As Integer = 1 To ScriptEntryArray.Count - 1
+
+			ScriptEntryArray(I) = Strings.LCase(ScriptEntryArray(I))
+
+			'Remove HEX prefix
+			'If InStr(ScriptEntryArray(I), "$") <> 0 Then        'C64
+			Replace(ScriptEntryArray(I), "$", "")
+			'ElseIf InStr(ScriptEntryArray(I), "&h") <> 0 Then   'VB
+			Replace(ScriptEntryArray(I), "&h", "")
+			'ElseIf InStr(ScriptEntryArray(I), "0x") <> 0 Then   'C, C++, C#, Java, Python, etc.
+			Replace(ScriptEntryArray(I), "0x", "")
+			'End If
+
+			'Remove unwanted spaces
+			Replace(ScriptEntryArray(I), " ", "")
+
+			Select Case I
+				Case 2      'File Offset max. $ffff ffff (dword)
+					If ScriptEntryArray(I).Length < 8 Then
+						ScriptEntryArray(I) = Strings.Left("00000000", 8 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+					ElseIf (I = 2) And (ScriptEntryArray(I).Length > 8) Then
+						ScriptEntryArray(I) = Strings.Right(ScriptEntryArray(I), 8)
+					End If
+				Case Else   'File Address, File Length max. $ffff
+					If ScriptEntryArray(I).Length < 4 Then
+						ScriptEntryArray(I) = Strings.Left("0000", 4 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+					ElseIf ScriptEntryArray(I).Length > 4 Then
+						ScriptEntryArray(I) = Strings.Right(ScriptEntryArray(I), 4)
+					End If
+			End Select
+		Next
+
+		Exit Sub
+Err:
+		ErrCode = Err.Number
+		MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+	End Sub
+
 	Private Sub AddDiskToScriptNode(SN As TreeNode)
 		On Error GoTo Err
 
