@@ -636,8 +636,6 @@ Err:
 			CS += 1
 		Next
 
-		Disk(Track(18) + (14 * 256) + 33) = idcNextID   'ZP location $21 - Next ID
-
 		'Next Side Info on last 3 bytes of BAM!!!
 		Disk(Track(18) + (0 * 256) + 255) = EORtransform(idcDiskID)
 		'Disk(Track(18) + (0 * 256) + 254) = idcFileCnt
@@ -649,12 +647,15 @@ Err:
 		Disk(Track(18) + (0 * 256) + 250) = EORtransform(IL0)
 		Disk(Track(18) + (0 * 256) + 249) = EORtransform(256 - IL0)
 
+		Dim ZPNextIDLoc As Integer = &H7E
+
+		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 0) = idcNextID   'ZP location $7e - Next ID
 		'TODO
-		Disk(Track(18) + (14 * 256) + 96) = 256 - IL3
-		Disk(Track(18) + (14 * 256) + 97) = 256 - IL2
-		Disk(Track(18) + (14 * 256) + 98) = 256 - IL1
-		Disk(Track(18) + (14 * 256) + 99) = IL0
-		Disk(Track(18) + (14 * 256) + 100) = 256 - IL0
+		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 1) = 256 - IL3
+		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 2) = 256 - IL2
+		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 3) = 256 - IL1
+		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 4) = IL0
+		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 5) = 256 - IL0
 
 		Exit Function
 Err:
