@@ -30,8 +30,8 @@
     <PublisherName>Sparta of OMG 2019</PublisherName>
     <SuiteName>Sparkle</SuiteName>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>923</ApplicationRevision>
-    <ApplicationVersion>2.0.20.0923</ApplicationVersion>
+    <ApplicationRevision>927</ApplicationRevision>
+    <ApplicationVersion>2.0.20.0927</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
