@@ -964,9 +964,14 @@ NextPart:   'Match Bit is not needed if this is the beginning of the next block
 				'-------------------------------------------------------------------
 				BytePtr -= 3
 				If FromEditor = False Then
-					'Only if we are NOT in the Editor
-					DirBlocks((BundleNo * 4) + 3) = BitPtr
-					DirPtr(BundleNo) = BufferCnt
+					'Only if we are NOT in the Editor AND BundleNo<128
+					If BundleNo < 128 Then
+						DirBlocks((BundleNo * 4) + 3) = BitPtr
+						DirPtr(BundleNo) = BufferCnt
+					End If
+					'Save last, "dummy" bundle info
+					LastBitPtr = BitPtr
+					LastBufferCnt = BufferCnt
 					'BundleNo += 1
 				End If
 			End If

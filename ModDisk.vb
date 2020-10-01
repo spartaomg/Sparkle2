@@ -11,6 +11,8 @@ Friend Module ModDisk
 	Public Drive() As Byte
 	Public DirBlocks(511) As Byte
 	Public DirPtr(127) As Integer
+	Public LastBitPtr As Integer
+	Public LastBufferCnt As Integer
 
 	Public TotLit, TotMatch As Integer
 
@@ -575,7 +577,8 @@ Err:
 		'DirBlocks(1) = EORtransform(Sector)
 		'DirBlocks(2) = EORtransform(Remaining sectors on track)
 		'DirBlocks(3) = BitPtr
-		If (BundleNo >= 0) Then
+
+		If BundleNo >= 0 Then     'This may be unneccesary, there is always at least 1 bundle on the disk
 			For I As Integer = BundleNo + 1 To 127
 				DirBlocks((I * 4) + 3) = DirBlocks((BundleNo * 4) + 3)
 				DirPtr(I) = DirPtr(BundleNo)
@@ -586,6 +589,24 @@ Err:
 			DirBlocks(I * 4) = EORtransform(TabT(DirPtr(I)))
 			DirBlocks((I * 4) + 1) = EORtransform(TabStartS(TabT(DirPtr(I))))
 			DirBlocks((I * 4) + 2) = EORtransform(TabSCnt(DirPtr(I)))
+		Next
+
+		'Resort directory sectors to allow simple copy from $0100 to $0700
+		'Dir Block: $00,$ff,$fe,$fd,$fc,...,$01
+		'Buffer:	$00,$01,$02,$03,$04,...,$ff
+
+		Dim DB0(255), DB1(255) As Byte
+		Dim B As Integer = 0
+		For I As Integer = 0 To 255
+			DB0(B) = DirBlocks(I)
+			DB1(B) = DirBlocks(I + 256)
+			B -= 1
+			If B < 0 Then B += 256
+		Next
+
+		For I = 0 To 255
+			DirBlocks(I) = DB0(I)
+			DirBlocks(I + 256) = DB1(I)
 		Next
 
 		For I As Integer = 0 To 511
@@ -608,16 +629,27 @@ Err:
 		ReDim Preserve Drive((6 * 256) + 1)
 		'End If
 
-		Dim TmpB As Byte
+		Dim B3(255) As Byte
+		Dim B As Integer = 0
+
+		'Resort and EOR transform Block 3
+		For I = 0 To 255
+			B3(B) = EORtransform(Drive((3 * 256) + I + 2))
+			B -= 1
+			If B < 0 Then B += 256
+		Next
+
+		'Save last, "dummy" bundle info to the last 4 bytes of the Init Code, needs REVERSED EOR Transform as it is used in the drive code
+		Drive((5 * 256) + 252 + 2) = TabT(LastBufferCnt)
+		Drive((5 * 256) + 253 + 2) = TabStartS(TabT(LastBufferCnt))
+		Drive((5 * 256) + 254 + 2) = TabSCnt(LastBufferCnt)
+		Drive((5 * 256) + 255 + 2) = EORtransform(LastBitPtr)
 
 		'Resort blocks in drive code:
-		'Block 3 (communication code) to Block 5 EOR transformed
-		'Block 5 (ZP code and tabs) to Block 3 NOT EOR transformed
 		For I = 0 To 255
-			TmpB = Drive((3 * 256) + I + 2)                         'Save block 3
 			Drive((3 * 256) + I + 2) = Drive((4 * 256) + I + 2)     'Copy ZP GCR Tab and GCR loop to block 3 for loading
 			Drive((4 * 256) + I + 2) = Drive((5 * 256) + I + 2)     'Copy Init code to block 4 for loading
-			Drive((5 * 256) + I + 2) = EORtransform(TmpB)           'Copy original block 3 EOR transformed to block 5 to be loaded by init code
+			Drive((5 * 256) + I + 2) = B3(I)                        'Copy original block 3 EOR transformed to block 5 to be loaded by init code
 		Next
 
 		'TODO
@@ -636,10 +668,10 @@ Err:
 			CS += 1
 		Next
 
-		'Next Side Info on last 3 bytes of BAM!!!
+		'Next Side Info on last 2 bytes of BAM!!!
 		Disk(Track(18) + (0 * 256) + 255) = EORtransform(idcDiskID)
-		'Disk(Track(18) + (0 * 256) + 254) = idcFileCnt
 		Disk(Track(18) + (0 * 256) + 254) = EORtransform(idcNextID)
+
 		'Add Custom Interleave Info
 		Disk(Track(18) + (0 * 256) + 253) = EORtransform(256 - IL3)
 		Disk(Track(18) + (0 * 256) + 252) = EORtransform(256 - IL2)
@@ -649,8 +681,8 @@ Err:
 
 		Dim ZPNextIDLoc As Integer = &H7E
 
-		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 0) = idcNextID   'ZP location $7e - Next ID
-		'TODO
+		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 0) = idcNextID
+
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 1) = 256 - IL3
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 2) = 256 - IL2
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 3) = 256 - IL1
@@ -1441,9 +1473,10 @@ TryAgain:
 				MaxBundleNoExceeded = True
 			End If
 		End If
-			'-------------------------------------------------------
 
-			NewBundle = True
+		'-------------------------------------------------------
+
+		NewBundle = True
 		LastFileOfBundle = False
 		For I As Integer = 0 To Prgs.Count - 1
 			'Mark the last file in a bundle for better compression

@@ -1626,10 +1626,6 @@ NoGo:
 
 	End Function
 
-	Private Function FindNextSector(T As Integer, S As Integer) As Boolean
-
-	End Function
-
 	Private Sub FrmMain_DragEnter(sender As Object, e As DragEventArgs) Handles Me.DragEnter
 		On Error GoTo Err
 
