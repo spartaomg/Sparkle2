@@ -859,39 +859,40 @@ Err:
 		'ZP=02 is the default, no need to update
 		If ZP = 2 Then Exit Sub
 
-		'Find the LDA #$00 LDX #$00 sequence in the code - beginning of loader
+		'Find the STA $04 JSR $01df sequence in the code - beginning of loader
 		Dim LoaderBase As Integer = 0
 		For I As Integer = 0 To Loader.Length - 1 - 3
-			If (Loader(I) = &HA9) And (Loader(I + 1) = &H0) And (Loader(I + 2) = &HA2) And (Loader(I + 3) = &H0) Then
+			If (Loader(I) = &H85) And (Loader(I + 1) = &H4) And (Loader(I + 2) = &H20) And (Loader(I + 3) = &HDF) And (Loader(I + 4) = &H1) Then
 				LoaderBase = I
 				Exit For
 			End If
 		Next
-		'	                                 Instructions       Types
-		Loader(LoaderBase + &HA6) = ZP      'STA ZP             STA ZP
-		Loader(LoaderBase + &HCD) = ZP      'ADC ZP				ADC ZP
-		Loader(LoaderBase + &HCF) = ZP      'STA ZP             STA (ZP),Y
-		Loader(LoaderBase + &HE2) = ZP      'ADC ZP
-		Loader(LoaderBase + &HE4) = ZP      'STA ZP
-		Loader(LoaderBase + &HF3) = ZP      'STA (ZP),Y
-		Loader(LoaderBase + &H102) = ZP     'ADC ZP
-		Loader(LoaderBase + &H104) = ZP     'STA ZP
-		Loader(LoaderBase + &H110) = ZP     'ADC ZP
-		Loader(LoaderBase + &H121) = ZP     'STA (ZP),Y
 
-		Loader(LoaderBase + &HB5) = ZP + 1  'STA ZP+1           STA ZP+1
-		Loader(LoaderBase + &HD7) = ZP + 1  'DEC ZP+1           DEC ZP+1
-		Loader(LoaderBase + &HE8) = ZP + 1  'DEC ZP+1           LDA ZP+1
-		Loader(LoaderBase + &H108) = ZP + 1 'DEC ZP+1
-		Loader(LoaderBase + &H115) = ZP + 1 'LDA ZP+1
-
-		Loader(LoaderBase + &H67) = ZP + 2  'STA ZP+2           STA ZP+2
-		Loader(LoaderBase + &H75) = ZP + 2  'LDA ZP+2           LDA ZP+2
-		Loader(LoaderBase + &H9C) = ZP + 2  'STA ZP+2           ASL ZP+2
-		Loader(LoaderBase + &H126) = ZP + 2 'ASL ZP+2           ROL ZP+2
-		Loader(LoaderBase + &H131) = ZP + 2 'STA ZP+2
-		Loader(LoaderBase + &H135) = ZP + 2 'ROL ZP+2
-		Loader(LoaderBase + &H140) = ZP + 2 'STA ZP+2
+		'ZP	                                 Instructions       Types
+		Loader(LoaderBase + &HB2) = ZP      'STA ZP             STA ZP
+		Loader(LoaderBase + &HDC) = ZP      'ADC ZP				ADC ZP
+		Loader(LoaderBase + &HDE) = ZP      'STA ZP             STA (ZP),Y
+		Loader(LoaderBase + &HF1) = ZP      'ADC ZP
+		Loader(LoaderBase + &HF3) = ZP      'STA ZP
+		Loader(LoaderBase + &H102) = ZP     'STA (ZP),Y
+		Loader(LoaderBase + &H111) = ZP     'ADC ZP
+		Loader(LoaderBase + &H113) = ZP     'STA ZP
+		Loader(LoaderBase + &H11F) = ZP     'ADC ZP
+		Loader(LoaderBase + &H130) = ZP     'STA (ZP),Y
+		'ZP+1
+		Loader(LoaderBase + &HC1) = ZP + 1  'STA ZP+1           STA ZP+1
+		Loader(LoaderBase + &HE6) = ZP + 1  'DEC ZP+1           DEC ZP+1
+		Loader(LoaderBase + &HF7) = ZP + 1  'DEC ZP+1           LDA ZP+1
+		Loader(LoaderBase + &H117) = ZP + 1 'DEC ZP+1
+		Loader(LoaderBase + &H124) = ZP + 1 'LDA ZP+1
+		'Bits
+		Loader(LoaderBase + &H1) = ZP + 2   'STA Bits           STA Bits
+		Loader(LoaderBase + &H1E) = ZP + 2  'ROR Bits           ROR Bits
+		Loader(LoaderBase + &HA7) = ZP + 2  'STA Bits           ASL Bits
+		Loader(LoaderBase + &H135) = ZP + 2 'ASL Bits           ROL Bits
+		Loader(LoaderBase + &H140) = ZP + 2 'STA Bits
+		Loader(LoaderBase + &H144) = ZP + 2 'ROL Bits
+		Loader(LoaderBase + &H14F) = ZP + 2 'STA Bits
 
 		Exit Sub
 Err:
