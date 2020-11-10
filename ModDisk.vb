@@ -679,6 +679,12 @@ Err:
 		Disk(Track(18) + (0 * 256) + 250) = EORtransform(IL0)
 		Disk(Track(18) + (0 * 256) + 249) = EORtransform(256 - IL0)
 
+		'"Dummy" bundle info EOR transformed - to be copied to NoFlipTab after disk flip
+		Disk(Track(18) + (0 * 256) + 248) = EORtransform(TabT(LastBufferCnt))
+		Disk(Track(18) + (0 * 256) + 247) = EORtransform(TabStartS(TabT(LastBufferCnt)))
+		Disk(Track(18) + (0 * 256) + 246) = EORtransform(TabSCnt(LastBufferCnt))
+		Disk(Track(18) + (0 * 256) + 245) = LastBitPtr
+
 		Dim ZPNextIDLoc As Integer = &H7E
 
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 0) = idcNextID
@@ -735,8 +741,8 @@ Err:
 			Loader = My.Resources.SLT
 		End If
 
-		For I = 0 To Loader.Length - 3      'Find JMP $0181 instruction (JMP Load)
-			If (Loader(I) = &H4C) And (Loader(I + 1) = &H81) And (Loader(I + 2) = &H1) Then
+		For I = 0 To Loader.Length - 3      'Find JMP $017f instruction (JMP Load)
+			If (Loader(I) = &H4C) And (Loader(I + 1) = &H7F) And (Loader(I + 2) = &H1) Then
 				Loader(I - 2) = AdLo        'Lo Byte return address at the end of Loader
 				Loader(I - 5) = AdHi        'Hi Byte return address at the end of Loader
 				Exit For
@@ -859,40 +865,40 @@ Err:
 		'ZP=02 is the default, no need to update
 		If ZP = 2 Then Exit Sub
 
-		'Find the STA $04 JSR $01df sequence in the code - beginning of loader
+		'Find the STA $04 JSR $01dd sequence in the code - beginning of loader
 		Dim LoaderBase As Integer = 0
 		For I As Integer = 0 To Loader.Length - 1 - 3
-			If (Loader(I) = &H85) And (Loader(I + 1) = &H4) And (Loader(I + 2) = &H20) And (Loader(I + 3) = &HDF) And (Loader(I + 4) = &H1) Then
+			If (Loader(I) = &H85) And (Loader(I + 1) = &H4) And (Loader(I + 2) = &H20) And (Loader(I + 3) = &HDD) And (Loader(I + 4) = &H1) Then
 				LoaderBase = I
 				Exit For
 			End If
 		Next
 
 		'ZP	                                 Instructions       Types
-		Loader(LoaderBase + &HB2) = ZP      'STA ZP             STA ZP
-		Loader(LoaderBase + &HDC) = ZP      'ADC ZP				ADC ZP
-		Loader(LoaderBase + &HDE) = ZP      'STA ZP             STA (ZP),Y
-		Loader(LoaderBase + &HF1) = ZP      'ADC ZP
-		Loader(LoaderBase + &HF3) = ZP      'STA ZP
-		Loader(LoaderBase + &H102) = ZP     'STA (ZP),Y
-		Loader(LoaderBase + &H111) = ZP     'ADC ZP
-		Loader(LoaderBase + &H113) = ZP     'STA ZP
-		Loader(LoaderBase + &H11F) = ZP     'ADC ZP
-		Loader(LoaderBase + &H130) = ZP     'STA (ZP),Y
+		Loader(LoaderBase + &HAF) = ZP      'STA ZP             STA ZP
+		Loader(LoaderBase + &HD9) = ZP      'ADC ZP				ADC ZP
+		Loader(LoaderBase + &HDB) = ZP      'STA ZP             STA (ZP),Y
+		Loader(LoaderBase + &HEE) = ZP      'ADC ZP
+		Loader(LoaderBase + &HF0) = ZP      'STA ZP
+		Loader(LoaderBase + &HFF) = ZP      'STA (ZP),Y
+		Loader(LoaderBase + &H10E) = ZP     'ADC ZP
+		Loader(LoaderBase + &H110) = ZP     'STA ZP
+		Loader(LoaderBase + &H11C) = ZP     'ADC ZP
+		Loader(LoaderBase + &H12D) = ZP     'STA (ZP),Y
 		'ZP+1
-		Loader(LoaderBase + &HC1) = ZP + 1  'STA ZP+1           STA ZP+1
-		Loader(LoaderBase + &HE6) = ZP + 1  'DEC ZP+1           DEC ZP+1
-		Loader(LoaderBase + &HF7) = ZP + 1  'DEC ZP+1           LDA ZP+1
-		Loader(LoaderBase + &H117) = ZP + 1 'DEC ZP+1
-		Loader(LoaderBase + &H124) = ZP + 1 'LDA ZP+1
+		Loader(LoaderBase + &HBE) = ZP + 1  'STA ZP+1           STA ZP+1
+		Loader(LoaderBase + &HE3) = ZP + 1  'DEC ZP+1           DEC ZP+1
+		Loader(LoaderBase + &HF4) = ZP + 1  'DEC ZP+1           LDA ZP+1
+		Loader(LoaderBase + &H114) = ZP + 1 'DEC ZP+1
+		Loader(LoaderBase + &H121) = ZP + 1 'LDA ZP+1
 		'Bits
 		Loader(LoaderBase + &H1) = ZP + 2   'STA Bits           STA Bits
-		Loader(LoaderBase + &H1E) = ZP + 2  'ROR Bits           ROR Bits
-		Loader(LoaderBase + &HA7) = ZP + 2  'STA Bits           ASL Bits
-		Loader(LoaderBase + &H135) = ZP + 2 'ASL Bits           ROL Bits
-		Loader(LoaderBase + &H140) = ZP + 2 'STA Bits
-		Loader(LoaderBase + &H144) = ZP + 2 'ROL Bits
-		Loader(LoaderBase + &H14F) = ZP + 2 'STA Bits
+		Loader(LoaderBase + &H1C) = ZP + 2  'ROR Bits           ROR Bits
+		Loader(LoaderBase + &HA4) = ZP + 2  'STA Bits           ASL Bits
+		Loader(LoaderBase + &H132) = ZP + 2 'ASL Bits           ROL Bits
+		Loader(LoaderBase + &H13D) = ZP + 2 'STA Bits
+		Loader(LoaderBase + &H141) = ZP + 2 'ROL Bits
+		Loader(LoaderBase + &H14C) = ZP + 2 'STA Bits
 
 		Exit Sub
 Err:
