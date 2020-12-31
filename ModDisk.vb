@@ -1761,11 +1761,13 @@ SortDone:
 		'Once Bundle is sorted, calculate the I/O status of the last byte of the first file and the number of bits that will be needed
 		'to finish the last block of the previous bundle (when the I/O status of the just sorted bundle needs to be known)
 		'This is used in CloseBuffer
-		'Bytes needed: LongMatch Tag, NextBundle Tag, AdLo, AdHi, First Lit, +/- I/O, + 1 Lit Bit + 1 Match Bit
+		'Bytes needed: LongMatch Tag, NextBundle Tag, AdLo, AdHi, First Lit, +/- I/O, 1 Bit Stream Byte (for 1 Lit Bit), +/- 1 Match Bit
 		'We may be overcalculating here but that is safer than undercalculating which would result in buggy decompression
 		'If the last block is not the actual last block of the bundle...
 		'With overcalculation, worst case scenario is a little bit worse compression ratio of the last block
-		BitsNeededForNextBundle = ((5 + CheckNextIO(tmpFileAddrA(0), tmpFileLenA(0), tmpFileIOA(0))) * 8) + 2
+		'BitsNeededForNextBundle = ((5 + CheckNextIO(tmpFileAddrA(0), tmpFileLenA(0), tmpFileIOA(0))) * 8) + 2
+		BitsNeededForNextBundle = (6 + CheckNextIO(tmpFileAddrA(0), tmpFileLenA(0), tmpFileIOA(0))) * 8
+		' +/- 1 Match Bit which will be added later in CloseBuffer if needed
 
 		Exit Function
 Err:
