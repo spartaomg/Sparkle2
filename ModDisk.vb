@@ -165,6 +165,8 @@ Friend Module ModDisk
 	Public CompressBundleFromEditor As Boolean = False
 	Public LastFileOfBundle As Boolean = False
 
+	Public AddSaveCode As Boolean = True
+
 	Public Sub SetLastSector()
 		On Error GoTo Err
 
@@ -639,11 +641,12 @@ Err:
 			If B < 0 Then B += 256
 		Next
 
-		'Save last, "dummy" bundle info to the last 4 bytes of the Init Code, needs REVERSED EOR Transform as it is used in the drive code
-		Drive((5 * 256) + 252 + 2) = TabT(LastBufferCnt)
-		Drive((5 * 256) + 253 + 2) = TabStartS(TabT(LastBufferCnt))
-		Drive((5 * 256) + 254 + 2) = TabSCnt(LastBufferCnt)
-		Drive((5 * 256) + 255 + 2) = EORtransform(LastBitPtr)
+		'Save last, "dummy" bundle info to $03a1-$03a5, needs REVERSED EOR Transform as it is used in the drive code
+		Drive(161 + 2) = TabT(LastBufferCnt)
+		Drive(162 + 2) = TabStartS(TabT(LastBufferCnt))
+		Drive(163 + 2) = TabSCnt(LastBufferCnt)
+		Drive(164 + 2) = EORtransform(LastBitPtr)
+
 
 		'Resort blocks in drive code:
 		For I = 0 To 255
@@ -651,10 +654,6 @@ Err:
 			Drive((4 * 256) + I + 2) = Drive((5 * 256) + I + 2)     'Copy Init code to block 4 for loading
 			Drive((5 * 256) + I + 2) = B3(I)                        'Copy original block 3 EOR transformed to block 5 to be loaded by init code
 		Next
-
-		'TODO
-		'Drive(802) = idcFileCnt 'Save number of bundles to be loaded to ZP Tab Location $20 (=$320+2), includes Address Bytes!!!
-		'Drive(803) = idcNextID  'Save Next Side ID1 to ZP Tab Location $21 (=$321+2), includes Address Bytes
 
 		CT = 18
 		CS = 11
@@ -694,6 +693,8 @@ Err:
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 3) = 256 - IL1
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 4) = IL0
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 5) = 256 - IL0
+
+		If AddSaveCode Then InjectSaver()
 
 		Exit Function
 Err:
@@ -836,6 +837,67 @@ Err:
 		InjectLoader = False
 
 	End Function
+
+	Private Sub InjectSaver()
+		On Error GoTo Err
+
+		Dim SaveCode() As Byte = My.Resources.SS
+
+		Dim SctPtr As Integer = TabS.Count - 18
+
+		CT = TabT(SctPtr)
+		CS = TabS(SctPtr)
+
+		For I As Integer = 0 To 255
+			Disk(Track(CT) + CS * 256 + I) = SaveCode(2 + I)
+		Next
+
+		DeleteBit(CT, CS, True)
+
+		Disk(Track(18) + (18 * 256) + 8) = EORtransform(CT)               'DirBlocks(0) = EORtransform(Track) = 35
+		Disk(Track(18) + (18 * 256) + 7) = EORtransform(TabStartS(CT))    'DirBlocks(1) = EORtransform(Sector) = First sector of Track(35) (not first sector of file!!!)
+		Disk(Track(18) + (18 * 256) + 6) = EORtransform(TabSCnt(SctPtr))  'DirBlocks(2) = EORtransform(Remaining sectors on track)
+		Disk(Track(18) + (18 * 256) + 5) = &HFE                           'DirBlocks(3) = BitPtr
+
+		SctPtr += 1
+
+		CT = TabT(SctPtr)
+		CS = TabS(SctPtr)
+
+		For I As Integer = 0 To SaveCode.Length - 256 - 1 - 2
+			Dim J As Integer = 0 - I
+			If J < 0 Then J += 256
+			Disk(Track(CT) + CS * 256 + J) = EORtransform(SaveCode(256 + 2 + I))
+		Next
+
+		DeleteBit(CT, CS, True)
+
+		'Add SaveFile
+		SctPtr += 1
+		CT = TabT(SctPtr)
+		CS = TabS(SctPtr)
+
+		Disk(Track(18) + (18 * 256) + 4) = EORtransform(CT)                 'DirBlocks(0) = EORtransform(Track) = 35
+		Disk(Track(18) + (18 * 256) + 3) = EORtransform(TabStartS(CT))      'DirBlocks(1) = EORtransform(Sector) = First sector of Track(35) (not first sector of file!!!)
+		Disk(Track(18) + (18 * 256) + 2) = EORtransform(TabSCnt(SctPtr))    'DirBlocks(2) = EORtransform(Remaining sectors on track)
+		Disk(Track(18) + (18 * 256) + 1) = &HFE                             'DirBlocks(3) = BitPtr
+
+		DeleteBit(CT, CS, True)
+
+		For I As Integer = 1 To 15
+			SctPtr += 1
+			CT = TabT(SctPtr)
+			CS = TabS(SctPtr)
+			DeleteBit(CT, CS, True)
+		Next
+
+		Exit Sub
+Err:
+		ErrCode = Err.Number
+		MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+	End Sub
+
 
 	Private Sub UpdateZP()
 		On Error GoTo Err
@@ -2474,6 +2536,8 @@ NextStart:
 
 		'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabT.bin", TabT)
 		'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabS.bin", TabS)
+		'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabStartS.bin", TabStartS)
+		'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabSCnt.bin", TabSCnt)
 
 		Exit Sub
 Err:
