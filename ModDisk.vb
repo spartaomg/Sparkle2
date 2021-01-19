@@ -80,6 +80,17 @@ Friend Module ModDisk
 	Public DemoStart As String = ""
 	Public LoaderZP As String = "02"
 
+	'High Score File variables
+	Public HSFileName As String = ""
+	Public HSFile() As Byte
+	Public HSAddress As Integer = 0
+	Public HSOffset As Integer = 0
+	Public HSLength As Integer = 0
+	Public bSaverPlugin As Boolean = False
+
+	'Product ID - unique to build, same for all disks in build, $000000-$ffffff
+	Public ProductID As Integer = 0
+
 	Public SystemFile As Boolean = False
 	Public FileChanged As Boolean = False
 
@@ -139,7 +150,10 @@ Friend Module ModDisk
 	Dim FirstFileOfDisk As Boolean = False
 	Dim FirstFileStart As String = ""
 
-	Public TabT(663), TabS(663), TabSCnt(663), TabStartS(35) As Byte   'TabStartS is 1 based
+	Public ReadOnly SectorsPerDisk As Integer = 664
+	Public ReadOnly TracksPerDisk As Integer = 35
+
+	Public TabT(SectorsPerDisk - 1), TabS(SectorsPerDisk - 1), TabSCnt(SectorsPerDisk - 1), TabStartS(TracksPerDisk) As Byte   'TabStartS is 1 based
 	Public BlockPtr As Integer '= 255
 	Public LastBlockCnt As Byte = 0
 	Public LoaderBundles As Integer = 1
@@ -164,8 +178,6 @@ Friend Module ModDisk
 
 	Public CompressBundleFromEditor As Boolean = False
 	Public LastFileOfBundle As Boolean = False
-
-	Public AddSaveCode As Boolean = True
 
 	Public Sub SetLastSector()
 		On Error GoTo Err
@@ -641,12 +653,16 @@ Err:
 			If B < 0 Then B += 256
 		Next
 
-		'Save last, "dummy" bundle info to $03a1-$03a5, needs REVERSED EOR Transform as it is used in the drive code
-		Drive(161 + 2) = TabT(LastBufferCnt)
-		Drive(162 + 2) = TabStartS(TabT(LastBufferCnt))
-		Drive(163 + 2) = TabSCnt(LastBufferCnt)
-		Drive(164 + 2) = EORtransform(LastBitPtr)
+		'Add Product ID to $03b9-$03bb (add 2 to address for PRG header)
+		Drive(&HB9 + 2) = Int(ProductID / &H10000) And &HFF
+		Drive(&HBA + 2) = Int(ProductID / &H100) And &HFF
+		Drive(&HBB + 2) = ProductID And &HFF
 
+		'Save last, "dummy" bundle info to $03a1-$03a5, needs REVERSED EOR Transform as it is used in the drive code (add 2 to address for PRG header)
+		Drive(&HA1 + 2) = TabT(LastBufferCnt)
+		Drive(&HA2 + 2) = TabStartS(TabT(LastBufferCnt))
+		Drive(&HA3 + 2) = TabSCnt(LastBufferCnt)
+		Drive(&HA4 + 2) = EORtransform(LastBitPtr)
 
 		'Resort blocks in drive code:
 		For I = 0 To 255
@@ -667,34 +683,45 @@ Err:
 			CS += 1
 		Next
 
-		'Next Side Info on last 2 bytes of BAM!!!
+		'Next Side Info on last 2 bytes of BAM!!! (Buffer address: $0101-$0102)
 		Disk(Track(18) + (0 * 256) + 255) = EORtransform(idcDiskID)
 		Disk(Track(18) + (0 * 256) + 254) = EORtransform(idcNextID)
 
-		'Add Custom Interleave Info
+		'Add Custom Interleave Info (Buffer address: $0103-$0107)
 		Disk(Track(18) + (0 * 256) + 253) = EORtransform(256 - IL3)
 		Disk(Track(18) + (0 * 256) + 252) = EORtransform(256 - IL2)
 		Disk(Track(18) + (0 * 256) + 251) = EORtransform(256 - IL1)
 		Disk(Track(18) + (0 * 256) + 250) = EORtransform(IL0)
 		Disk(Track(18) + (0 * 256) + 249) = EORtransform(256 - IL0)
 
-		'"Dummy" bundle info EOR transformed - to be copied to NoFlipTab after disk flip
+		'"Dummy" bundle info EOR transformed - to be copied to NoFlipTab after disk flip (Buffer address: $0108-$010b)
 		Disk(Track(18) + (0 * 256) + 248) = EORtransform(TabT(LastBufferCnt))
 		Disk(Track(18) + (0 * 256) + 247) = EORtransform(TabStartS(TabT(LastBufferCnt)))
 		Disk(Track(18) + (0 * 256) + 246) = EORtransform(TabSCnt(LastBufferCnt))
 		Disk(Track(18) + (0 * 256) + 245) = LastBitPtr
 
+		'Add IncludeSaveCode flag (Buffer address: $010c)
+		If bSaverPlugin Then
+			Disk(Track(18) + (0 * 256) + 244) = EORtransform(2)
+			InjectSaverPlugin()
+		Else
+			Disk(Track(18) + (0 * 256) + 244) = EORtransform(0)
+		End If
+
+		'Also add Product ID to BAM, EOR-transformed (Buffer address: $010d-$010f)
+		Disk(Track(18) + (0 * 256) + 243) = EORtransform(Int(ProductID / &H10000) And &HFF)
+		Disk(Track(18) + (0 * 256) + 242) = EORtransform(Int(ProductID / &H100) And &HFF)
+		Disk(Track(18) + (0 * 256) + 241) = EORtransform(ProductID And &HFF)
+
+		'Add NextID and IL0-IL3 to ZPTab (could be done before Drive code is injected)
 		Dim ZPNextIDLoc As Integer = &H7E
 
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 0) = idcNextID
-
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 1) = 256 - IL3
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 2) = 256 - IL2
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 3) = 256 - IL1
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 4) = IL0
 		Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 5) = 256 - IL0
-
-		If AddSaveCode Then InjectSaver()
 
 		Exit Function
 Err:
@@ -704,6 +731,160 @@ Err:
 		InjectDriveCode = False
 
 	End Function
+
+	Private Sub InjectSaverPlugin()
+		On Error GoTo Err
+
+		If bSaverPlugin = False Then Exit Sub
+		If HSFile.Length = 0 Then Exit Sub
+		If HSFileName = "" Then Exit Sub
+		If BundleNo > 125 Then
+			MsgBox("The High Score File Saver Plugin cannot be added to the disk because the number of file bundles on the disk exceeds 126!" + vbNewLine + vbNewLine +
+				"The Plugin and the High Score File would use bundle indices $7e and $7f, respectively.", vbOKOnly + vbExclamation, "High Score File Saver plugin Error")
+		End If
+
+		Dim SaveCode() As Byte = My.Resources.SS
+
+		'Calculate sector pointer on disk
+		Dim SctPtr As Integer = SectorsPerDisk - 2 - (Int(HSLength / 256) + 1)
+
+		'Identify first T/S of the saver plugin
+		CT = TabT(SctPtr)
+		CS = TabS(SctPtr)
+
+		'Copy first block of saver plugin to disk
+		For I As Integer = 0 To 255
+			Disk(Track(CT) + CS * 256 + I) = SaveCode(2 + I)
+		Next
+
+		'Mark sector off in BAM
+		DeleteBit(CT, CS, True)
+
+		'Add plugin to directory
+		Disk(Track(18) + (18 * 256) + 8) = EORtransform(CT)               'DirBlocks(0) = EORtransform(Track) = 35
+		Disk(Track(18) + (18 * 256) + 7) = EORtransform(TabStartS(CT))    'DirBlocks(1) = EORtransform(Sector) = First sector of Track(35) (not first sector of file!!!)
+		Disk(Track(18) + (18 * 256) + 6) = EORtransform(TabSCnt(SctPtr))  'DirBlocks(2) = EORtransform(Remaining sectors on track)
+		Disk(Track(18) + (18 * 256) + 5) = &HFE                           'DirBlocks(3) = BitPtr
+
+		'Next Sector
+		SctPtr += 1
+
+		'Second T/S of saver plugin
+		CT = TabT(SctPtr)
+		CS = TabS(SctPtr)
+
+		'Copy second block of saver plugin to disk
+		For I As Integer = 0 To SaveCode.Length - 256 - 1 - 2
+			Dim J As Integer = 0 - I
+			If J < 0 Then J += 256
+			Disk(Track(CT) + CS * 256 + J) = EORtransform(SaveCode(256 + 2 + I))
+		Next
+
+		'Mark sector off in BAM
+		DeleteBit(CT, CS, True)
+
+		'Add SaveFile
+		SctPtr += 1
+
+		CT = TabT(SctPtr)
+		CS = TabS(SctPtr)
+
+		Disk(Track(18) + (18 * 256) + 4) = EORtransform(CT)                 'DirBlocks(0) = EORtransform(Track) = 35
+		Disk(Track(18) + (18 * 256) + 3) = EORtransform(TabStartS(CT))      'DirBlocks(1) = EORtransform(Sector) = First sector of Track(35) (not first sector of file!!!)
+		Disk(Track(18) + (18 * 256) + 2) = EORtransform(TabSCnt(SctPtr))    'DirBlocks(2) = EORtransform(Remaining sectors on track)
+		Disk(Track(18) + (18 * 256) + 1) = &HFE                             'DirBlocks(3) = BitPtr
+
+		DeleteBit(CT, CS, True)
+
+		Dim Buffer(255) As Byte
+		Dim HSStartAdd As Integer = HSAddress + HSLength - 1
+		Dim BlockCnt = Int(HSLength / 256)
+
+		'First block
+		Buffer(0) = 0
+		Buffer(1) = EORtransform(Int(HSLength / 256))           'Remaining block count (EOR transformed)
+		Buffer(255) = &HFE                                      'First byte of block
+		Buffer(254) = &H81                                      'Bit stream
+		Buffer(253) = HSStartAdd Mod 256                        'Last byte's address (Lo)
+		Buffer(252) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
+		Buffer(251) = 0                                         'LongLit flag
+		Buffer(250) = &HF7                                      'Number of literals - 1
+
+		For I As Integer = 2 To 249
+			Buffer(I) = HSFile(HSLength - 1 - 249 + I)
+		Next
+
+		For I As Integer = 0 To 255
+			Disk(Track(CT) + CS * 256 + I) = Buffer(I)
+		Next
+
+		HSStartAdd -= &HF8
+		HSLength -= &HF8
+
+		'Blocks 1 to BlockCnt-1
+		For I As Integer = 1 To BlockCnt - 1
+
+			SctPtr += 1
+
+			CT = TabT(SctPtr)
+			CS = TabS(SctPtr)
+
+			DeleteBit(CT, CS, True)
+
+			ReDim Buffer(255)
+
+			Buffer(0) = &H81                                    'Bit stream
+			Buffer(255) = HSStartAdd Mod 256                    'Last byte's address (Lo)
+			Buffer(254) = Int(HSStartAdd / 256)                 'Last byte's address (hi)
+			Buffer(253) = 0                                     'LongLit flag
+			Buffer(252) = &HFA                                  'Number of literals - 1
+
+			For J As Integer = 1 To 251
+				Buffer(J) = HSFile(HSLength - 1 - 251 + J)
+			Next
+
+			For J As Integer = 0 To 255
+				Disk(Track(CT) + CS * 256 + J) = Buffer(J)
+			Next
+
+			HSStartAdd -= &HFB
+			HSLength -= &HFB
+
+		Next
+
+		'Last block of High Score File
+		SctPtr += 1
+
+		CT = TabT(SctPtr)
+		CS = TabS(SctPtr)
+
+		DeleteBit(CT, CS, True)
+
+		ReDim Buffer(255)
+
+		Buffer(0) = &H81                                        'Bit stream
+		Buffer(1) = &HFF                                        'New block count = 0 (eor transformed)
+		Buffer(255) = HSStartAdd Mod 256                        'Last byte's address (Lo)
+		Buffer(254) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
+		Buffer(253) = 0                                         'LongLit flag
+		Buffer(252) = HSLength - 1                              'Number of remaining literals - 1
+
+		For I As Integer = 0 To HSLength - 1
+			Buffer(252 - HSLength + I) = HSFile(I)
+		Next
+
+		Buffer(252 - HSLength - 1) = &HF8                       'End of File Bundle flag
+
+		For I As Integer = 0 To 255
+			Disk(Track(CT) + CS * 256 + I) = Buffer(I)
+		Next
+
+		Exit Sub
+Err:
+		ErrCode = Err.Number
+		MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+	End Sub
 
 	Public Function InjectLoader(DiskIndex As Integer, T As Byte, S As Byte, IL As Byte, Optional TestDisk As Boolean = False) As Boolean
 		On Error GoTo Err
@@ -837,67 +1018,6 @@ Err:
 		InjectLoader = False
 
 	End Function
-
-	Private Sub InjectSaver()
-		On Error GoTo Err
-
-		Dim SaveCode() As Byte = My.Resources.SS
-
-		Dim SctPtr As Integer = TabS.Count - 18
-
-		CT = TabT(SctPtr)
-		CS = TabS(SctPtr)
-
-		For I As Integer = 0 To 255
-			Disk(Track(CT) + CS * 256 + I) = SaveCode(2 + I)
-		Next
-
-		DeleteBit(CT, CS, True)
-
-		Disk(Track(18) + (18 * 256) + 8) = EORtransform(CT)               'DirBlocks(0) = EORtransform(Track) = 35
-		Disk(Track(18) + (18 * 256) + 7) = EORtransform(TabStartS(CT))    'DirBlocks(1) = EORtransform(Sector) = First sector of Track(35) (not first sector of file!!!)
-		Disk(Track(18) + (18 * 256) + 6) = EORtransform(TabSCnt(SctPtr))  'DirBlocks(2) = EORtransform(Remaining sectors on track)
-		Disk(Track(18) + (18 * 256) + 5) = &HFE                           'DirBlocks(3) = BitPtr
-
-		SctPtr += 1
-
-		CT = TabT(SctPtr)
-		CS = TabS(SctPtr)
-
-		For I As Integer = 0 To SaveCode.Length - 256 - 1 - 2
-			Dim J As Integer = 0 - I
-			If J < 0 Then J += 256
-			Disk(Track(CT) + CS * 256 + J) = EORtransform(SaveCode(256 + 2 + I))
-		Next
-
-		DeleteBit(CT, CS, True)
-
-		'Add SaveFile
-		SctPtr += 1
-		CT = TabT(SctPtr)
-		CS = TabS(SctPtr)
-
-		Disk(Track(18) + (18 * 256) + 4) = EORtransform(CT)                 'DirBlocks(0) = EORtransform(Track) = 35
-		Disk(Track(18) + (18 * 256) + 3) = EORtransform(TabStartS(CT))      'DirBlocks(1) = EORtransform(Sector) = First sector of Track(35) (not first sector of file!!!)
-		Disk(Track(18) + (18 * 256) + 2) = EORtransform(TabSCnt(SctPtr))    'DirBlocks(2) = EORtransform(Remaining sectors on track)
-		Disk(Track(18) + (18 * 256) + 1) = &HFE                             'DirBlocks(3) = BitPtr
-
-		DeleteBit(CT, CS, True)
-
-		For I As Integer = 1 To 15
-			SctPtr += 1
-			CT = TabT(SctPtr)
-			CS = TabS(SctPtr)
-			DeleteBit(CT, CS, True)
-		Next
-
-		Exit Sub
-Err:
-		ErrCode = Err.Number
-		MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
-
-	End Sub
-
 
 	Private Sub UpdateZP()
 		On Error GoTo Err
@@ -1098,6 +1218,10 @@ Err:
 
 		BuildDemoFromScript = True
 
+		'Generate Product ID unique to this build - it will be the same for all disks in this build
+		Randomize()
+		ProductID = Int(Rnd() * &HFFFFFF)
+
 		TotLit = 0 : TotMatch = 0
 
 		SS = 1 : SE = 1
@@ -1233,6 +1357,15 @@ FindNext:
 				End If
 				Dim TmpIL As Integer = Convert.ToInt32(ScriptEntryArray(0), 10)
 				IL3 = If(TmpIL Mod 17 > 0, TmpIL Mod 17, DefaultIL3)
+				NewBundle = True
+			Case "hsfile:", "highscore:", "savefile:"
+				'If NewD = False Then
+				'NewD = True
+				'If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
+				'If ResetDiskVariables() = False Then GoTo NoDisk
+				'End If
+				If AddHSFile() = False Then GoTo NoDisk
+				NewD = False
 				NewBundle = True
 			Case "list:", "script:"
 				If InsertScript(ScriptEntryArray(0)) = False Then GoTo NoDisk
@@ -1413,7 +1546,7 @@ Err:
 			End If
 		End If
 
-		If InjectDriveCode(DiskCnt + 1, LoaderBundles, If(LastDisk = False, DiskCnt + 2, DiskLoop)) = False Then GoTo NoDisk
+		If InjectDriveCode(DiskCnt, LoaderBundles, If(LastDisk = False, DiskCnt + 1, &H80)) = False Then GoTo NoDisk
 		If DirArt <> "" Then AddDirArt()
 
 		BytesSaved += Int(BitsSaved / 8)
@@ -1840,6 +1973,161 @@ NoSort:
 
 	End Function
 
+	Public Function AddHSFile() As Boolean
+		On Error GoTo Err
+		AddHSFile = True
+
+		Dim FN As String = ScriptEntryArray(0)
+		Dim FA As String = ""
+		Dim FO As String = ""
+		Dim FL As String = ""
+		Dim FAN As Integer = 0
+		Dim FON As Integer = 0
+		Dim FLN As Integer = 0
+
+		Dim P() As Byte
+
+		If Right(FN, 1) = "*" Then
+			FN = ""
+			MsgBox("The High Score File cannot be loaded under the I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
+			GoTo NoDisk
+		End If
+
+		If Strings.InStr(FN, ":") = 0 Then  'relative file path
+			FN = ScriptPath + FN            'look for file in script's folder
+		End If
+
+		'Correct file parameter length to 4 characters
+		For I As Integer = 1 To ScriptEntryArray.Count - 1
+
+			'Remove HEX prefix
+			'If InStr(ScriptEntryArray(I), "$") <> 0 Then        'C64
+			Replace(ScriptEntryArray(I), "$", "")
+			'ElseIf InStr(ScriptEntryArray(I), "&H") <> 0 Then   'VB
+			Replace(ScriptEntryArray(I), "&H", "")
+			'ElseIf InStr(ScriptEntryArray(I), "0x") <> 0 Then   'C, C++, C#, Java, Python, etc.
+			Replace(ScriptEntryArray(I), "0x", "")
+			'End If
+
+			'Remove unwanted spaces
+			Replace(ScriptEntryArray(I), " ", "")
+
+			Select Case I
+				Case 2      'File Offset max. $ffff ffff (dword)
+					If ScriptEntryArray(I).Length < 8 Then
+						ScriptEntryArray(I) = Left("00000000", 8 - Strings.Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+					ElseIf (I = 2) And (ScriptEntryArray(I).Length > 8) Then
+						ScriptEntryArray(I) = Right(ScriptEntryArray(I), 8)
+					End If
+				Case Else   'File Address, File Length max. $ffff
+					If ScriptEntryArray(I).Length < 4 Then
+						ScriptEntryArray(I) = Left("0000", 4 - Strings.Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+					ElseIf ScriptEntryArray(I).Length > 4 Then
+						ScriptEntryArray(I) = Right(ScriptEntryArray(I), 4)
+					End If
+			End Select
+		Next
+
+		'Get file variables from script, or get default values if there were none in the script entry
+		If IO.File.Exists(FN) = True Then
+			P = IO.File.ReadAllBytes(FN)
+
+			Select Case ScriptEntryArray.Count
+				Case 1  'No parameters in script
+					If Strings.InStr(Strings.LCase(FN), ".sid") <> 0 Then   'SID file - read parameters from file
+						FA = ConvertIntToHex(P(P(7)) + (P(P(7) + 1) * 256), 4)
+						FO = ConvertIntToHex(P(7) + 2, 8)
+						FL = ConvertIntToHex((P.Length - P(7) - 2), 4)
+					Else                                                    'Any other files
+						If P.Length > 2 Then                                'We have at least 3 bytes in the file
+							FA = ConvertIntToHex(P(0) + (P(1) * 256), 4)    'First 2 bytes define load address
+							FO = "00000002"                                 'Offset=2, Length=prg length-2
+							FL = ConvertIntToHex(P.Length - 2, 4)
+						Else                                                'Short file without paramters -> STOP
+							MsgBox("File parameters are needed for the following file:" + vbNewLine + vbNewLine + FN, vbCritical + vbOKOnly, "Missing file parameters")
+							GoTo NoDisk
+						End If
+					End If
+				Case 2  'One parameter in script
+					FA = ScriptEntryArray(1)                                'Load address from script
+					FO = "00000000"                                         'Offset will be 0, length=prg length
+					FL = ConvertIntToHex(P.Length, 4)
+				Case 3  'Two parameters in script
+					FA = ScriptEntryArray(1)                                'Load address from script
+					FO = ScriptEntryArray(2)                                'Offset from script
+					FON = Convert.ToInt32(FO, 16)                           'Make sure offset is valid
+					If FON > P.Length - 1 Then
+						FON = P.Length - 1                                  'If offset>prg length-1 then correct it
+						FO = ConvertIntToHex(FON, 8)
+					End If                                                  'Length=prg length-offset
+					FL = ConvertIntToHex(P.Length - FON, 4)
+				Case 4  'Three parameters in script
+					FA = ScriptEntryArray(1)
+					FO = ScriptEntryArray(2)
+					FON = Convert.ToInt32(FO, 16)                           'Make sure offset is valid
+					If FON > P.Length - 1 Then
+						FON = P.Length - 1                                  'If offset>prg length-1 then correct it
+						FO = ConvertIntToHex(FON, 8)
+					End If                                                  'Length=prg length-offset
+					FL = ScriptEntryArray(3)
+			End Select
+
+			FAN = Convert.ToInt32(FA, 16)
+			FON = Convert.ToInt32(FO, 16)
+			FLN = Convert.ToInt32(FL, 16)
+
+			'Make sure file length is not longer than actual file (should not happen)
+			If FON + FLN > P.Length Then
+				FLN = P.Length - FON
+			End If
+
+			'Make sure file address+length<=&H10000
+			If FAN + FLN > &H10000 Then
+				FLN = &H10000 - FAN
+				If FLN < &H100 Then
+					MsgBox("The High Score File's size must be at least $100 bytes!", vbOKOnly + vbExclamation, "High Score File Error")
+					GoTo NoDisk
+				End If
+			End If
+
+			'Make sure the high score file's lenght is <= max length ($0f00)
+			If FLN > &HF00 Then
+				FLN = &HF00
+			ElseIf FLN < &H100 Then
+				FLN = &H100
+			End If
+
+			FLN = FLN And &HF00                     'Round it down to nearest $100 bytes
+			FL = ConvertIntToHex(FLN, 4)
+
+			'Trim file to the specified chunk (FLN number of bytes starting at FON, to Address of FAN)
+			Dim PL As List(Of Byte) = P.ToList      'Copy array to list
+			P = PL.Skip(FON).Take(FLN).ToArray      'Trim file to specified segment (FLN number of bytes starting at FON)
+
+			HSFile = P
+			HSFileName = FN
+			HSAddress = FAN
+			HSOffset = FON
+			HSLength = FLN
+
+			bSaverPlugin = True
+
+		Else
+
+			MsgBox("The following High Score File does not exist:" + vbNewLine + vbNewLine + FN, vbOKOnly + vbCritical, "High Score File not found")
+			GoTo NoDisk
+
+		End If
+
+		Exit Function
+Err:
+		ErrCode = Err.Number
+		MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+NoDisk:
+		AddHSFile = False
+
+	End Function
+
 	Public Function AddFileToPart() As Boolean
 		On Error GoTo Err
 
@@ -2061,6 +2349,14 @@ Err:
 
 		'Reset directory arrays
 		ReDim DirBlocks(511), DirPtr(127)
+
+
+		'Reset High Score Saver plugin variables
+		bSaverPlugin = False
+		HSFileName = ""
+		HSAddress = 0
+		HSOffset = 0
+		HSLength = 0
 
 		'Reset interleave
 		IL0 = DefaultIL0
