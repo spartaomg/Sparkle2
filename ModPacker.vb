@@ -1,6 +1,4 @@
-﻿Imports System.Data.SqlTypes
-
-Friend Module ModPacker
+﻿Friend Module ModPacker
     'Private ReadOnly NewCalc As Boolean = True
     Structure Sequence
         Public Len As Integer           'Length of the sequence in bytes (0 based)

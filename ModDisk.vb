@@ -1320,8 +1320,8 @@ FindNext:
 				End If
 				If DiskCnt = 0 Then LoaderZP = ScriptEntryArray(0)  'ZP usage can only be set from first disk
 				NewBundle = True
-			Case "loop:"
-				DiskLoop = Convert.ToInt32(ScriptEntryArray(0), 10)
+				'Case "loop:"
+				'DiskLoop = Convert.ToInt32(ScriptEntryArray(0), 10)
 			Case "il0:"
 				If NewD = False Then
 					NewD = True
@@ -2077,9 +2077,9 @@ NoSort:
 			FLN = Convert.ToInt32(FL, 16)
 
 			'Make sure file length is not longer than actual file (should not happen)
-			If FON + FLN > P.Length Then
-				FLN = P.Length - FON
-			End If
+			'If FON + FLN > P.Length Then
+			'FLN = P.Length - FON
+			'End If
 
 			'Make sure file address+length<=&H10000
 			If FAN + FLN > &H10000 Then
@@ -2090,19 +2090,18 @@ NoSort:
 				End If
 			End If
 
-			'Make sure the high score file's lenght is <= max length ($0f00)
-			If FLN > &HF00 Then
-				FLN = &HF00
-			ElseIf FLN < &H100 Then
-				FLN = &H100
-			End If
+			'Round UP to nearest $100, at least $100 but not more than $0f00 bytes
+			FLN = If((FLN Mod &H100 <> 0) Or (FLN = 0), FLN + &H100, FLN) And &HF00
 
-			FLN = FLN And &HF00                     'Round it down to nearest $100 bytes
 			FL = ConvertIntToHex(FLN, 4)
 
 			'Trim file to the specified chunk (FLN number of bytes starting at FON, to Address of FAN)
 			Dim PL As List(Of Byte) = P.ToList      'Copy array to list
 			P = PL.Skip(FON).Take(FLN).ToArray      'Trim file to specified segment (FLN number of bytes starting at FON)
+
+			If P.Length < FLN Then
+				ReDim Preserve P(FLN - 1)
+			End If
 
 			HSFile = P
 			HSFileName = FN

@@ -28,6 +28,8 @@ Public Class FrmEditor
     Private ReadOnly colScriptGray As Color = Color.FromArgb(35, 35, 35)
     Private ReadOnly colNewEntry As Color = Color.Navy
 
+    Private ReadOnly ErrorDiskSizeExceeded As String = "The size of this disk exceeds the standard disk size of 664 blocks!"
+
     Private WithEvents SCC As SubClassCtrl.SubClassing
     Private Const WM_VSCROLL As Integer = &H115
     Private Const WM_HSCROLL As Integer = &H114
@@ -76,10 +78,10 @@ Public Class FrmEditor
     Private ReadOnly NewFileKey As String = "NewFile"
 
     Private ZPSet As Boolean = False
-    Private LoopSet As Boolean = False
+    'Private LoopSet As Boolean = False
 
     Private BaseNode, SelNode, NewEntryNode As TreeNode
-    Private LoopNode As New TreeNode
+    'Private LoopNode As New TreeNode
     Private ZPNode As New TreeNode
     Private DiskNode As TreeNode
     Private BundleNode As TreeNode
@@ -107,6 +109,8 @@ Public Class FrmEditor
     Private ReadOnly sDirArt As String = "DirArt: "
     Private ReadOnly sZP As String = "Zeropage: "
     Private ReadOnly sLoop As String = "Loop: "
+    Private ReadOnly sHSFile As String = "HS File: "
+    Private ReadOnly sHSFileSize As String = "High Score File + Plugin Size: "
 
     Private ReadOnly sIL0 As String = "Interleave 0: "
     Private ReadOnly sIL1 As String = "Interleave 1: "
@@ -189,7 +193,7 @@ Public Class FrmEditor
 
         Refresh()
 
-        LoopSet = False
+        'LoopSet = False
         ZPSet = False
 
         AddBaseNode()
@@ -686,6 +690,23 @@ FileDataFO:
 
                         Exit Sub
 
+                    Case sHSFile
+                        Select Case e.KeyCode
+                            Case Keys.Enter
+
+                                FilePath = Strings.Right(N.Text, Len(N.Text) - Len(S))
+                                .Tag = S
+                                .Visible = False
+                                HandleKey = True
+                                e.SuppressKeyPress = True
+
+                                UpdateHSFilePath()
+                            Case Else
+                                HandleKey = False
+                        End Select
+
+                        Exit Sub
+
                     Case sZP
 
                         Select Case e.KeyCode
@@ -706,52 +727,26 @@ FileDataFO:
                                 Exit Sub
                         End Select
 
-                        'Case sPacker
+                        'Case sLoop
+
                         'Select Case e.KeyCode
-                        'Case Keys.Enter
-
-                        '.Visible = False
-                        'Select Case LCase(Strings.Right(N.Text, 6))
-                        'Case "faster"
-                        'N.Text = sPacker + "better"
-                        'Packer = 2
-                        'Case "better"
-                        'N.Text = sPacker + "faster"
-                        'Packer = 1
-                        'End Select
-
+                        'Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9, Keys.Enter
+                        '.Text = Strings.Right(N.Text, Len(N.Text) - Len(S))
+                        '.Width = TextRenderer.MeasureText("000", N.NodeFont).Width
+                        '.Tag = S
+                        'N.Text = .Tag
+                        '.Left = TV.Left + N.Bounds.Left + N.Bounds.Width
+                        '.MaxLength = 3
+                        '.Visible = True
+                        '
                         'HandleKey = True
                         'e.SuppressKeyPress = True
-                        '----------------
-                        'CalcDiskSizeWithForm(BaseNode, -1) ' SelNode.Parent.Index + 1)
-                        ''----------------
                         'Case Else
                         'HandleKey = False
+                        'Exit Sub
                         'End Select
 
-                        'Exit Sub
-
-                    Case sLoop
-
-                        Select Case e.KeyCode
-                            Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9, Keys.Enter
-                                .Text = Strings.Right(N.Text, Len(N.Text) - Len(S))
-                                .Width = TextRenderer.MeasureText("000", N.NodeFont).Width
-                                .Tag = S
-                                N.Text = .Tag
-                                .Left = TV.Left + N.Bounds.Left + N.Bounds.Width
-                                .MaxLength = 3
-                                .Visible = True
-
-                                HandleKey = True
-                                e.SuppressKeyPress = True
-                            Case Else
-                                HandleKey = False
-                                Exit Sub
-                        End Select
-
                     Case sIL0, sIL1, sIL2, sIL3
-                        'If CustomIL Then
                         Select Case e.KeyCode
                             Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9, Keys.Enter
                                 .Text = Strings.Right(N.Text, Len(N.Text) - Len(S))
@@ -768,7 +763,6 @@ FileDataFO:
                                 HandleKey = False
                                 Exit Sub
                         End Select
-                        'end If
                     Case Else
                         HandleKey = False
                         .Visible = False
@@ -1145,12 +1139,12 @@ Err:
             .NodeFont = New Font("Consolas", 10)
         End With
 
-        With LoopNode
-            .Name = sLoop
-            .Text = sLoop + "0"
-            .ForeColor = colDiskInfo
-            .NodeFont = New Font("Consolas", 10)
-        End With
+        'With LoopNode
+        '.Name = sLoop
+        '.Text = sLoop + "0"
+        '.ForeColor = colDiskInfo
+        '.NodeFont = New Font("Consolas", 10)
+        'End With
 
         GoTo Done
 Err:
@@ -1557,6 +1551,7 @@ Err:
         AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + "demo", DiskNode.Tag, colDiskInfo, Fnt)
         AddNode(DiskNode, sDemoStart + DC.ToString, sDemoStart + "$", DiskNode.Tag, colDiskInfo, Fnt)
         AddNode(DiskNode, sDirArt + DC.ToString, sDirArt, DiskNode.Tag, colDiskInfo, Fnt)
+        AddNode(DiskNode, sHSFile + DC.ToString, sHSFile, DiskNode.Tag, colDiskInfo, Fnt)
         'AddNode(DiskNode, sPacker + DC.ToString, sPacker + If(My.Settings.DefaultPacker = 1, "faster", "better"), DiskNode.Tag, colDiskInfo, Fnt)
         'If CustomIL Then
         AddNode(DiskNode, sIL0 + DC.ToString, sIL0 + Strings.Left("04", 2 - Len(IL0.ToString)) + IL0.ToString, DiskNode.Tag, colDiskInfo, Fnt)
@@ -1570,12 +1565,12 @@ Err:
             DiskNode.Nodes(sZP).ForeColor = colDiskInfo
             ZPSet = True
         End If
-        If LoopSet = False Then
-            LoopNode.Tag = DiskNode.Tag
-            DiskNode.Nodes.Add(LoopNode)
-            DiskNode.Nodes(sLoop).ForeColor = colDiskInfo
-            LoopSet = True
-        End If
+        'If LoopSet = False Then
+        'LoopNode.Tag = DiskNode.Tag
+        'DiskNode.Nodes.Add(LoopNode)
+        'DiskNode.Nodes(sLoop).ForeColor = colDiskInfo
+        'LoopSet = True
+        'End If
         AddNewEntryNode()
 
         FinishUpdate()
@@ -1601,6 +1596,8 @@ Err:
             Parent.Nodes(Name).NodeFont = NodeFnt
         End If
 
+        Debug.Print(Name + vbTab + Parent.Nodes(Name).Index.ToString)
+
         Exit Sub
 Err:
         ErrCode = Err.Number
@@ -1624,13 +1621,13 @@ Err:
                     Frm.Show(Me)
                     StartUpdate()
 
-                    For I As Integer = N.Nodes.Count - 1 To 0 Step -1
-                        If N.Nodes(I).Name = sLoop Then
-                            LoopNode = N.Nodes(I)
-                            LoopSet = False
-                            Exit For
-                        End If
-                    Next
+                    'For I As Integer = N.Nodes.Count - 1 To 0 Step -1
+                    'If N.Nodes(I).Name = sLoop Then
+                    'LoopNode = N.Nodes(I)
+                    'LoopSet = False
+                    'Exit For
+                    'End If
+                    'Next
                     For I As Integer = N.Nodes.Count - 1 To 0 Step -1
                         If N.Nodes(I).Name = sZP Then
                             ZPNode = N.Nodes(I)
@@ -1649,15 +1646,15 @@ Err:
                             End If
                         Next
                     End If
-                    If LoopSet = False Then
-                        For I As Integer = 0 To BaseNode.Nodes.Count - 1
-                            If Strings.Left(BaseNode.Nodes(I).Text, 5) = "[Disk" Then
-                                BaseNode.Nodes(I).Nodes.Add(LoopNode)
-                                LoopSet = True
-                                Exit For
-                            End If
-                        Next
-                    End If
+                    'If LoopSet = False Then
+                    'For I As Integer = 0 To BaseNode.Nodes.Count - 1
+                    'If Strings.Left(BaseNode.Nodes(I).Text, 5) = "[Disk" Then
+                    'BaseNode.Nodes(I).Nodes.Add(LoopNode)
+                    'LoopSet = True
+                    'Exit For
+                    'End If
+                    'Next
+                    'End If
                     CalcDiskSize(BaseNode, NI)
                     GoTo Done
                 End If
@@ -1713,6 +1710,17 @@ Err:
                         N.Text = sDirArt
                     End If
                 End If
+            Case 6  'High Score File
+                If N.Text <> sHSFile Then
+                    If MsgBox("Are you sure you want to delete the following High Score file?" + vbNewLine + vbNewLine + Strings.Right(N.Text, Len(N.Text) - Len(sHSFile)), vbQuestion + vbYesNo + vbDefaultButton2) = vbYes Then
+                        N.Text = sHSFile
+                        N.Nodes.Remove(N.Nodes(3))
+                        N.Nodes.Remove(N.Nodes(2))
+                        N.Nodes.Remove(N.Nodes(1))
+                        N.Nodes.Remove(N.Nodes(0))
+                        CalcDiskSize(BaseNode)
+                    End If
+                End If
         End Select
 
         GoTo Done
@@ -1749,8 +1757,10 @@ Done:
             Case colScript      'Script node
                 NodeType = 4
             Case Else
-                If Strings.Left(SelNode.Text, 8) = "DirArt: " Then
+                If Strings.Left(SelNode.Text, 8) = sDirArt Then
                     NodeType = 5    'DirArt node
+                ElseIf Strings.Left(SelNode.Text, 9) = sHSFile Then
+                    NodeType = 6    'High Score File node
                 Else
                     NodeType = 0    'All other nodes
                 End If
@@ -2036,7 +2046,7 @@ Err:
 
     End Sub
 
-    Private Sub GetDefaultFileParameters(FileNode As TreeNode, Optional FA As String = "", Optional FO As String = "", Optional FL As String = "")
+    Private Sub GetDefaultFileParameters(FileNode As TreeNode, Optional FA As String = "", Optional FO As String = "", Optional FL As String = "", Optional IsHSFile As Boolean = False)
         On Error GoTo Err
 
         StartUpdate()
@@ -2070,21 +2080,36 @@ Err:
             DFLN = PLen - Convert.ToInt32(FO, 16)
         End If
 
+        If IsHSFile Then
+            DFLN = (DFLN And &HFF00) + &H100
+        End If
+
         'File Address+ File Length cannot be > $10000
         If FA <> "" Then    'We have a file address
             'Calculate DFLN using current file address
             If Convert.ToInt32(FA, 16) + DFLN > &H10000 Then
                 DFLN = &H10000 - Convert.ToInt32(FA, 16)
+                If IsHSFile Then
+                    DFLN = DFLN And &HFF00
+                End If
             End If
         Else
             'Calculate DFLN using default file address
             If DFAN + DFLN > &H10000 Then
                 DFLN = &H10000 - DFAN
+                If IsHSFile Then
+                    DFLN = DFLN And &HFF00
+                End If
             End If
         End If
 
         'If Load Address=$0000 then, limit DFLN to $ffff to make sure it fits in word format
-        If DFLN = &H10000 Then DFLN -= 1
+        If DFLN = &H10000 Then
+            DFLN -= 1
+            If IsHSFile Then
+                DFLN = DFLN And &HFF00
+            End If
+        End If
 
         'Calculate default parameter strings
         DFAS = ConvertIntToHex(DFAN, 4)
@@ -2221,7 +2246,7 @@ Done:
 
     End Sub
 
-    Private Sub CheckFileParameterColors(FileNode As TreeNode)
+    Private Sub CheckFileParameterColors(FileNode As TreeNode, Optional IsHSFile As Boolean = False)
         On Error GoTo Err
 
         StartUpdate()
@@ -2242,12 +2267,22 @@ Done:
             DFA = False
         End If
 
-        If Strings.Right(FileNode.Nodes(2).Text, 4) = DFLS Then
-            DFL = True
+        If IsHSFile Then
+            If Convert.ToInt32(Strings.Right(FileNode.Nodes(2).Text, 4), 16) >= Convert.ToInt32(DFLS, 16) Then
+                DFL = True
+            Else
+                DFL = False
+                DFO = False
+                DFA = False
+            End If
         Else
-            DFL = False
-            DFO = False
-            DFA = False
+            If Strings.Right(FileNode.Nodes(2).Text, 4) = DFLS Then
+                DFL = True
+            Else
+                DFL = False
+                DFO = False
+                DFA = False
+            End If
         End If
 
         'Update File Parameter Node Colors
@@ -2309,6 +2344,73 @@ Err:
 
     End Sub
 
+    Private Sub UpdateHSFilePath(Optional HSF As String = "")
+        On Error GoTo Err
+
+        Dim N As TreeNode = TV.SelectedNode
+
+        If HSF = "" Then
+
+            FileType = 2  'Text file
+
+            OpenDemoFile()
+
+            If NewFile = "" Then Exit Sub
+        Else
+            NewFile = HSF
+        End If
+
+        GetFile(NewFile)
+
+        FAddr = -1
+        FOffs = -1
+        FLen = 0
+
+        StartUpdate()
+
+        FileNode = N
+
+        GetDefaultFileParameters(N,,,, True)
+
+        FAddr = DFAN
+        FOffs = DFON
+        FLen = DFLN
+
+        FileSize = Int(FLen / &H100) + 1 + 2
+
+        DFA = True
+        DFO = True
+        DFL = True
+
+        If OverlapsIO() = True Then
+            MsgBox("The High Score File cannot overlap with the I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
+            NewFile = ""
+            Exit Sub
+        End If
+
+        N.Text = sHSFile + NewFile
+
+        UpdateFileParameters(N, True)
+
+        CheckFileParameterColors(N, True)  'This will make sure colors are OK
+
+        '---------------------------------------
+        CalcDiskSizeWithForm(BaseNode)
+        '---------------------------------------
+
+        If ChkExpand.Checked Then
+            N.Expand()
+        End If
+
+        GoTo Done
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+Done:
+        FinishUpdate()
+
+    End Sub
+
     Private Sub UpdateDirArtPath()
         On Error GoTo Err
 
@@ -2329,7 +2431,7 @@ Err:
 
     End Sub
 
-    Private Sub UpdateFileParameters(FileNode As TreeNode)
+    Private Sub UpdateFileParameters(FileNode As TreeNode, Optional IsHSFile As Boolean = False)
         On Error GoTo Err
 
         If FileNode Is Nothing Then Exit Sub
@@ -2369,27 +2471,41 @@ Err:
             FileNode.Nodes(FileNode.Name + ":FL").Text = sFileLen + ConvertIntToHex(FLen, 4)
         End If
 
-        If FileNode.Nodes(FileNode.Name + ":FUIO") Is Nothing Then
-            '                                                           Overlaps I/O      AND DOES NOT GO UNDER I/O
-            FileNode.Nodes.Add(FileNode.Name + ":FUIO", sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM"))
-            With FileNode.Nodes(FileNode.Name + ":FUIO")
-                .Tag = FileNode.Tag
-                .ForeColor = If(FileUnderIO = True, colFileIOEdited, colFileIODefault)
-                .NodeFont = New Font("Consolas", 10)
-            End With
-        Else
-            FileNode.Nodes(FileNode.Name + ":FUIO").Text = sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM")
-        End If
+        If IsHSFile = False Then
 
-        If FileNode.Nodes(FileNode.Name + ":FS") Is Nothing Then
-            FileNode.Nodes.Add(FileNode.Name + ":FS", sFileSize + FileSize.ToString + " block" + If(FileSize <> 1, "s", ""))
-            With FileNode.Nodes(FileNode.Name + ":FS")
-                .Tag = FileNode.Tag
-                .ForeColor = colFileSize
-                .NodeFont = New Font("Consolas", 10)
-            End With
+            If FileNode.Nodes(FileNode.Name + ":FUIO") Is Nothing Then
+                '                                                           Overlaps I/O      AND DOES NOT GO UNDER I/O
+                FileNode.Nodes.Add(FileNode.Name + ":FUIO", sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM"))
+                With FileNode.Nodes(FileNode.Name + ":FUIO")
+                    .Tag = FileNode.Tag
+                    .ForeColor = If(FileUnderIO = True, colFileIOEdited, colFileIODefault)
+                    .NodeFont = New Font("Consolas", 10)
+                End With
+            Else
+                FileNode.Nodes(FileNode.Name + ":FUIO").Text = sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM")
+            End If
+
+            If FileNode.Nodes(FileNode.Name + ":FS") Is Nothing Then
+                FileNode.Nodes.Add(FileNode.Name + ":FS", sFileSize + FileSize.ToString + " block" + If(FileSize <> 1, "s", ""))
+                With FileNode.Nodes(FileNode.Name + ":FS")
+                    .Tag = FileNode.Tag
+                    .ForeColor = colFileSize
+                    .NodeFont = New Font("Consolas", 10)
+                End With
+            Else
+                FileNode.Nodes(FileNode.Name + ":FS").Text = sFileSize + FileSize.ToString + " block" + If(FileSize <> 1, "s", "")
+            End If
         Else
-            FileNode.Nodes(FileNode.Name + ":FS").Text = sFileSize + FileSize.ToString + " block" + If(FileSize <> 1, "s", "")
+            If FileNode.Nodes(FileNode.Name + ":FS") Is Nothing Then
+                FileNode.Nodes.Add(FileNode.Name + ":FS", sHSFileSize + FileSize.ToString + " block" + If(FileSize <> 1, "s", ""))
+                With FileNode.Nodes(FileNode.Name + ":FS")
+                    .Tag = FileNode.Tag
+                    .ForeColor = colFileSize
+                    .NodeFont = New Font("Consolas", 10)
+                End With
+            Else
+                FileNode.Nodes(FileNode.Name + ":FS").Text = sHSFileSize + FileSize.ToString + " block" + If(FileSize <> 1, "s", "")
+            End If
         End If
 
         FinishUpdate()
@@ -2832,7 +2948,7 @@ Err:
 
         TV.Nodes.Clear()
 
-        LoopSet = False
+        'LoopSet = False
         ZPSet = False
 
         AddBaseNode()
@@ -3050,7 +3166,7 @@ Err:
 
         BaseNode.Nodes.Clear()
 
-        LoopSet = False
+        'LoopSet = False
         ZPSet = False
 
         Dim Fnt As New Font("Consolas", 10)
@@ -3142,23 +3258,23 @@ Err:
                         UpdateNode(DiskNode.Nodes(sDirArt + DC.ToString), sDirArt + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
                     End If
                     NewBundle = True
-                    'Case "packer:"
-                    'If NewD = False Then
-                    'NewD = True
-                    'AddDiskToScriptNode(BaseNode)
-                    'End If
-                    'If DiskNode.Nodes(sPacker + DC.ToString) Is Nothing Then
-                    'AddNode(DiskNode, sPacker + DC.ToString, sPacker + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfo, Fnt)
+                Case "hsfile:"
+                    If NewD = False Then
+                        NewD = True
+                        AddDiskToScriptNode(BaseNode)
+                    End If
+                    If ScriptEntryArray(0) <> "" Then
+                        If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
+                    End If
+                    'If DiskNode.Nodes(sHSFile + DC.ToString) Is Nothing Then
+                    'AddNode(DiskNode, sHSFile + DC.ToString, sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
                     'Else
-                    'UpdateNode(DiskNode.Nodes(sPacker + DC.ToString), sPacker + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfo, Fnt)
+                    'UpdateNode(DiskNode.Nodes(sHSFile + DC.ToString), sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
                     'End If
-                    'Select Case LCase(ScriptEntryArray(0))
-                    'Case "faster"
-                    'Packer = 1
-                    'Case Else   '"better"
-                    'Packer = 2
-                    'End Select
-                    'NewPart = True
+                    CorrectFileParameterFormat()
+                    AddHSFileToDiskNode(DiskNode, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
+                    'UpdateHSFilePath(ScriptEntryArray(0))
+                    NewBundle = True
                 Case "zp:"
                     If NewD = False Then
                         NewD = True
@@ -3176,17 +3292,17 @@ Err:
                         ZPSet = True
                     End If
                     NewBundle = True
-                Case "loop:"
-                    If NewD = False Then
-                        NewD = True
-                        AddDiskToScriptNode(BaseNode)
-                    End If
-                    UpdateNode(DiskNode.Nodes(sLoop), sLoop + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    If LoopSet = False Then 'Loop can only be set from the first disk
-                        DiskNode.Nodes.Add(LoopNode)
-                        ZPSet = True
-                    End If
-                    NewBundle = True
+                    'Case "loop:"
+                    'If NewD = False Then
+                    'NewD = True
+                    'AddDiskToScriptNode(BaseNode)
+                    'End If
+                    'UpdateNode(DiskNode.Nodes(sLoop), sLoop + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                    'If LoopSet = False Then 'Loop can only be set from the first disk
+                    'DiskNode.Nodes.Add(LoopNode)
+                    'ZPSet = True
+                    'End If
+                    'NewBundle = True
                 Case "il0:"
                     'If CustomIL Then
                     If NewD = False Then
@@ -3424,23 +3540,20 @@ Done:
                         UpdateNode(DiskNode.Nodes(sDirArt + DC.ToString), sDirArt + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
                     End If
                     NewBundle = True
-                    'Case "packer:"
-                    'If NewD = False Then
-                    'NewD = True
-                    'AddDiskToScriptNode(SN)
-                    'End If
-                    'If DiskNode.Nodes(sPacker + DC.ToString) Is Nothing Then
-                    'AddNode(DiskNode, sPacker + DC.ToString, sPacker + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    'Else
-                    'UpdateNode(DiskNode.Nodes(sPacker + DC.ToString), sPacker + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    'End If
-                    'Select Case LCase(ScriptEntryArray(0))
-                    'Case "faster"
-                    'Packer = 1
-                    'Case Else   '"better"
-                    'Packer = 2
-                    'End Select
-                    'NewPart = True
+                Case "hsfile:"
+                    If NewD = False Then
+                        NewD = True
+                        AddDiskToScriptNode(SN)
+                    End If
+                    If ScriptEntryArray(0) <> "" Then
+                        If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
+                    End If
+                    If DiskNode.Nodes(sHSFile + DC.ToString) Is Nothing Then
+                        AddNode(DiskNode, sHSFile + DC.ToString, sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                    Else
+                        UpdateNode(DiskNode.Nodes(sHSFile + DC.ToString), sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                    End If
+                    NewBundle = True
                 Case "zp:"
                     If NewD = False Then
                         NewD = True
@@ -3458,17 +3571,17 @@ Done:
                         ZPSet = True
                     End If
                     NewBundle = True
-                Case "loop:"
-                    If NewD = False Then
-                        NewD = True
-                        AddDiskToScriptNode(SN)
-                    End If
-                    UpdateNode(LoopNode, sLoop + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    If LoopSet = False Then 'Loop can only be set from the first disk
-                        DiskNode.Nodes.Add(LoopNode)
-                        ZPSet = True
-                    End If
-                    NewBundle = True
+                    'Case "loop:"
+                    'If NewD = False Then
+                    'NewD = True
+                    'AddDiskToScriptNode(SN)
+                    'End If
+                    'UpdateNode(LoopNode, sLoop + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                    'If LoopSet = False Then 'Loop can only be set from the first disk
+                    'DiskNode.Nodes.Add(LoopNode)
+                    'ZPSet = True
+                    'End If
+                    'NewBundle = True
                 Case "il0:"
                     'If CustomIL Then
                     If NewD = False Then
@@ -3634,25 +3747,23 @@ Err:
             AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + "demo", DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sDemoStart + DC.ToString, sDemoStart + "$", DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sDirArt + DC.ToString, sDirArt, DiskNode.Tag, colDiskInfo, Fnt)
-            'AddNode(DiskNode, sPacker + DC.ToString, sPacker + If(My.Settings.DefaultPacker = 1, "faster", "better"), DiskNode.Tag, colDiskInfo, Fnt)
-            'If CustomIL Then
+            AddNode(DiskNode, sHSFile + DC.ToString, sHSFile, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sIL0 + DC.ToString, sIL0 + Strings.Left("04", 2 - Len(IL0.ToString)) + IL0.ToString, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sIL1 + DC.ToString, sIL1 + Strings.Left("03", 2 - Len(IL1.ToString)) + IL1.ToString, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sIL2 + DC.ToString, sIL2 + Strings.Left("03", 2 - Len(IL2.ToString)) + IL2.ToString, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sIL3 + DC.ToString, sIL3 + Strings.Left("03", 2 - Len(IL3.ToString)) + IL3.ToString, DiskNode.Tag, colDiskInfo, Fnt)
-            'End If
             If ZPSet = False Then
                 ZPNode.Tag = DiskNode.Tag
                 DiskNode.Nodes.Add(ZPNode)
                 DiskNode.Nodes(sZP).ForeColor = colDiskInfo
                 ZPSet = True
             End If
-            If LoopSet = False Then
-                LoopNode.Tag = DiskNode.Tag
-                DiskNode.Nodes.Add(LoopNode)
-                DiskNode.Nodes(sLoop).ForeColor = colDiskInfo
-                LoopSet = True
-            End If
+            'If LoopSet = False Then
+            'LoopNode.Tag = DiskNode.Tag
+            'DiskNode.Nodes.Add(LoopNode)
+            'DiskNode.Nodes(sLoop).ForeColor = colDiskInfo
+            'LoopSet = True
+            'End If
         End If
 
 
@@ -3700,6 +3811,233 @@ Err:
             Exit Sub
         End If
 
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+    End Sub
+
+    Private Sub AddHSFileToDiskNode(SN As TreeNode, FileName As String, Optional FA As String = "", Optional FO As String = "", Optional FL As String = "")
+        On Error GoTo Err
+
+        'Dim SNisBaseNode As Boolean = SN.Name = BaseNode.Name
+
+        NewFile = FileName
+        GetFile(FileName)
+
+        If FA <> "" Then
+            If Len(FA) < 4 Then
+                FA = Strings.Left("0000", 4 - Len(FA)) + FA
+            End If
+        End If
+
+        If FO <> "" Then
+            If Len(FO) < 8 Then
+                FO = Strings.Left("00000000", 8 - Len(FO)) + FO
+            End If
+        End If
+
+        If FL <> "" Then
+            If Len(FL) < 4 Then
+                FL = Strings.Left("0000", 4 - Len(FL)) + FL
+            End If
+        End If
+
+        Dim Fnt As New Font("Consolas", 10)
+
+        If DiskNode.Nodes(sHSFile + DC.ToString) Is Nothing Then
+            AddNode(DiskNode, sHSFile + DC.ToString, sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+        Else
+            UpdateNode(DiskNode.Nodes(sHSFile + DC.ToString), sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+        End If
+
+        FileNode = DiskNode.Nodes(sHSFile + DC.ToString)
+
+        If IO.File.Exists(Replace(FileName, "*", "")) = False Then
+            FileNode.NodeFont = New Font(TV.Font, FontStyle.Italic)
+            MsgBox("The following file does not exist:" + vbNewLine + vbNewLine + FileName, vbOKOnly + vbCritical, "File cannot be found")
+            GoTo Done
+        End If
+
+        GetDefaultFileParameters(FileNode, FA, FO, FL)
+
+        Dim FilePath As String = ScriptEntryArray(0)
+
+        If InStr(FilePath, ":") = 0 Then
+            FilePath = ScriptPath + FilePath
+        End If
+
+        ReDim Prg(0)
+
+        If Strings.Right(FilePath, 1) = "*" Then
+            MsgBox("The High Score File cannot be under I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
+            Exit Sub
+        Else
+            Prg = IO.File.ReadAllBytes(FilePath)
+            Ext = LCase(Strings.Right(FilePath, 3))
+            FileUnderIO = False
+        End If
+
+        Select Case ScriptEntryArray.Count
+            Case 1      'No file parameters in script, use default parameters
+                DFA = True
+                DFO = True
+                DFL = True
+
+                If Ext = "sid" Then                                 'SID file
+                    FAddr = Prg(Prg(7)) + (Prg(Prg(7) + 1) * 256)
+                    FOffs = Prg(7) + 2
+                    FLen = Prg.Length - FOffs
+                Else                                                'Any other files
+                    If Prg.Length > 2 Then                          'We have at least 3 bytes in the file
+                        FAddr = Prg(0) + (Prg(1) * 256)
+                        FOffs = 2
+                    Else                                            'Short file, use arbitrary address
+                        FAddr = 2064
+                        FOffs = 0
+                    End If
+                    FLen = Prg.Length - FOffs
+                End If
+            Case 2  'One file parameter = load address
+                DFA = False
+                DFO = True
+                DFL = True
+                FAddr = Convert.ToUInt32(ScriptEntryArray(1), 16)   'New File's load address from script
+                If Ext = "sid" Then
+                    If FAddr = Prg(Prg(7)) + (Prg(Prg(7) + 1) * 256) Then DFA = True
+                    FOffs = Prg(7) + 2
+                Else
+                    If FAddr = Prg(0) + (Prg(1) * 256) Then
+                        DFA = True
+                        FOffs = 2
+                    Else
+                        FOffs = 0
+                    End If
+                End If
+                FLen = Prg.Length - FOffs
+            Case 3  'Two file parameters = load address + offset
+                DFA = False
+                DFO = False
+                DFL = True
+                FAddr = Convert.ToUInt32(ScriptEntryArray(1), 16)   'New File's load address from script
+                FOffs = Convert.ToUInt32(ScriptEntryArray(2), 16)   'New File's offset from script
+
+                If FOffs > Prg.Length - 1 Then                      'Make sure offset is valid
+                    FOffs = Prg.Length - 1
+                End If
+
+                If Ext = "sid" Then
+                    If FOffs = Prg(7) + 2 Then
+                        DFO = True
+                        If FAddr = Prg(Prg(7)) + (Prg(Prg(7) + 1) * 256) Then
+                            DFA = True
+                        End If
+                    End If
+                Else
+                    If FAddr = Prg(0) + (Prg(1) * 256) Then
+                        If FOffs = 2 Then
+                            DFA = True
+                            DFO = True
+                        End If
+                    Else
+                        If FOffs = 0 Then
+                            DFO = True
+                        End If
+                    End If
+                End If
+                FLen = Prg.Length - FOffs
+            Case 4  'All three parameters in script
+                DFA = False
+                DFO = False
+                DFL = False
+                FAddr = Convert.ToInt32(ScriptEntryArray(1), 16)   'New File's load address from script
+                FOffs = Convert.ToInt32(ScriptEntryArray(2), 16)   'New File's offset from script
+                FLen = Convert.ToInt32(ScriptEntryArray(3), 16)    'New File's length from script
+                If Ext = "sid" Then
+                    If FAddr = Prg(Prg(7)) + (Prg(Prg(7) + 1) * 256) Then
+                        If FOffs = Prg(7) + 2 Then
+                            If FLen = Prg.Length - FOffs Then
+                                DFA = True
+                                DFO = True
+                                DFL = True
+                            End If
+                        Else
+                            If FLen = Prg.Length - FOffs Then
+                                DFL = True
+                            End If
+                        End If
+                    Else
+                        If FOffs = Prg(7) + 2 Then
+                            If FLen = Prg.Length Then
+                                DFO = True
+                                DFL = True
+                            End If
+                        Else
+                            If FLen = Prg.Length Then
+                                DFL = True
+                            End If
+                        End If
+                    End If
+                Else
+                    If FAddr = Prg(0) + (Prg(1) * 256) Then
+                        If FOffs = 2 Then
+                            If FLen = Prg.Length - FOffs Then
+                                DFA = True
+                                DFO = True
+                                DFL = True
+                            End If
+                        Else
+                            If FLen = Prg.Length - FOffs Then
+                                DFL = True
+                            End If
+                        End If
+                    Else
+                        If FOffs = 0 Then
+                            If FLen = Prg.Length Then
+                                DFO = True
+                                DFL = True
+                            End If
+                        Else
+                            If FLen = Prg.Length Then
+                                DFL = True
+                            End If
+                        End If
+                    End If
+                End If
+        End Select
+
+        If (FLen = 0) Or (FOffs + FLen > Prg.Length) Then   'Make sure length is valid
+            FLen = Prg.Length - FOffs
+        End If
+
+        If FAddr + FLen > &H10000 Then
+            FLen = &H10000 - FAddr
+            If FLen < &H100 Then
+                MsgBox("The High Score File's size must be at least $100 bytes!", vbOKOnly + vbExclamation, "High Score File Error")
+                Exit Sub
+            End If
+        End If
+
+        'Round UP to nearest $100, at least $100 but not more than $0f00 bytes
+        FLen = If((FLen Mod &H100 <> 0) Or (FLen = 0), FLen + &H100, FLen) And &HF00
+        FL = ConvertIntToHex(FLen, 4)
+
+        FileSize = Int(FLen / &H100) + 1 + 2
+
+        '-----------------------------------------------------------------
+
+        AddNode(FileNode, FileNode.Name + ":FA", sFileAddr + If(FA <> "", FA, DFAS), FileNode.Tag, If(DFA, colFileParamDefault, colFileParamEdited), Fnt)
+        AddNode(FileNode, FileNode.Name + ":FO", sFileOffs + If(FO <> "", FO, DFOS), FileNode.Tag, If(DFA, colFileParamDefault, colFileParamEdited), Fnt)
+        AddNode(FileNode, FileNode.Name + ":FL", sFileLen + If(FL <> "", FL, DFLS), FileNode.Tag, If(DFA, colFileParamDefault, colFileParamEdited), Fnt)
+        AddNode(FileNode, FileNode.Name + ":FS", sHSFileSize + FileSize.ToString + " block" + If(FileSize = 1, "", "s"), FileNode.Tag, colFileSize, Fnt)
+
+        CheckFileParameterColors(FileNode, True)  'This will make sure colors are OK
+
+        If ChkExpand.Checked Then
+            FileNode.Expand()
+        End If
+Done:
         Exit Sub
 Err:
         ErrCode = Err.Number
@@ -3995,28 +4333,36 @@ Err:
                                 End If
                             Case sDirArt + CurrentDisk.ToString
                                 Script += "DirArt:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sDirArt)) + vbNewLine
-                                'Case sPacker + CurrentDisk.ToString
-                                'Script += "Packer:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sPacker)) + vbNewLine
+                            Case sHSFile + CurrentDisk.ToString
+                                Script += "HSFile:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sHSFile))
+
+                                If DiskNode.Nodes(J).Nodes.Count > 0 Then
+                                    If DiskNode.Nodes(J).Nodes(0).ForeColor = colFileParamEdited Then            'Add Load Address
+                                        Script += vbTab + Strings.Right(DiskNode.Nodes(J).Nodes(0).Text, 4)
+                                        If DiskNode.Nodes(J).Nodes(1).ForeColor = colFileParamEdited Then        'Add File Offset
+                                            'Trim Offset down to 4 digits if possible
+                                            Dim O As String = Strings.Right(DiskNode.Nodes(J).Nodes(1).Text, 8).TrimStart("0")
+                                            If Len(O) < 4 Then O = Strings.Left("0000", 4 - Len(O)) + O
+                                            Script += vbTab + O
+                                            If DiskNode.Nodes(J).Nodes(2).ForeColor = colFileParamEdited Then    'Add File Length
+                                                Script += vbTab + Strings.Right(DiskNode.Nodes(J).Nodes(2).Text, 4)
+                                            End If
+                                        End If
+                                    End If
+                                End If
+                                Script += vbNewLine
                             Case sZP
                                 Script += "ZP:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sZP) - 1) + vbNewLine
-                            Case sLoop
-                                Script += "Loop:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sLoop)) + vbNewLine
+                                'Case sLoop
+                                'Script += "Loop:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sLoop)) + vbNewLine
                             Case sIL0 + CurrentDisk.ToString
-                                'If CustomIL Then
                                 Script += "IL0:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL0)) + vbNewLine
-                                'End If
                             Case sIL1 + CurrentDisk.ToString
-                                'If CustomIL Then
                                 Script += "IL1:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL1)) + vbNewLine
-                                'End If
                             Case sIL2 + CurrentDisk.ToString
-                                'If CustomIL Then
                                 Script += "IL2:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL2)) + vbNewLine
-                                'End If
                             Case sIL3 + CurrentDisk.ToString
-                                'If CustomIL Then
                                 Script += "IL3:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL3)) + vbNewLine
-                                'End If
                         End Select
                     Next
                 Case &H20000 To &H2FFFF
@@ -4449,17 +4795,21 @@ Done:
                     CurrentDisk = (DiskNode.Tag And &HFFFF)
                     DiskNodeA(CurrentDisk) = DiskNode
                     DiskSizeA(CurrentDisk) = 0
-                    'For J As Integer = 0 To DiskNode.Nodes.Count - 1
-                    'If InStr(DiskNode.Nodes(J).Name, sPacker) <> 0 Then
-                    'Select Case Strings.Right(LCase(DiskNode.Nodes(J).Text), 6)
-                    'Case "better"
-                    'Packer = 2
-                    'Case Else
-                    'Packer = 1
-                    'End Select
-                    'Exit For
-                    'End If
-                    'Next
+
+                    For J As Integer = 0 To DiskNode.Nodes.Count - 1
+                        If InStr(DiskNode.Nodes(J).Name, sHSFile) <> 0 Then
+                            If DiskNode.Nodes(J).Nodes.Count = 4 Then
+                                Dim HSFileSize As Integer = (Convert.ToInt32(Strings.Right(DiskNode.Nodes(J).Nodes(2).Text, 4), 16) / &H100) + 1 + 2
+
+                                If DiskSizeA(CurrentDisk) + HSFileSize > MaxDiskSize Then
+                                    MsgBox(ErrorDiskSizeExceeded, vbOKOnly + vbCritical, "Disk is full!")
+                                    Exit For
+                                End If
+                                DiskSizeA(CurrentDisk) += HSFileSize
+                            End If
+                        End If
+                    Next
+
                 Case 2
                     'Bundle
                     BundleNode = ParentNode.Nodes(I)
@@ -4467,7 +4817,7 @@ Done:
                     Dim CPS As Integer = CalcPartSize(ParentNode.Nodes(I))
                     If DiskSizeA(CurrentDisk) + CPS > MaxDiskSize Then
                         BundleNode.Text = "[Bundle " + CurrentBundle.ToString + "]"
-                        MsgBox("The size of this disk exceeds 664 blocks!", vbOKOnly + vbCritical, "Disk is full!")
+                        MsgBox(ErrorDiskSizeExceeded, vbOKOnly + vbCritical, "Disk is full!")
                         Exit For
                     End If
                     DiskSizeA(CurrentDisk) += CPS
