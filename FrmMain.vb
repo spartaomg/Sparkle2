@@ -1568,12 +1568,27 @@ FindFirstS:
                 SMax = 16
         End Select
 
-        For I As Integer = 0 To SMax
-            If Disk(Track(CT) + (I * 256)) = 0 Then
-                S = I
+        'Find the first empty sector on track
+        For I As Integer = 0 To 2
+            Dim B As Byte = Disk(Track(18) + (CT * 4) + 1 + I)
+            If B <> 0 Then
+                For J As Integer = 0 To 7
+                    If B And (2 ^ J) <> 0 Then
+                        S = (I * 8) + J
+                        Exit For
+                    End If
+                Next
                 Exit For
             End If
         Next
+
+        'For I As Integer = 0 To SMax
+        'If ((Disk(Track(CT) + (I * 256)) = 0) And (Disk(Track(CT) + (I * 256) + 1) = 0)) Or
+        '((Disk(Track(CT) + (I * 256)) = 0) And (Disk(Track(CT) + (I * 256) + 1) = 255)) Then
+        'S = I
+        'Exit For
+        'End If
+        'Next
 
         If S = 255 Then
             CT += 1
