@@ -155,6 +155,8 @@ Public Class FrmEditor
     Private Sub FrmEditor_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         On Error GoTo Err
 
+        bBuildDisk = False
+
         '---------------------------------------------------------------
         '       SETTINGS
         '---------------------------------------------------------------
@@ -978,8 +980,8 @@ Err:
         On Error GoTo Err
 
         Select Case e.KeyCode
-            Case Keys.Left, Keys.Right, Keys.Back, Keys.Delete, Keys.End' Keys.Home, Keys.End
-            Case Keys.Enter, Keys.Up, Keys.Down, Keys.Home ', Keys.PageUp, Keys.PageDown
+            Case Keys.Left, Keys.Right, Keys.Back, Keys.Delete, Keys.End
+            Case Keys.Enter, Keys.Up, Keys.Down, Keys.Home
                 e.SuppressKeyPress = True
                 e.Handled = True
                 TV.Focus()
@@ -2033,6 +2035,10 @@ Done:
     Private Sub GetFile(FileName As String)
         On Error GoTo Err
 
+        If Strings.Left(FileName, Len(sHSFile)) = sHSFile Then
+            FileName = Replace(FileName, sHSFile, "")
+        End If
+
         If IO.File.Exists(Replace(FileName, "*", "")) Then
             P = IO.File.ReadAllBytes(Replace(FileName, "*", ""))
             Ext = LCase(Strings.Right(Replace(FileName, "*", ""), 4))
@@ -2180,6 +2186,12 @@ Done:
 
         NewFile = FileNode.Text
 
+        Dim IsHSFile As Boolean = False
+
+        If Strings.Left(NewFile, Len(sHSFile)) = sHSFile Then
+            IsHSFile = True
+        End If
+
         FAddr = Convert.ToInt32(Strings.Right(FileNode.Nodes(0).Text, 4), 16)
         FOffs = Convert.ToInt32(Strings.Right(FileNode.Nodes(1).Text, 8), 16)
         FLen = Convert.ToInt32(Strings.Right(FileNode.Nodes(2).Text, 4), 16)
@@ -2204,38 +2216,69 @@ Done:
         'Make sure file is within memory
         If FAddr + FLen > &HFFFF Then
             FLen = &H10000 - FAddr
+            If IsHSFile Then
+                FLen = FLen And &HF00
+            End If
             FileNode.Nodes(2).Text = sFileLen + ConvertIntToHex(FLen, 4)
+        End If
+
+        If IsHSFile Then
+
+            If FLen > &HF00 Then
+                FLen = &HF00
+            End If
+
+            If FAddr > &HFF00 Then
+                FAddr = &HFF00
+                FileNode.Nodes(0).Text = sFileAddr + ConvertIntToHex(FAddr, 4)
+            End If
+
+            FLen = If((FLen Mod &H100 <> 0) Or (FLen = 0), FLen + &H100, FLen) And &HF00
+            FileNode.Nodes(2).Text = sFileLen + ConvertIntToHex(FLen, 4)
+
+            FileSize = Int(FLen / &H100) + 1 + 2
+            FileNode.Nodes(3).Text = sHSFileSize + FileSize.ToString + " block" + If(FileSize = 1, "", "s")
+
+            If ChkSize.Checked Then CalcDiskSizeWithForm(BaseNode)
+
+            'End If
+
+            'FAS = ConvertIntToHex(FAddr, 4)
+            'FOS = ConvertIntToHex(FOffs, 8)
+            'FLS = ConvertIntToHex(FLen, 4)
+
+            'If IsHSFile = False Then
+        Else
+            '----------------------------------
+            FileNode.Text = CalcFileSize(FileNode.Text, FAddr, FLen)
+            FileNode.Nodes(4).Text = sFileSize + FileSize.ToString + " block" + If(FileSize = 1, "", "s")
+            '----------------------------------
+
+            With FileNode
+                If OverlapsIO() = False Then
+                    .Text = Replace(.Text, "*", "")
+                    .Nodes(3).Text = sFileUIO + "RAM"
+                    .Nodes(3).ForeColor = colFileIODefault
+                ElseIf InStr(.Text, "*") <> 0 Then
+                    .Nodes(3).Text = sFileUIO + "RAM"
+                    .Nodes(3).ForeColor = colFileIOEdited
+                Else
+                    .Nodes(3).Text = sFileUIO + "I/O"
+                    .Nodes(3).ForeColor = colFileIODefault
+                End If
+            End With
+
+            '----------------------------------
+            If ChkSize.Checked Then CalcDiskSizeWithForm(BaseNode, FileNode.Parent.Index)
+            '----------------------------------
         End If
 
         FAS = ConvertIntToHex(FAddr, 4)
         FOS = ConvertIntToHex(FOffs, 8)
         FLS = ConvertIntToHex(FLen, 4)
 
-        '----------------------------------
-        FileNode.Text = CalcFileSize(FileNode.Text, FAddr, FLen)
-        FileNode.Nodes(4).Text = sFileSize + FileSize.ToString + " block" + If(FileSize = 1, "", "s")
-        '----------------------------------
-
-        With FileNode
-            If OverlapsIO() = False Then
-                .Text = Replace(.Text, "*", "")
-                '.Nodes(3).Text = sFileUIO + "n/a"
-                .Nodes(3).Text = sFileUIO + "RAM"
-                .Nodes(3).ForeColor = colFileIODefault
-            ElseIf InStr(.Text, "*") <> 0 Then
-                '.Nodes(3).Text = sFileUIO + "yes"
-                .Nodes(3).Text = sFileUIO + "RAM"
-                .Nodes(3).ForeColor = colFileIOEdited
-            Else
-                '.Nodes(3).Text = sFileUIO + " no"
-                .Nodes(3).Text = sFileUIO + "I/O"
-                .Nodes(3).ForeColor = colFileIODefault
-            End If
-        End With
-
-        '----------------------------------
-        If ChkSize.Checked Then CalcDiskSizeWithForm(BaseNode, FileNode.Parent.Index)
-        '----------------------------------
+        GetDefaultFileParameters(FileNode,,,, IsHSFile)
+        CheckFileParameterColors(FileNode, IsHSFile)
 
         GoTo Done
 Err:
@@ -2268,6 +2311,7 @@ Done:
         End If
 
         If IsHSFile Then
+            DFLN = Convert.ToInt32(DFLS, 16)
             If Convert.ToInt32(Strings.Right(FileNode.Nodes(2).Text, 4), 16) >= Convert.ToInt32(DFLS, 16) Then
                 DFL = True
             Else
@@ -2559,6 +2603,10 @@ Err:
         CalcOrigBlockCnt = 0
 
         If NewFile = "" Then Exit Function
+
+        If Strings.Left(NewFile, Len(sHSFile)) = sHSFile Then
+            NewFile = Strings.Replace(NewFile, sHSFile, "")
+        End If
 
         ReDim Prg(0)
 
@@ -3193,11 +3241,13 @@ Err:
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
-                    If DiskNode.Nodes(sDiskPath + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sDiskPath + DC.ToString, sDiskPath + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sDiskPath + DC.ToString), sDiskPath + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDiskPath)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
+                        If DiskNode.Nodes(sDiskPath + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sDiskPath + DC.ToString, sDiskPath + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sDiskPath + DC.ToString), sDiskPath + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDiskPath)
+                        End If
                     End If
                     NewBundle = True
                 Case "header:"
@@ -3205,10 +3255,12 @@ Err:
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If DiskNode.Nodes(sDiskHeader + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sDiskHeader + DC.ToString, sDiskHeader + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sDiskHeader + DC.ToString), sDiskHeader + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If DiskNode.Nodes(sDiskHeader + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sDiskHeader + DC.ToString, sDiskHeader + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sDiskHeader + DC.ToString), sDiskHeader + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        End If
                     End If
                     NewBundle = True
                 Case "id:"
@@ -3216,10 +3268,12 @@ Err:
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If DiskNode.Nodes(sDiskID + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sDiskID + DC.ToString, sDiskID + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sDiskID + DC.ToString), sDiskID + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDiskID)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If DiskNode.Nodes(sDiskID + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sDiskID + DC.ToString, sDiskID + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sDiskID + DC.ToString), sDiskID + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDiskID)
+                        End If
                     End If
                     NewBundle = True
                 Case "name:"
@@ -3227,10 +3281,12 @@ Err:
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If DiskNode.Nodes(sDemoName + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sDemoName + DC.ToString), sDemoName + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoName)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If DiskNode.Nodes(sDemoName + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sDemoName + DC.ToString), sDemoName + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoName)
+                        End If
                     End If
                     NewBundle = True
                 Case "start:"
@@ -3238,10 +3294,12 @@ Err:
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If DiskNode.Nodes(sDemoStart + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sDemoStart + DC.ToString, sDemoStart + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfo, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sDemoStart + DC.ToString), sDemoStart + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoStart)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If DiskNode.Nodes(sDemoStart + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sDemoStart + DC.ToString, sDemoStart + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sDemoStart + DC.ToString), sDemoStart + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoStart)
+                        End If
                     End If
                     NewBundle = True
                 Case "dirart:"
@@ -3249,7 +3307,7 @@ Err:
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If ScriptEntryArray(0) <> "" Then
+                    If ScriptEntryArray(0) IsNot Nothing Then
                         If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
                     End If
                     If DiskNode.Nodes(sDirArt + DC.ToString) Is Nothing Then
@@ -3263,17 +3321,11 @@ Err:
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If ScriptEntryArray(0) <> "" Then
+                    If ScriptEntryArray(0) IsNot Nothing Then
                         If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
+                        CorrectFileParameterFormat()
+                        AddHSFileToDiskNode(DiskNode, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
                     End If
-                    'If DiskNode.Nodes(sHSFile + DC.ToString) Is Nothing Then
-                    'AddNode(DiskNode, sHSFile + DC.ToString, sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    'Else
-                    'UpdateNode(DiskNode.Nodes(sHSFile + DC.ToString), sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    'End If
-                    CorrectFileParameterFormat()
-                    AddHSFileToDiskNode(DiskNode, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
-                    'UpdateHSFilePath(ScriptEntryArray(0))
                     NewBundle = True
                 Case "zp:"
                     If NewD = False Then
@@ -3281,15 +3333,17 @@ Err:
                         AddDiskToScriptNode(BaseNode)
                     End If
                     'Correct length
-                    If Len(ScriptEntryArray(0)) < 2 Then
-                        ScriptEntryArray(0) = Strings.Left("02", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
-                    ElseIf Len(ScriptEntryArray(0)) > 2 Then
-                        ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
-                    End If
-                    UpdateNode(ZPNode, sZP + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfo, Fnt)
-                    If ZPSet = False Then 'ZP can only be set from the first disk
-                        DiskNode.Nodes.Add(ZPNode)
-                        ZPSet = True
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 2 Then
+                            ScriptEntryArray(0) = Strings.Left("02", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 2 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                        End If
+                        UpdateNode(ZPNode, sZP + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfo, Fnt)
+                        If ZPSet = False Then 'ZP can only be set from the first disk
+                            DiskNode.Nodes.Add(ZPNode)
+                            ZPSet = True
+                        End If
                     End If
                     NewBundle = True
                     'Case "loop:"
@@ -3304,90 +3358,93 @@ Err:
                     'End If
                     'NewBundle = True
                 Case "il0:"
-                    'If CustomIL Then
                     If NewD = False Then
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If Len(ScriptEntryArray(0)) < 2 Then
-                        ScriptEntryArray(0) = Strings.Left("04", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
-                    ElseIf Len(ScriptEntryArray(0)) > 2 Then
-                        ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 2 Then
+                            ScriptEntryArray(0) = Strings.Left("04", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 2 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                        End If
+                        If DiskNode.Nodes(sIL0 + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sIL0 + DC.ToString, sIL0 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sIL0 + DC.ToString), sIL0 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoName)
+                        End If
                     End If
-                    If DiskNode.Nodes(sIL0 + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sIL0 + DC.ToString, sIL0 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sIL0 + DC.ToString), sIL0 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoName)
-                    End If
-                    'End If
                     NewBundle = True
                 Case "il1:"
-                    'If CustomIL Then
                     If NewD = False Then
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If Len(ScriptEntryArray(0)) < 2 Then
-                        ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
-                    ElseIf Len(ScriptEntryArray(0)) > 2 Then
-                        ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 2 Then
+                            ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 2 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                        End If
+                        If DiskNode.Nodes(sIL1 + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sIL1 + DC.ToString, sIL1 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sIL1 + DC.ToString), sIL1 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoName)
+                        End If
                     End If
-                    If DiskNode.Nodes(sIL1 + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sIL1 + DC.ToString, sIL1 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sIL1 + DC.ToString), sIL1 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoName)
-                    End If
-                    'End If
                     NewBundle = True
                 Case "il2:"
-                    'If CustomIL Then
                     If NewD = False Then
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If Len(ScriptEntryArray(0)) < 2 Then
-                        ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
-                    ElseIf Len(ScriptEntryArray(0)) > 2 Then
-                        ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 2 Then
+                            ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 2 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                        End If
+                        If DiskNode.Nodes(sIL2 + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sIL2 + DC.ToString, sIL2 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sIL2 + DC.ToString), sIL2 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoName)
+                        End If
                     End If
-                    If DiskNode.Nodes(sIL2 + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sIL2 + DC.ToString, sIL2 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sIL2 + DC.ToString), sIL2 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoName)
-                    End If
-                    'End If
                     NewBundle = True
                 Case "il3:"
-                    'If CustomIL Then
                     If NewD = False Then
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If Len(ScriptEntryArray(0)) < 2 Then
-                        ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
-                    ElseIf Len(ScriptEntryArray(0)) > 2 Then
-                        ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 2 Then
+                            ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 2 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                        End If
+                        If DiskNode.Nodes(sIL3 + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sIL3 + DC.ToString, sIL3 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sIL3 + DC.ToString), sIL3 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoName)
+                        End If
                     End If
-                    If DiskNode.Nodes(sIL3 + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sIL3 + DC.ToString, sIL3 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sIL3 + DC.ToString), sIL3 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt) ', tDemoName)
-                    End If
-                    'End If
                     NewBundle = True
                 Case "list:", "script:"
                     NewD = False
-                    If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
 
-                    AddScriptToScriptNode(BaseNode, ScriptEntryArray(0))
-                    ConvertScriptToScriptNodes(ScriptNode, ScriptEntryArray(0))
-
+                        AddScriptToScriptNode(BaseNode, ScriptEntryArray(0))
+                        ConvertScriptToScriptNodes(ScriptNode, ScriptEntryArray(0))
+                    End If
                 Case "file:"
                     NewD = False
-                    If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
 
-                    CorrectFileParameterFormat()
-                    AddFileToScriptNode(BaseNode, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
+                        CorrectFileParameterFormat()
+                        AddFileToScriptNode(BaseNode, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
+                    End If
                     NewBundle = False
                 Case "new block", "next block", "new sector", "align bundle", "align"
                     BundleInNewBlock = True
@@ -3475,11 +3532,13 @@ Done:
                         NewD = True
                         AddDiskToScriptNode(SN)
                     End If
-                    If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
-                    If DiskNode.Nodes(sDiskPath + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sDiskPath + DC.ToString, sDiskPath + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sDiskPath + DC.ToString), sDiskPath + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDiskPath)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
+                        If DiskNode.Nodes(sDiskPath + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sDiskPath + DC.ToString, sDiskPath + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sDiskPath + DC.ToString), sDiskPath + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDiskPath)
+                        End If
                     End If
                     NewBundle = True
                 Case "header:"
@@ -3487,10 +3546,12 @@ Done:
                         NewD = True
                         AddDiskToScriptNode(SN)
                     End If
-                    If DiskNode.Nodes(sDiskHeader + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sDiskHeader + DC.ToString, sDiskHeader + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sDiskHeader + DC.ToString), sDiskHeader + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If DiskNode.Nodes(sDiskHeader + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sDiskHeader + DC.ToString, sDiskHeader + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sDiskHeader + DC.ToString), sDiskHeader + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        End If
                     End If
                     NewBundle = True
                 Case "id:"
@@ -3498,10 +3559,12 @@ Done:
                         NewD = True
                         AddDiskToScriptNode(SN)
                     End If
-                    If DiskNode.Nodes(sDiskID + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sDiskID + DC.ToString, sDiskID + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sDiskID + DC.ToString), sDiskID + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDiskID)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If DiskNode.Nodes(sDiskID + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sDiskID + DC.ToString, sDiskID + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sDiskID + DC.ToString), sDiskID + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDiskID)
+                        End If
                     End If
                     NewBundle = True
                 Case "name:"
@@ -3509,10 +3572,12 @@ Done:
                         NewD = True
                         AddDiskToScriptNode(SN)
                     End If
-                    If DiskNode.Nodes(sDemoName + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sDemoName + DC.ToString), sDemoName + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoName)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If DiskNode.Nodes(sDemoName + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sDemoName + DC.ToString), sDemoName + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoName)
+                        End If
                     End If
                     NewBundle = True
                 Case "start:"
@@ -3520,10 +3585,12 @@ Done:
                         NewD = True
                         AddDiskToScriptNode(SN)
                     End If
-                    If DiskNode.Nodes(sDemoStart + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sDemoStart + DC.ToString, sDemoStart + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sDemoStart + DC.ToString), sDemoStart + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoStart)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If DiskNode.Nodes(sDemoStart + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sDemoStart + DC.ToString, sDemoStart + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sDemoStart + DC.ToString), sDemoStart + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoStart)
+                        End If
                     End If
                     NewBundle = True
                 Case "dirart:"
@@ -3531,13 +3598,13 @@ Done:
                         NewD = True
                         AddDiskToScriptNode(SN)
                     End If
-                    If ScriptEntryArray(0) <> "" Then
+                    If ScriptEntryArray(0) IsNot Nothing Then
                         If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
-                    End If
-                    If DiskNode.Nodes(sDirArt + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sDirArt + DC.ToString, sDirArt + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sDirArt + DC.ToString), sDirArt + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        If DiskNode.Nodes(sDirArt + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sDirArt + DC.ToString, sDirArt + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sDirArt + DC.ToString), sDirArt + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        End If
                     End If
                     NewBundle = True
                 Case "hsfile:"
@@ -3545,13 +3612,13 @@ Done:
                         NewD = True
                         AddDiskToScriptNode(SN)
                     End If
-                    If ScriptEntryArray(0) <> "" Then
+                    If ScriptEntryArray(0) IsNot Nothing Then
                         If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
-                    End If
-                    If DiskNode.Nodes(sHSFile + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sHSFile + DC.ToString, sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sHSFile + DC.ToString), sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        If DiskNode.Nodes(sHSFile + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sHSFile + DC.ToString, sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sHSFile + DC.ToString), sHSFile + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        End If
                     End If
                     NewBundle = True
                 Case "zp:"
@@ -3560,15 +3627,17 @@ Done:
                         AddDiskToScriptNode(SN)
                     End If
                     'Correct length
-                    If Len(ScriptEntryArray(0)) < 2 Then
-                        ScriptEntryArray(0) = Strings.Left("02", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
-                    ElseIf Len(ScriptEntryArray(0)) > 2 Then
-                        ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
-                    End If
-                    UpdateNode(ZPNode, sZP + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    If ZPSet = False Then 'ZP can only be set from the first disk
-                        DiskNode.Nodes.Add(ZPNode)
-                        ZPSet = True
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 2 Then
+                            ScriptEntryArray(0) = Strings.Left("02", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 2 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                        End If
+                        UpdateNode(ZPNode, sZP + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        If ZPSet = False Then 'ZP can only be set from the first disk
+                            DiskNode.Nodes.Add(ZPNode)
+                            ZPSet = True
+                        End If
                     End If
                     NewBundle = True
                     'Case "loop:"
@@ -3583,90 +3652,94 @@ Done:
                     'End If
                     'NewBundle = True
                 Case "il0:"
-                    'If CustomIL Then
                     If NewD = False Then
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If Len(ScriptEntryArray(0)) < 2 Then
-                        ScriptEntryArray(0) = Strings.Left("04", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
-                    ElseIf Len(ScriptEntryArray(0)) > 2 Then
-                        ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 2 Then
+                            ScriptEntryArray(0) = Strings.Left("04", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 2 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                        End If
+                        If DiskNode.Nodes(sIL0 + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sIL0 + DC.ToString, sIL0 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sIL0 + DC.ToString), sIL0 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoName)
+                        End If
                     End If
-                    If DiskNode.Nodes(sIL0 + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sIL0 + DC.ToString, sIL0 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sIL0 + DC.ToString), sIL0 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoName)
-                    End If
-                    'End If
                     NewBundle = True
                 Case "il1:"
-                    'If CustomIL Then
                     If NewD = False Then
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If Len(ScriptEntryArray(0)) < 2 Then
-                        ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
-                    ElseIf Len(ScriptEntryArray(0)) > 2 Then
-                        ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
-                    End If
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 2 Then
+                            ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 2 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                        End If
 
-                    If DiskNode.Nodes(sIL1 + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sIL1 + DC.ToString, sIL1 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sIL1 + DC.ToString), sIL1 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoName)
+                        If DiskNode.Nodes(sIL1 + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sIL1 + DC.ToString, sIL1 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sIL1 + DC.ToString), sIL1 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoName)
+                        End If
                     End If
-                    'End If
                     NewBundle = True
                 Case "il2:"
-                    'If CustomIL Then
                     If NewD = False Then
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If Len(ScriptEntryArray(0)) < 2 Then
-                        ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
-                    ElseIf Len(ScriptEntryArray(0)) > 2 Then
-                        ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 2 Then
+                            ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 2 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                        End If
+                        If DiskNode.Nodes(sIL2 + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sIL2 + DC.ToString, sIL2 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sIL2 + DC.ToString), sIL2 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoName)
+                        End If
                     End If
-                    If DiskNode.Nodes(sIL2 + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sIL2 + DC.ToString, sIL2 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sIL2 + DC.ToString), sIL2 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoName)
-                    End If
-                    'End If
                     NewBundle = True
                 Case "il3:"
-                    'If CustomIL Then
                     If NewD = False Then
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
                     End If
-                    If Len(ScriptEntryArray(0)) < 2 Then
-                        ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
-                    ElseIf Len(ScriptEntryArray(0)) > 2 Then
-                        ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 2 Then
+                            ScriptEntryArray(0) = Strings.Left("03", 2 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 2 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 2)
+                        End If
+                        If DiskNode.Nodes(sIL3 + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sIL3 + DC.ToString, sIL3 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sIL3 + DC.ToString), sIL3 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoName)
+                        End If
                     End If
-                    If DiskNode.Nodes(sIL3 + DC.ToString) Is Nothing Then
-                        AddNode(DiskNode, sIL3 + DC.ToString, sIL3 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt)
-                    Else
-                        UpdateNode(DiskNode.Nodes(sIL3 + DC.ToString), sIL3 + ScriptEntryArray(0), DiskNode.Tag, colDiskInfoGray, Fnt) ', tDemoName)
-                    End If
-                    'End If
                     NewBundle = True
                 Case "list:", "script:"
                     NewD = False
-                    If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
 
-                    AddScriptToScriptNode(SN, ScriptEntryArray(0))
-                    ConvertScriptToScriptNodes(ScriptNode, ScriptEntryArray(0))
+                        AddScriptToScriptNode(SN, ScriptEntryArray(0))
+                        ConvertScriptToScriptNodes(ScriptNode, ScriptEntryArray(0))
+                    End If
                 Case "file:"
                     NewD = False
-                    If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
 
-                    CorrectFileParameterFormat()
-                    AddFileToScriptNode(SN, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
+                        CorrectFileParameterFormat()
+                        AddFileToScriptNode(SN, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
+                    End If
                     NewBundle = False
                 Case "new block", "next block", "new sector", "align bundle", "align"
                     BundleInNewBlock = True
@@ -3860,7 +3933,7 @@ Err:
             GoTo Done
         End If
 
-        GetDefaultFileParameters(FileNode, FA, FO, FL)
+        GetDefaultFileParameters(FileNode, FA, FO, FL, True)
 
         Dim FilePath As String = ScriptEntryArray(0)
 
@@ -4012,7 +4085,7 @@ Err:
         End If
 
         If FAddr + FLen > &H10000 Then
-            FLen = &H10000 - FAddr
+            FLen = (&H10000 - FAddr) And &HF00
             If FLen < &H100 Then
                 MsgBox("The High Score File's size must be at least $100 bytes!", vbOKOnly + vbExclamation, "High Score File Error")
                 Exit Sub

@@ -9,7 +9,7 @@ Imports System.Runtime.InteropServices
 ' Review the values of the assembly attributes
 
 <Assembly: AssemblyTitle("Sparkle 2")>
-<Assembly: AssemblyDescription("Sparkle C64 Demo Tool")>
+<Assembly: AssemblyDescription("Sparkle 2 C64 Demo Tool")>
 <Assembly: AssemblyCompany("OMG")>
 <Assembly: AssemblyProduct("Sparkle 2 C64 Demo Tool")>
 <Assembly: AssemblyCopyright("Copyright © Sparta 2019-2021")>
@@ -31,5 +31,5 @@ Imports System.Runtime.InteropServices
 ' by using the '*' as shown below:
 ' <Assembly: AssemblyVersion("1.0.*")>
 
-<Assembly: AssemblyVersion("2.0.21.0120")>
-<Assembly: AssemblyFileVersion("2.0.21.0120")>
+<Assembly: AssemblyVersion("2.0.21.0122")>
+<Assembly: AssemblyFileVersion("2.0.21.0122")>

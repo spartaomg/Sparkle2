@@ -346,7 +346,7 @@ Err:
     End Sub
 
     Private Sub MakeDisk(sender As Object, e As EventArgs, Optional OnTheFly As Boolean = False)  'Args needed for button Sub calls
-        On Error GoTo Err
+        'On Error GoTo Err
 
         Dim DiskOK As Boolean
 
@@ -1108,15 +1108,17 @@ Err:
     End Sub
 
     Private Sub TsbScriptEditor_Click(sender As Object, e As EventArgs) Handles TsbScriptEditor.Click
-        On Error GoTo Err
+        'On Error GoTo Err
 
         Using A As New FrmEditor
             A.ShowDialog(Me)
         End Using
 
         If bBuildDisk = True Then
-            If (InStr(LCase(Script), "file:") = 0) And (InStr(LCase(Script), "list:") = 0) And (InStr(LCase(Script), "script:") = 0) Then
-                MsgBox("This script does not contain any files", vbOKOnly, "Unable to build disk")
+            Dim S As String = LCase(Script)
+            S = Replace(S, "hsfile:", "")
+            If (InStr(S, "file:") = 0) And (InStr(S, "list:") = 0) And (InStr(S, "script:") = 0) Then
+                MsgBox("This script does not contain any files", vbOKOnly + vbExclamation, "Unable to build disk")
             Else
 
                 MakeDisk(sender, e)
