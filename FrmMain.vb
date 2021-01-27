@@ -1530,9 +1530,9 @@ Err:
         FindNextDirPos()
 
         If DirPos <> 0 Then
-            Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 0) = &H82   '"PRG" -  all dir entries will point at first file in dir
-            Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 1) = PrgT     'Track 18 (track pointer of boot loader)
-            Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2) = PrgS      'Sector 7 (sector pointer of boot loader)
+            Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 0) = &H82       '"PRG" -  all dir entries will point at first file in dir
+            Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 1) = PrgT       'Track 18 (track pointer of boot loader)
+            Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2) = PrgS       'Sector 7 (sector pointer of boot loader)
             Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 28) = PrgB      'Sector 7 (sector pointer of boot loader)
 
             'Copy only the first 16 characters of the edited DirEntry to the Disk Directory
@@ -1590,7 +1590,7 @@ FindFirstS:
         'End If
         'Next
 
-        If S = 255 Then
+        If S = 255 Then             'Track full? Technicaly, this cannot happen as we selected the first track with an empty sector count > 0
             CT += 1
             If CT <= 35 Then
                 GoTo FindFirstS
