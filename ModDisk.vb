@@ -819,20 +819,21 @@ Err:
         Buffer(255) = &HFE                                      'First byte of block
         Buffer(254) = &H81                                      'Bit stream
         Buffer(253) = HSStartAdd Mod 256                        'Last byte's address (Lo)
-        Buffer(252) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
-        Buffer(251) = 0                                         'LongLit flag
-        Buffer(250) = &HF7                                      'Number of literals - 1
+        Buffer(252) = 0                                         'I/O flag
+        Buffer(251) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
+        Buffer(250) = 0                                         'LongLit flag
+        Buffer(249) = &HF6                                      'Number of literals - 1
 
-        For I As Integer = 2 To 249
-            Buffer(I) = HSFile(HSLength - 1 - 249 + I)
+        For I As Integer = 2 To 248
+            Buffer(I) = HSFile(HSLength - 1 - 248 + I)
         Next
 
         For I As Integer = 0 To 255
             Disk(Track(CT) + CS * 256 + I) = Buffer(I)
         Next
 
-        HSStartAdd -= &HF8
-        HSLength -= &HF8
+        HSStartAdd -= &HF7
+        HSLength -= &HF7
 
         'Blocks 1 to BlockCnt-1
         For I As Integer = 1 To BlockCnt - 1
@@ -848,20 +849,21 @@ Err:
 
             Buffer(0) = &H81                                    'Bit stream
             Buffer(255) = HSStartAdd Mod 256                    'Last byte's address (Lo)
-            Buffer(254) = Int(HSStartAdd / 256)                 'Last byte's address (hi)
-            Buffer(253) = 0                                     'LongLit flag
-            Buffer(252) = &HFA                                  'Number of literals - 1
+            Buffer(254) = 0                                     'I/O flag
+            Buffer(253) = Int(HSStartAdd / 256)                 'Last byte's address (hi)
+            Buffer(252) = 0                                     'LongLit flag
+            Buffer(251) = &HF9                                  'Number of literals - 1
 
-            For J As Integer = 1 To 251
-                Buffer(J) = HSFile(HSLength - 1 - 251 + J)
+            For J As Integer = 1 To 250
+                Buffer(J) = HSFile(HSLength - 1 - 250 + J)
             Next
 
             For J As Integer = 0 To 255
                 Disk(Track(CT) + CS * 256 + J) = Buffer(J)
             Next
 
-            HSStartAdd -= &HFB
-            HSLength -= &HFB
+            HSStartAdd -= &HFA
+            HSLength -= &HFA
 
         Next
 
@@ -878,15 +880,16 @@ Err:
         Buffer(0) = &H81                                        'Bit stream
         Buffer(1) = &HFF                                        'New block count = 0 (eor transformed)
         Buffer(255) = HSStartAdd Mod 256                        'Last byte's address (Lo)
-        Buffer(254) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
-        Buffer(253) = 0                                         'LongLit flag
-        Buffer(252) = HSLength - 1                              'Number of remaining literals - 1
+        Buffer(254) = 0                                         'I/O flag
+        Buffer(253) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
+        Buffer(252) = 0                                         'LongLit flag
+        Buffer(251) = HSLength - 1                              'Number of remaining literals - 1
 
         For I As Integer = 0 To HSLength - 1
-            Buffer(252 - HSLength + I) = HSFile(I)
+            Buffer(251 - HSLength + I) = HSFile(I)
         Next
 
-        Buffer(252 - HSLength - 1) = &HF8                       'End of File Bundle flag
+        Buffer(251 - HSLength - 1) = &HF8                       'End of File Bundle flag
 
         For I As Integer = 0 To 255
             Disk(Track(CT) + CS * 256 + I) = Buffer(I)
