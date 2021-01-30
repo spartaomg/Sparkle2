@@ -52,6 +52,11 @@ Sparkle
   Looks up a localized resource of type System.Byte[].
 </summary>
 </member>
+<member name="P:Sparkle.My.Resources.Resources.SSIO">
+<summary>
+  Looks up a localized resource of type System.Byte[].
+</summary>
+</member>
 <member name="P:Sparkle.My.MySettings.ShowFileDetails">
 <summary>
 Hide file details in Script Editor

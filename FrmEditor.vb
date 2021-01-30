@@ -2237,7 +2237,21 @@ Done:
             FileNode.Nodes(2).Text = sFileLen + ConvertIntToHex(FLen, 4)
 
             FileSize = Int(FLen / &H100) + 1 + 2
-            FileNode.Nodes(3).Text = sHSFileSize + FileSize.ToString + " block" + If(FileSize = 1, "", "s")
+            FileNode.Nodes(4).Text = sHSFileSize + FileSize.ToString + " block" + If(FileSize = 1, "", "s")
+
+            With FileNode
+                If OverlapsIO() = False Then
+                    .Text = Replace(.Text, "*", "")
+                    .Nodes(3).Text = sFileUIO + "RAM"
+                    .Nodes(3).ForeColor = colFileIODefault
+                ElseIf InStr(.Text, "*") <> 0 Then
+                    .Nodes(3).Text = sFileUIO + "RAM"
+                    .Nodes(3).ForeColor = colFileIOEdited
+                Else
+                    .Nodes(3).Text = sFileUIO + "I/O"
+                    .Nodes(3).ForeColor = colFileIODefault
+                End If
+            End With
 
             If ChkSize.Checked Then CalcDiskSizeWithForm(BaseNode)
 
@@ -2427,9 +2441,10 @@ Err:
         DFL = True
 
         If OverlapsIO() = True Then
-            MsgBox("The High Score File cannot overlap with the I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
-            NewFile = ""
-            Exit Sub
+            'MsgBox("The High Score File cannot overlap with the I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
+            'NewFile = ""
+            'Exit Sub
+            NewFile += "*"
         End If
 
         N.Text = sHSFile + NewFile
@@ -2515,20 +2530,19 @@ Err:
             FileNode.Nodes(FileNode.Name + ":FL").Text = sFileLen + ConvertIntToHex(FLen, 4)
         End If
 
+        If FileNode.Nodes(FileNode.Name + ":FUIO") Is Nothing Then
+            '                                                           Overlaps I/O      AND DOES NOT GO UNDER I/O
+            FileNode.Nodes.Add(FileNode.Name + ":FUIO", sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM"))
+            With FileNode.Nodes(FileNode.Name + ":FUIO")
+                .Tag = FileNode.Tag
+                .ForeColor = If(FileUnderIO = True, colFileIOEdited, colFileIODefault)
+                .NodeFont = New Font("Consolas", 10)
+            End With
+        Else
+            FileNode.Nodes(FileNode.Name + ":FUIO").Text = sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM")
+        End If
+
         If IsHSFile = False Then
-
-            If FileNode.Nodes(FileNode.Name + ":FUIO") Is Nothing Then
-                '                                                           Overlaps I/O      AND DOES NOT GO UNDER I/O
-                FileNode.Nodes.Add(FileNode.Name + ":FUIO", sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM"))
-                With FileNode.Nodes(FileNode.Name + ":FUIO")
-                    .Tag = FileNode.Tag
-                    .ForeColor = If(FileUnderIO = True, colFileIOEdited, colFileIODefault)
-                    .NodeFont = New Font("Consolas", 10)
-                End With
-            Else
-                FileNode.Nodes(FileNode.Name + ":FUIO").Text = sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM")
-            End If
-
             If FileNode.Nodes(FileNode.Name + ":FS") Is Nothing Then
                 FileNode.Nodes.Add(FileNode.Name + ":FS", sFileSize + FileSize.ToString + " block" + If(FileSize <> 1, "s", ""))
                 With FileNode.Nodes(FileNode.Name + ":FS")
@@ -3944,8 +3958,11 @@ Err:
         ReDim Prg(0)
 
         If Strings.Right(FilePath, 1) = "*" Then
-            MsgBox("The High Score File cannot be under I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
-            Exit Sub
+            'MsgBox("The High Score File cannot be under I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
+            'Exit Sub
+            Prg = IO.File.ReadAllBytes(Replace(FilePath, "*", ""))
+            Ext = LCase(Strings.Right(Replace(FilePath, "*", ""), 3))
+            FileUnderIO = True
         Else
             Prg = IO.File.ReadAllBytes(FilePath)
             Ext = LCase(Strings.Right(FilePath, 3))
@@ -4098,11 +4115,17 @@ Err:
 
         FileSize = Int(FLen / &H100) + 1 + 2
 
+        If OverlapsIO() = False Then
+            FileUnderIO = False
+            FileNode.Text = Replace(FileNode.Text, "*", "")
+        End If
+
         '-----------------------------------------------------------------
 
         AddNode(FileNode, FileNode.Name + ":FA", sFileAddr + If(FA <> "", FA, DFAS), FileNode.Tag, If(DFA, colFileParamDefault, colFileParamEdited), Fnt)
         AddNode(FileNode, FileNode.Name + ":FO", sFileOffs + If(FO <> "", FO, DFOS), FileNode.Tag, If(DFA, colFileParamDefault, colFileParamEdited), Fnt)
         AddNode(FileNode, FileNode.Name + ":FL", sFileLen + If(FL <> "", FL, DFLS), FileNode.Tag, If(DFA, colFileParamDefault, colFileParamEdited), Fnt)
+        AddNode(FileNode, FileNode.Name + ":FUIO", sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM"), FileNode.Tag, If(FileUnderIO, colFileIOEdited, colFileIODefault), Fnt)
         AddNode(FileNode, FileNode.Name + ":FS", sHSFileSize + FileSize.ToString + " block" + If(FileSize = 1, "", "s"), FileNode.Tag, colFileSize, Fnt)
 
         CheckFileParameterColors(FileNode, True)  'This will make sure colors are OK

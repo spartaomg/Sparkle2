@@ -179,6 +179,8 @@ Friend Module ModDisk
     Public CompressBundleFromEditor As Boolean = False
     Public LastFileOfBundle As Boolean = False
 
+    Public SaverSupportsIO As Boolean = False
+
     Public Sub SetLastSector()
         On Error GoTo Err
 
@@ -753,7 +755,20 @@ Err:
             Exit Sub
         End If
 
-        Dim SaveCode() As Byte = My.Resources.SS
+        If InStr(HSFileName, "*") <> 0 Then
+            SaverSupportsIO = True
+            Replace(HSFileName, "*", "")
+        Else
+            SaverSupportsIO = False
+        End If
+
+        Dim SaveCode() As Byte ' = My.Resources.SS
+
+        If SaverSupportsIO Then
+            SaveCode = My.Resources.SSIO
+        Else
+            SaveCode = My.Resources.SS
+        End If
 
         SaveCode(&HC + 2) = (HSAddress - 1) And &HFF
         SaveCode(&H13 + 2) = Int((HSAddress - 1) / &H100)
@@ -819,21 +834,32 @@ Err:
         Buffer(255) = &HFE                                      'First byte of block
         Buffer(254) = &H81                                      'Bit stream
         Buffer(253) = HSStartAdd Mod 256                        'Last byte's address (Lo)
-        Buffer(252) = 0                                         'I/O flag
-        Buffer(251) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
-        Buffer(250) = 0                                         'LongLit flag
-        Buffer(249) = &HF6                                      'Number of literals - 1
+        If SaverSupportsIO Then
+            Buffer(252) = 0                                         'I/O flag
+            Buffer(251) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
+            Buffer(250) = 0                                         'LongLit flag
+            Buffer(249) = &HF6                                      'Number of literals - 1
+        Else
+            Buffer(252) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
+            Buffer(251) = 0                                         'LongLit flag
+            Buffer(250) = &HF7                                      'Number of literals - 1
+        End If
 
-        For I As Integer = 2 To 248
-            Buffer(I) = HSFile(HSLength - 1 - 248 + I)
+        For I As Integer = 2 To If(SaverSupportsIO, 248, 249)
+            Buffer(I) = HSFile(HSLength - 1 - If(SaverSupportsIO, 248, 249) + I)
         Next
 
         For I As Integer = 0 To 255
             Disk(Track(CT) + CS * 256 + I) = Buffer(I)
         Next
 
-        HSStartAdd -= &HF7
-        HSLength -= &HF7
+        If SaverSupportsIO Then
+            HSStartAdd -= &HF7
+            HSLength -= &HF7
+        Else
+            HSStartAdd -= &HF8
+            HSLength -= &HF8
+        End If
 
         'Blocks 1 to BlockCnt-1
         For I As Integer = 1 To BlockCnt - 1
@@ -849,21 +875,32 @@ Err:
 
             Buffer(0) = &H81                                    'Bit stream
             Buffer(255) = HSStartAdd Mod 256                    'Last byte's address (Lo)
-            Buffer(254) = 0                                     'I/O flag
-            Buffer(253) = Int(HSStartAdd / 256)                 'Last byte's address (hi)
-            Buffer(252) = 0                                     'LongLit flag
-            Buffer(251) = &HF9                                  'Number of literals - 1
+            If SaverSupportsIO Then
+                Buffer(254) = 0                                     'I/O flag
+                Buffer(253) = Int(HSStartAdd / 256)                 'Last byte's address (hi)
+                Buffer(252) = 0                                     'LongLit flag
+                Buffer(251) = &HF9                                  'Number of literals - 1
+            Else
+                Buffer(254) = Int(HSStartAdd / 256)                 'Last byte's address (hi)
+                Buffer(253) = 0                                     'LongLit flag
+                Buffer(252) = &HFA                                  'Number of literals - 1
+            End If
 
-            For J As Integer = 1 To 250
-                Buffer(J) = HSFile(HSLength - 1 - 250 + J)
+            For J As Integer = 1 To If(SaverSupportsIO, 250, 251)
+                Buffer(J) = HSFile(HSLength - 1 - If(SaverSupportsIO, 250, 251) + J)
             Next
 
             For J As Integer = 0 To 255
                 Disk(Track(CT) + CS * 256 + J) = Buffer(J)
             Next
 
-            HSStartAdd -= &HFA
-            HSLength -= &HFA
+            If SaverSupportsIO Then
+                HSStartAdd -= &HFA
+                HSLength -= &HFA
+            Else
+                HSStartAdd -= &HFB
+                HSLength -= &HFB
+            End If
 
         Next
 
@@ -880,16 +917,22 @@ Err:
         Buffer(0) = &H81                                        'Bit stream
         Buffer(1) = &HFF                                        'New block count = 0 (eor transformed)
         Buffer(255) = HSStartAdd Mod 256                        'Last byte's address (Lo)
-        Buffer(254) = 0                                         'I/O flag
-        Buffer(253) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
-        Buffer(252) = 0                                         'LongLit flag
-        Buffer(251) = HSLength - 1                              'Number of remaining literals - 1
+        If SaverSupportsIO Then
+            Buffer(254) = 0                                         'I/O flag
+            Buffer(253) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
+            Buffer(252) = 0                                         'LongLit flag
+            Buffer(251) = HSLength - 1                              'Number of remaining literals - 1
+        Else
+            Buffer(254) = Int(HSStartAdd / 256)                     'Last byte's address (Hi)
+            Buffer(253) = 0                                         'LongLit flag
+            Buffer(252) = HSLength - 1                              'Number of remaining literals - 1
+        End If
 
         For I As Integer = 0 To HSLength - 1
-            Buffer(251 - HSLength + I) = HSFile(I)
+            Buffer(If(SaverSupportsIO, 251, 252) - HSLength + I) = HSFile(I)
         Next
 
-        Buffer(251 - HSLength - 1) = &HF8                       'End of File Bundle flag
+        Buffer(If(SaverSupportsIO, 251, 252) - HSLength - 1) = &HF8                       'End of File Bundle flag
 
         For I As Integer = 0 To 255
             Disk(Track(CT) + CS * 256 + I) = Buffer(I)
@@ -2010,11 +2053,11 @@ NoSort:
 
         Dim P() As Byte
 
-        If Right(FN, 1) = "*" Then
-            FN = ""
-            MsgBox("The High Score File cannot be loaded under the I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
-            GoTo NoDisk
-        End If
+        'If Right(FN, 1) = "*" Then
+        'FN = ""
+        'MsgBox("The High Score File cannot be loaded under the I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
+        'GoTo NoDisk
+        'End If
 
         If Strings.InStr(FN, ":") = 0 Then  'relative file path
             FN = ScriptPath + FN            'look for file in script's folder
@@ -2052,12 +2095,12 @@ NoSort:
         Next
 
         'Get file variables from script, or get default values if there were none in the script entry
-        If IO.File.Exists(FN) = True Then
-            P = IO.File.ReadAllBytes(FN)
+        If IO.File.Exists(Replace(FN, "*", "")) = True Then
+            P = IO.File.ReadAllBytes(Replace(FN, "*", ""))
 
             Select Case ScriptEntryArray.Count
                 Case 1  'No parameters in script
-                    If Strings.InStr(Strings.LCase(FN), ".sid") <> 0 Then   'SID file - read parameters from file
+                    If Strings.InStr(Strings.LCase(Replace(FN, "*", "")), ".sid") <> 0 Then   'SID file - read parameters from file
                         FA = ConvertIntToHex(P(P(7)) + (P(P(7) + 1) * 256), 4)
                         FO = ConvertIntToHex(P(7) + 2, 8)
                         FL = ConvertIntToHex((P.Length - P(7) - 2), 4)
