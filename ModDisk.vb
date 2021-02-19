@@ -1417,6 +1417,22 @@ FindNext:
                 Dim TmpIL As Integer = Convert.ToInt32(ScriptEntryArray(0), 10)
                 IL3 = If(TmpIL Mod 17 > 0, TmpIL Mod 17, DefaultIL3)
                 NewBundle = True
+            Case "prodid:"
+                If NewD = False Then
+                    NewD = True
+                    If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
+                    If ResetDiskVariables() = False Then GoTo NoDisk
+                End If
+                If ScriptEntryArray.Length > 0 Then
+                    If IsNumeric("&H" + ScriptEntryArray(0)) Then
+                        ProductID = Convert.ToInt32(ScriptEntryArray(0), 16)
+                    Else
+                        MsgBox("The Product ID must be a maximum 6-digit long hexadecimal number!" + vbNewLine + vbNewLine +
+                               "Sparkle will generate a pseudorandom Product ID.", vbOKOnly + vbExclamation, "Product ID Error")
+                    End If
+                End If
+                'MsgBox(Hex(ProductID))
+                NewBundle = True
             Case "hsfile:", "highscore:", "savefile:"
                 If NewD = False Then
                     NewD = True

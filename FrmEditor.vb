@@ -78,11 +78,13 @@ Public Class FrmEditor
     Private ReadOnly NewFileKey As String = "NewFile"
 
     Private ZPSet As Boolean = False
+    Private ProdIDSet As Boolean = False
     'Private LoopSet As Boolean = False
 
     Private BaseNode, SelNode, NewEntryNode As TreeNode
     'Private LoopNode As New TreeNode
     Private ZPNode As New TreeNode
+    Private ProdIDNode As New TreeNode
     Private DiskNode As TreeNode
     Private BundleNode As TreeNode
     Private FileNode As TreeNode
@@ -108,7 +110,8 @@ Public Class FrmEditor
     Private ReadOnly sFileLen As String = "File Length:  $"
     Private ReadOnly sDirArt As String = "DirArt: "
     Private ReadOnly sZP As String = "Zeropage: "
-    Private ReadOnly sLoop As String = "Loop: "
+    'Private ReadOnly sLoop As String = "Loop: "
+    Private ReadOnly sProdID As String = "Product ID: "
     Private ReadOnly sHSFile As String = "HS File: "
     Private ReadOnly sHSFileSize As String = "High Score File + Plugin Size: "
 
@@ -197,6 +200,7 @@ Public Class FrmEditor
 
         'LoopSet = False
         ZPSet = False
+        ProdIDSet = False
 
         AddBaseNode()
 
@@ -728,7 +732,24 @@ FileDataFO:
                                 HandleKey = False
                                 Exit Sub
                         End Select
+                    Case sProdID
 
+                        Select Case e.KeyCode
+                            Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9, Keys.A To Keys.F, Keys.Enter
+                                .Text = Strings.Right(N.Text, Len(N.Text) - Len(S) - 1)
+                                .Width = TextRenderer.MeasureText("000000", N.NodeFont).Width
+                                .Tag = S + "$"
+                                N.Text = .Tag
+                                .Left = TV.Left + N.Bounds.Left + N.Bounds.Width
+                                .MaxLength = 6
+                                .Visible = True
+
+                                HandleKey = True
+                                e.SuppressKeyPress = True
+                            Case Else
+                                HandleKey = False
+                                Exit Sub
+                        End Select
                         'Case sLoop
 
                         'Select Case e.KeyCode
@@ -1006,12 +1027,22 @@ Err:
                 e.Handled = True
                 TV.Focus()
             Case Else
-                If (txtEdit.MaxLength = 4) Or (txtEdit.MaxLength = 2) Or (txtEdit.MaxLength = 8) Then   'Hex numbers
-                    If Strings.Left(txtEdit.Tag, 2) = Strings.Left(sIL0, 2) Then
-                        'If CustomIL Then
-                        GoTo Numeric
-                        'End If
+                'Find entries with hex numbers
+                If (txtEdit.MaxLength = 6) Or (txtEdit.MaxLength = 4) Or (txtEdit.MaxLength = 2) Or (txtEdit.MaxLength = 8) Then
+                    If Strings.Left(txtEdit.Tag, 2) = Strings.Left(sIL0, 2) Then    'Decimal
+                        'Decimal:
+                        Select Case e.KeyCode
+                            Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9
+                                If (e.Modifiers = Keys.Shift) OrElse (e.Modifiers = Keys.Control) OrElse (e.Modifiers = Keys.Alt) Then
+                                    e.SuppressKeyPress = True
+                                    e.Handled = True
+                                End If
+                            Case Else
+                                e.SuppressKeyPress = True
+                                e.Handled = True
+                        End Select
                     Else
+                        'Hexadecimal:
                         Select Case e.KeyCode
                             Case Keys.A To Keys.F, Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9
                                 Select Case e.KeyCode
@@ -1026,17 +1057,8 @@ Err:
                                 e.Handled = True
                         End Select
                     End If
-                ElseIf txtEdit.MaxLength = 3 Then   'Loop feature, on decimals
-Numeric:            Select Case e.KeyCode
-                        Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9
-                            If (e.Modifiers = Keys.Shift) OrElse (e.Modifiers = Keys.Control) OrElse (e.Modifiers = Keys.Alt) Then
-                                e.SuppressKeyPress = True
-                                e.Handled = True
-                            End If
-                        Case Else
-                            e.SuppressKeyPress = True
-                            e.Handled = True
-                    End Select
+                    'ElseIf txtEdit.MaxLength = 3 Then   'Loop feature, on decimals
+                    'GoTo Decimal
                 End If
         End Select
 
@@ -1137,6 +1159,13 @@ Err:
         With ZPNode
             .Name = sZP
             .Text = sZP + "$02"
+            .ForeColor = colDiskInfo
+            .NodeFont = New Font("Consolas", 10)
+        End With
+
+        With ProdIDNode
+            .Name = sProdID
+            .Text = sProdID + "$" '+ "random"
             .ForeColor = colDiskInfo
             .NodeFont = New Font("Consolas", 10)
         End With
@@ -1553,7 +1582,7 @@ Err:
         AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + "demo", DiskNode.Tag, colDiskInfo, Fnt)
         AddNode(DiskNode, sDemoStart + DC.ToString, sDemoStart + "$", DiskNode.Tag, colDiskInfo, Fnt)
         AddNode(DiskNode, sDirArt + DC.ToString, sDirArt, DiskNode.Tag, colDiskInfo, Fnt)
-        AddNode(DiskNode, sHSFile + DC.ToString, sHSFile, DiskNode.Tag, colDiskInfo, Fnt)
+        'AddNode(DiskNode, sProdID + DC.ToString, sProdID, DiskNode.Tag, colDisk, Fnt)
         'AddNode(DiskNode, sPacker + DC.ToString, sPacker + If(My.Settings.DefaultPacker = 1, "faster", "better"), DiskNode.Tag, colDiskInfo, Fnt)
         'If CustomIL Then
         AddNode(DiskNode, sIL0 + DC.ToString, sIL0 + Strings.Left("04", 2 - Len(IL0.ToString)) + IL0.ToString, DiskNode.Tag, colDiskInfo, Fnt)
@@ -1561,6 +1590,13 @@ Err:
         AddNode(DiskNode, sIL2 + DC.ToString, sIL2 + Strings.Left("03", 2 - Len(IL2.ToString)) + IL2.ToString, DiskNode.Tag, colDiskInfo, Fnt)
         AddNode(DiskNode, sIL3 + DC.ToString, sIL3 + Strings.Left("03", 2 - Len(IL3.ToString)) + IL3.ToString, DiskNode.Tag, colDiskInfo, Fnt)
         'End If
+        AddNode(DiskNode, sHSFile + DC.ToString, sHSFile, DiskNode.Tag, colDiskInfo, Fnt)
+        If ProdIDSet = False Then
+            ProdIDNode.Tag = DiskNode.Tag
+            DiskNode.Nodes.Add(ProdIDNode)
+            DiskNode.Nodes(sProdID).ForeColor = colDiskInfo
+            ProdIDSet = True
+        End If
         If ZPSet = False Then
             ZPNode.Tag = DiskNode.Tag
             DiskNode.Nodes.Add(ZPNode)
@@ -1598,7 +1634,7 @@ Err:
             Parent.Nodes(Name).NodeFont = NodeFnt
         End If
 
-        Debug.Print(Name + vbTab + Parent.Nodes(Name).Index.ToString)
+        'Debug.Print(Name + vbTab + Parent.Nodes(Name).Index.ToString)
 
         Exit Sub
 Err:
@@ -1631,6 +1667,13 @@ Err:
                     'End If
                     'Next
                     For I As Integer = N.Nodes.Count - 1 To 0 Step -1
+                        If N.Nodes(I).Name = sProdID Then
+                            ProdIDNode = N.Nodes(I)
+                            ProdIDSet = False
+                            Exit For
+                        End If
+                    Next
+                    For I As Integer = N.Nodes.Count - 1 To 0 Step -1
                         If N.Nodes(I).Name = sZP Then
                             ZPNode = N.Nodes(I)
                             ZPSet = False
@@ -1639,6 +1682,15 @@ Err:
                     Next
                     Dim NI As Integer = N.Index
                     N.Remove()
+                    If ProdIDSet = False Then
+                        For I As Integer = 0 To BaseNode.Nodes.Count - 1
+                            If Strings.Left(BaseNode.Nodes(I).Text, 5) = "[Disk" Then
+                                BaseNode.Nodes(I).Nodes.Add(ProdIDNode)
+                                ProdIDSet = True
+                                Exit For
+                            End If
+                        Next
+                    End If
                     If ZPSet = False Then
                         For I As Integer = 0 To BaseNode.Nodes.Count - 1
                             If Strings.Left(BaseNode.Nodes(I).Text, 5) = "[Disk" Then
@@ -1939,11 +1991,17 @@ Err:
                 ElseIf txtEdit.Text = "ff" Then
                     txtEdit.Text = "fe"
                 End If
-            Case sLoop
-                If txtEdit.Text = "" Then txtEdit.Text = "0"
-                Dim L As Integer = Convert.ToInt32(txtEdit.Text, 10)
-                If L > 255 Then L = 255
-                txtEdit.Text = L.ToString
+            Case sProdID + "$"
+                If txtEdit.Text <> "" Then
+                    If Len(txtEdit.Text) < 6 Then
+                        txtEdit.Text = Strings.Left("000000", 6 - Len(txtEdit.Text)) + txtEdit.Text
+                    End If
+                End If
+                'Case sLoop
+                'If txtEdit.Text = "" Then txtEdit.Text = "0"
+                'Dim L As Integer = Convert.ToInt32(txtEdit.Text, 10)
+                'If L > 255 Then L = 255
+                'txtEdit.Text = L.ToString
             Case Else
                 Select Case txtEdit.MaxLength
                     Case 2  'ZP value, see above
@@ -1952,6 +2010,7 @@ Err:
                         If (Len(txtEdit.Text) < 4) And (Len(txtEdit.Text) > 0) Then
                             txtEdit.Text = Strings.Left("0000", 4 - Len(txtEdit.Text)) + txtEdit.Text
                         End If
+                    Case 6  'Product ID value, see above
                     Case 8  'Offset values
                         If (Len(txtEdit.Text) < 8) And (Len(txtEdit.Text) > 0) Then
                             txtEdit.Text = Strings.Left("00000000", 8 - Len(txtEdit.Text)) + txtEdit.Text
@@ -3110,9 +3169,9 @@ Err:
                         'Case sPacker
                         '.ToolTipTitle = "Packer to be used"
                         'TTT = tPacker
-                    Case sLoop
-                        .ToolTipTitle = "Looping after the last disk"
-                        TTT = tLoop
+                        'Case sLoop
+                        '.ToolTipTitle = "Looping after the last disk"
+                        'TTT = tLoop
                     Case Else
                 End Select
             End If
@@ -3341,6 +3400,25 @@ Err:
                         AddHSFileToDiskNode(DiskNode, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
                     End If
                     NewBundle = True
+                Case "prodid:"
+                    If NewD = False Then
+                        NewD = True
+                        AddDiskToScriptNode(BaseNode)
+                    End If
+                    'Correct length
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 6 Then
+                            ScriptEntryArray(0) = Strings.Left("000000", 6 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 6 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 6)
+                        End If
+                        UpdateNode(ProdIDNode, sProdID + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfo, Fnt)
+                        If ProdIDSet = False Then 'ProdID can only be set from the first disk
+                            DiskNode.Nodes.Add(ProdIDNode)
+                            ProdIDSet = True
+                        End If
+                    End If
+                    NewBundle = True
                 Case "zp:"
                     If NewD = False Then
                         NewD = True
@@ -3371,6 +3449,7 @@ Err:
                     'ZPSet = True
                     'End If
                     'NewBundle = True
+                Case "prodid:"
                 Case "il0:"
                     If NewD = False Then
                         NewD = True
@@ -3635,6 +3714,25 @@ Done:
                         End If
                     End If
                     NewBundle = True
+                Case "prodid:"
+                    If NewD = False Then
+                        NewD = True
+                        AddDiskToScriptNode(SN)
+                    End If
+                    'Correct length
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) < 6 Then
+                            ScriptEntryArray(0) = Strings.Left("000000", 6 - Len(ScriptEntryArray(0))) + ScriptEntryArray(0)
+                        ElseIf Len(ScriptEntryArray(0)) > 6 Then
+                            ScriptEntryArray(0) = Strings.Right(ScriptEntryArray(0), 6)
+                        End If
+                        UpdateNode(ProdIDNode, sProdID + "$" + LCase(ScriptEntryArray(0)), DiskNode.Tag, colDiskInfo, Fnt)
+                        If ProdIDSet = False Then 'ProdID can only be set from the first disk
+                            DiskNode.Nodes.Add(ProdIDNode)
+                            ProdIDSet = True
+                        End If
+                    End If
+                    NewBundle = True
                 Case "zp:"
                     If NewD = False Then
                         NewD = True
@@ -3834,11 +3932,17 @@ Err:
             AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + "demo", DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sDemoStart + DC.ToString, sDemoStart + "$", DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sDirArt + DC.ToString, sDirArt, DiskNode.Tag, colDiskInfo, Fnt)
-            AddNode(DiskNode, sHSFile + DC.ToString, sHSFile, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sIL0 + DC.ToString, sIL0 + Strings.Left("04", 2 - Len(IL0.ToString)) + IL0.ToString, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sIL1 + DC.ToString, sIL1 + Strings.Left("03", 2 - Len(IL1.ToString)) + IL1.ToString, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sIL2 + DC.ToString, sIL2 + Strings.Left("03", 2 - Len(IL2.ToString)) + IL2.ToString, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sIL3 + DC.ToString, sIL3 + Strings.Left("03", 2 - Len(IL3.ToString)) + IL3.ToString, DiskNode.Tag, colDiskInfo, Fnt)
+            AddNode(DiskNode, sHSFile + DC.ToString, sHSFile, DiskNode.Tag, colDiskInfo, Fnt)
+            If ProdIDSet = False Then
+                ProdIDNode.Tag = DiskNode.Tag
+                DiskNode.Nodes.Add(ProdIDNode)
+                DiskNode.Nodes(sProdID).ForeColor = colDiskInfo
+                ProdIDSet = True
+            End If
             If ZPSet = False Then
                 ZPNode.Tag = DiskNode.Tag
                 DiskNode.Nodes.Add(ZPNode)
@@ -4447,6 +4551,11 @@ Err:
                                     End If
                                 End If
                                 Script += vbNewLine
+                            Case sProdID
+                                Dim SA As String = Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sProdID) - 1)
+                                If SA <> "" Then
+                                    Script += "ProdID:" + vbTab + SA + vbNewLine
+                                End If
                             Case sZP
                                 Script += "ZP:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sZP) - 1) + vbNewLine
                                 'Case sLoop
@@ -5035,12 +5144,12 @@ Err:
                     TTT = "Type in the first of the two adjacent zeropage addresses you want the loader to use." +
                              vbNewLine + "If this field is left empty, Sparkle will use $02-$03 as default." +
                              vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
-                Case sLoop
-                    .ToolTipTitle = "Editing where the demo should loop after loading the last disk"
-                    TTT = "Type in a decimal number between 0 and 255." +
-                            vbNewLine + "The default value of 0 will terminate the demo without looping." +
-                            vbNewLine + "A number between 1 and 255 will specify the disk the demo will loop to." +
-                            vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
+                    'Case sLoop
+                    '.ToolTipTitle = "Editing where the demo should loop after loading the last disk"
+                    'TTT = "Type in a decimal number between 0 and 255." +
+                    'vbNewLine + "The default value of 0 will terminate the demo without looping." +
+                    'vbNewLine + "A number between 1 and 255 will specify the disk the demo will loop to." +
+                    'vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
                 Case Else
                     Exit Select
             End Select
