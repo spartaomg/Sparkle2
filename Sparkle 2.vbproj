@@ -30,8 +30,8 @@
     <PublisherName>Sparta of OMG 2019</PublisherName>
     <SuiteName>Sparkle</SuiteName>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>218</ApplicationRevision>
-    <ApplicationVersion>2.0.21.0218</ApplicationVersion>
+    <ApplicationRevision>224</ApplicationRevision>
+    <ApplicationVersion>2.0.21.0224</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -218,7 +218,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\PETSCII BW.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <Content Include="Sparkle RB 8bit.ico" />
   </ItemGroup>
