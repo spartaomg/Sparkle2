@@ -26,18 +26,30 @@ Friend Module ModDisk
     Public IL2 As Byte = DefaultIL2
     Public IL3 As Byte = DefaultIL3
 
-    Public ReadOnly MaxDiskSize As Integer = 664
-    Public BlocksFree As Integer = MaxDiskSize
-
-    Public Disk(174847), NextTrack, NextSector As Byte   'Next Empty Track and Sector
-    Public MaxSector As Byte = 18, LastSector, Prg() As Byte
-
     Public BufferCnt As Integer = 0
 
     Public FileUnderIO As Boolean = False
     Public IOBit As Byte
 
-    Public Track(35), CT, CS, CP, BlockCnt As Integer
+    Public ReadOnly StdSectorsPerDisk As Integer = 664          'Standard disk
+    Public ReadOnly StdTracksPerDisk As Integer = 35
+    Public ReadOnly StdBytesPerDisk As Integer = 174848
+
+    Public ReadOnly ExtSectorsPerDisk As Integer = 664 + 85     'Exnteded disk
+    Public ReadOnly ExtTracksPerDisk As Integer = 40
+    Public ReadOnly ExtBytesPerDisk As Integer = 174848 + (85 * 256)
+
+    Public SectorsPerDisk As Integer = StdSectorsPerDisk
+    Public TracksPerDisk As Integer = StdTracksPerDisk
+
+    Public BlocksFree As Integer = SectorsPerDisk
+
+    Public TabT(ExtSectorsPerDisk - 1), TabS(ExtSectorsPerDisk - 1), TabSCnt(ExtSectorsPerDisk - 1), TabStartS(ExtTracksPerDisk) As Byte   'TabStartS is 1 based
+
+    Public Disk(StdBytesPerDisk - 1), NextTrack, NextSector As Byte   'Next Empty Track and Sector
+    Public MaxSector As Byte = 18, LastSector, Prg() As Byte
+
+    Public Track(40), CT, CS, CP, BlockCnt As Integer
     Public TestDisk As Boolean = False
     Public StartTrack As Byte = 1
     Public StartSector As Byte = 0
@@ -90,6 +102,9 @@ Friend Module ModDisk
 
     'Product ID - unique to build, same for all disks in build, $000000-$ffffff
     Public ProductID As Integer = 0
+
+    'Disk system: 35 vs 40 tracks
+    'Public TracksOnDisk As Integer = 35
 
     Public SystemFile As Boolean = False
     Public FileChanged As Boolean = False
@@ -150,10 +165,6 @@ Friend Module ModDisk
     Dim FirstFileOfDisk As Boolean = False
     Dim FirstFileStart As String = ""
 
-    Public ReadOnly SectorsPerDisk As Integer = 664
-    Public ReadOnly TracksPerDisk As Integer = 35
-
-    Public TabT(SectorsPerDisk - 1), TabS(SectorsPerDisk - 1), TabSCnt(SectorsPerDisk - 1), TabStartS(TracksPerDisk) As Byte   'TabStartS is 1 based
     Public BlockPtr As Integer '= 255
     Public LastBlockCnt As Byte = 0
     Public LoaderBundles As Integer = 1
@@ -181,22 +192,22 @@ Friend Module ModDisk
 
     Public SaverSupportsIO As Boolean = False
 
-    Public Sub SetLastSector()
+    Public Sub SetMaxSector()
         On Error GoTo Err
 
         Select Case CT
             Case 1 To 17
                 MaxSector = 20
-                LastSector = 17
+                'LastSector = 17
             Case 18 To 24
                 MaxSector = 18
-                LastSector = 15
+                'LastSector = 15
             Case 25 To 30
                 MaxSector = 17
-                LastSector = 15
-            Case 31 To 35
+                'LastSector = 15
+            Case 31 To 40
                 MaxSector = 16
-                LastSector = 13
+                'LastSector = 13
         End Select
 
         Exit Sub
@@ -311,13 +322,66 @@ Err:
 
     End Sub
 
+    Public Sub UpdateDiskSizeOnTheFly()
+        On Error GoTo Err
+
+        CP = Track(18)
+
+        If TracksPerDisk = ExtTracksPerDisk Then
+            ReDim Preserve Disk(ExtBytesPerDisk - 1)
+            BlocksFree = ExtSectorsPerDisk
+            SectorsPerDisk = ExtSectorsPerDisk
+
+            For Cnt As Integer = (37 * 4) To (41 * 4) - 1
+                Disk(CP + Cnt) = 255
+            Next
+            For Cnt As Integer = 36 To 40
+                Disk(CP + (Cnt * 4) + 0) = 17
+                Disk(CP + (Cnt * 4) + 3) = 1
+            Next
+        Else
+            ReDim Preserve Disk(StdBytesPerDisk - 1)
+            BlocksFree = StdSectorsPerDisk
+            SectorsPerDisk = StdSectorsPerDisk
+
+            For Cnt As Integer = (37 * 4) To (41 * 4) - 1
+                Disk(CP + Cnt) = 0
+            Next
+            For Cnt As Integer = 36 To 40
+                Disk(CP + (Cnt * 4) + 0) = 0
+                Disk(CP + (Cnt * 4) + 3) = 0
+            Next
+        End If
+
+        'ReDim TabT(SectorsPerDisk - 1), TabS(SectorsPerDisk - 1), TabSCnt(SectorsPerDisk - 1), TabStartS(TracksPerDisk)   'TabStartS is 1 based
+
+        'CalcILTab()
+
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+    End Sub
+
     Public Sub NewDisk()
         On Error GoTo Err
 
-        ReDim Disk(174847)
-        Dim B As Byte
+        If TracksPerDisk = 40 Then
+            ReDim Disk(ExtBytesPerDisk - 1)
+            BlocksFree = 664 + 85
+            SectorsPerDisk = 664 + 85
+        Else
+            ReDim Disk(StdBytesPerDisk - 1)
+            BlocksFree = 664
+            SectorsPerDisk = 664
+        End If
 
-        BlocksFree = 664
+        'ReDim TabT(SectorsPerDisk - 1), TabS(SectorsPerDisk - 1), TabSCnt(SectorsPerDisk - 1), TabStartS(TracksPerDisk)   'TabStartS is 1 based
+
+        'CalcILTab()
+
+        Dim B As Byte
 
         Dim Cnt As Integer
 
@@ -366,13 +430,23 @@ Err:
             Disk(CP + (Cnt * 4) + 3) = 1
         Next
 
+        If TracksPerDisk = 40 Then
+            For Cnt = (37 * 4) To (41 * 4) - 1
+                Disk(CP + Cnt) = 255
+            Next
+            For Cnt = 36 To 40
+                Disk(CP + (Cnt * 4) + 0) = 17
+                Disk(CP + (Cnt * 4) + 3) = 1
+            Next
+        End If
+
         Disk(CP + (18 * 4) + 0) = 17
         Disk(CP + (18 * 4) + 1) = 252
 
         CT = 18
         CS = 1
 
-        SetLastSector()
+        SetMaxSector()
 
         CP = Track(CT) + (256 * CS)
         Disk(CP + 1) = 255
@@ -1431,7 +1505,24 @@ FindNext:
                                "Sparkle will generate a pseudorandom Product ID.", vbOKOnly + vbExclamation, "Product ID Error")
                     End If
                 End If
-                'MsgBox(Hex(ProductID))
+                NewBundle = True
+            Case "tracks:"
+                If NewD = False Then
+                    NewD = True
+                    If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
+                    If ResetDiskVariables() = False Then GoTo NoDisk
+                End If
+                If ScriptEntryArray.Length > 0 Then
+                    If IsNumeric(ScriptEntryArray(0)) Then
+                        Dim TmpTracks As Integer = Convert.ToInt32(ScriptEntryArray(0), 10)
+                        If TmpTracks = 40 Then
+                            TracksPerDisk = 40
+                        Else
+                            TracksPerDisk = 35
+                        End If
+                        UpdateDiskSizeOnTheFly()
+                    End If
+                End If
                 NewBundle = True
             Case "hsfile:", "highscore:", "savefile:"
                 If NewD = False Then
@@ -1442,7 +1533,6 @@ FindNext:
                 If ScriptEntryArray(0) <> "" Then
                     If AddHSFile() = False Then GoTo NoDisk
                 End If
-                'NewD = False
                 NewBundle = True
             Case "list:", "script:"
                 If InsertScript(ScriptEntryArray(0)) = False Then GoTo NoDisk
@@ -2431,6 +2521,8 @@ Err:
         'Reset directory arrays
         ReDim DirBlocks(511), DirPtr(127)
 
+        'Reset disk system to support 35 tracks
+        TracksPerDisk = 35
 
         'Reset High Score Saver plugin variables
         bSaverPlugin = False
@@ -2835,17 +2927,17 @@ Err:
 
     End Sub
     Public Sub CalcILTab()
-        On Error GoTo Err
+        ' On Error GoTo Err
 
         Dim SMax, IL As Integer
-        Dim Disk(682) As Byte
+        Dim Disk(682 + 85) As Byte
         Dim I As Integer = 0
         Dim SCnt As Integer
-        Dim Tr(35) As Integer
+        Dim Tr(40) As Integer
         Dim S As Integer = 0
 
         Tr(1) = 0
-        For T = 1 To 34
+        For T = 1 To TracksPerDisk - 1 '34
             Select Case T
                 Case 1 To 17
                     Tr(T + 1) = Tr(T) + 21
@@ -2853,12 +2945,12 @@ Err:
                     Tr(T + 1) = Tr(T) + 19
                 Case 25 To 30
                     Tr(T + 1) = Tr(T) + 18
-                Case 31 To 35
+                Case 31 To 40
                     Tr(T + 1) = Tr(T) + 17
             End Select
         Next
 
-        For T As Integer = 1 To 35
+        For T As Integer = 1 To TracksPerDisk
             TabStartS(T) = 255
             If T = 18 Then
                 T += 1
@@ -2877,7 +2969,7 @@ Err:
                 Case 25 To 30
                     SMax = 18
                     IL = IL2
-                Case 31 To 35
+                Case 31 To 40
                     SMax = 17
                     IL = IL3
             End Select
@@ -2912,10 +3004,10 @@ NextStart:
             End If
         Next
 
-        'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabT.bin", TabT)
-        'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabS.bin", TabS)
-        'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabStartS.bin", TabStartS)
-        'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabSCnt.bin", TabSCnt)
+        IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabT.bin", TabT)
+        IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabS.bin", TabS)
+        IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabStartS.bin", TabStartS)
+        IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabSCnt.bin", TabSCnt)
 
         Exit Sub
 Err:

@@ -90,6 +90,7 @@ Public Class FrmEditor
     Private FileNode As TreeNode
     Private ScriptNode As TreeNode
     Private DiskNodeA() As TreeNode
+    Private DiskTracksA(), DiskSectorsA() As Integer
 
     Private BundleInNewBlock As Boolean = False
 
@@ -110,19 +111,20 @@ Public Class FrmEditor
     Private ReadOnly sFileLen As String = "File Length:  $"
     Private ReadOnly sDirArt As String = "DirArt: "
     Private ReadOnly sZP As String = "Zeropage: "
-    'Private ReadOnly sLoop As String = "Loop: "
     Private ReadOnly sProdID As String = "Product ID: "
-    Private ReadOnly sHSFile As String = "HS File: "
-    Private ReadOnly sHSFileSize As String = "High Score File + Plugin Size: "
+    Private ReadOnly sHSFile As String = "High Score File: "
+    Private ReadOnly sTracksPerDisk As String = "Tracks on Disk: "
 
     Private ReadOnly sIL0 As String = "Interleave 0: "
     Private ReadOnly sIL1 As String = "Interleave 1: "
     Private ReadOnly sIL2 As String = "Interleave 2: "
     Private ReadOnly sIL3 As String = "Interleave 3: "
-
     Private ReadOnly sScript As String = "Script: "
     Private ReadOnly sFile As String = "File: "
+
     Private ReadOnly sNewBlock As String = "Start the first file of this bundle in a new sector on the disk: " '"Start bundle in a new block on the disk: "
+    Private ReadOnly sHSFileSize As String = "High Score File + Plugin Size: "
+
     Private ReadOnly TT As New ToolTip
 
     Private ReadOnly tDiskPath As String = "Double click or press <Enter> to specify where your demo disk will be saved in D64 format."
@@ -151,9 +153,18 @@ Public Class FrmEditor
                 "Press <Delete> to delete this script entry and all its content."
     Private ReadOnly tBaseScript As String = "Double click or press <Enter> to load a script file."
     Private ReadOnly tZP As String = "Double click or press <Enter> to edit the loader's zeropage usage."
-    Private ReadOnly tLoop As String = "Double click or press <Enter> to specify the disk the demo will loop to after finishing the last disk." + vbNewLine +
-                "The default value of 0 will terminate the demo without looping. A value between 1-255 will result in looping to the specified disk" + vbNewLine +
-                "E.g. select 1 to loop to the first disk."
+    Private ReadOnly tHSFile As String = "Double click or press <Enter> to add a default high score file to this disk." + vbNewLine +
+                "Press <Delete> to delete the high score file from this disk."
+    Private ReadOnly tProdID As String = "Double click or start typing to edit the Product ID (hexadecimal value, max 6 digits."
+    Private ReadOnly tTracksPerDisk As String = "Double click or start typing to edit the number of tracks on the disk (35 vs 40)."
+    Private ReadOnly tIL0 As String = "Double click or start typing to edit the sector interleave of tracks 1-17"
+    Private ReadOnly tIL1 As String = "Double click or start typing to edit the sector interleave of tracks 18-24"
+    Private ReadOnly tIL2 As String = "Double click or start typing to edit the sector interleave of tracks 25-30"
+    Private ReadOnly tIL3 As String = "Double click or start typing to edit the sector interleave of tracks 31-"
+
+    ' Private ReadOnly tLoop As String = "Double click or press <Enter> to specify the disk the demo will loop to after finishing the last disk." + vbNewLine +
+    '"The default value of 0 will terminate the demo without looping. A value between 1-255 will result in looping to the specified disk" + vbNewLine +
+    '"E.g. select 1 to loop to the first disk."
 
     Private Sub FrmEditor_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         On Error GoTo Err
@@ -769,7 +780,7 @@ FileDataFO:
                         'Exit Sub
                         'End Select
 
-                    Case sIL0, sIL1, sIL2, sIL3
+                    Case sIL0, sIL1, sIL2, sIL3, sTracksPerDisk
                         Select Case e.KeyCode
                             Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9, Keys.Enter
                                 .Text = Strings.Right(N.Text, Len(N.Text) - Len(S))
@@ -1029,7 +1040,7 @@ Err:
             Case Else
                 'Find entries with hex numbers
                 If (txtEdit.MaxLength = 6) Or (txtEdit.MaxLength = 4) Or (txtEdit.MaxLength = 2) Or (txtEdit.MaxLength = 8) Then
-                    If Strings.Left(txtEdit.Tag, 2) = Strings.Left(sIL0, 2) Then    'Decimal
+                    If (Strings.Left(txtEdit.Tag, 2) = Strings.Left(sIL0, 2)) Or (Strings.Left(txtEdit.Tag, Len(sTracksPerDisk)) = sTracksPerDisk) Then    'Decimal
                         'Decimal:
                         Select Case e.KeyCode
                             Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9
@@ -1558,21 +1569,23 @@ Err:
 
         DC += 1
 
-        'If DiskSizeA.Count < DC Then
-        'ReDim Preserve DiskSizeA(DC - 1)
-        'End If
-
         CurrentDisk = DC
 
         StartUpdate()
         With DiskNode
             .Nodes.Clear()
-            .Text = "[Disk " + DC.ToString + If(ChkSize.Checked, ": 0 blocks used, 664 blocks free]", "]")
+            .Text = "[Disk " + DC.ToString + If(ChkSize.Checked, ": 0 blocks used, " + StdSectorsPerDisk.ToString + " blocks free]", "]")
             .Name = "D" + DC.ToString
             .ForeColor = colDisk
             .Tag = DC + &H10000
             .NodeFont = New Font(TV.Font, FontStyle.Bold)
         End With
+
+        ReDim Preserve DiskNodeA(CurrentDisk), DiskSizeA(CurrentDisk), DiskTracksA(CurrentDisk), DiskSectorsA(CurrentDisk)
+        DiskNodeA(CurrentDisk) = DiskNode
+        DiskSizeA(CurrentDisk) = 0
+        DiskTracksA(CurrentDisk) = StdTracksPerDisk
+        DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
 
         Dim Fnt As New Font("Consolas", 10)
 
@@ -1585,6 +1598,7 @@ Err:
         'AddNode(DiskNode, sProdID + DC.ToString, sProdID, DiskNode.Tag, colDisk, Fnt)
         'AddNode(DiskNode, sPacker + DC.ToString, sPacker + If(My.Settings.DefaultPacker = 1, "faster", "better"), DiskNode.Tag, colDiskInfo, Fnt)
         'If CustomIL Then
+        AddNode(DiskNode, sTracksPerDisk + DC.ToString, sTracksPerDisk + TracksPerDisk.ToString, DiskNode.Tag, colDiskInfo, Fnt)
         AddNode(DiskNode, sIL0 + DC.ToString, sIL0 + Strings.Left("04", 2 - Len(IL0.ToString)) + IL0.ToString, DiskNode.Tag, colDiskInfo, Fnt)
         AddNode(DiskNode, sIL1 + DC.ToString, sIL1 + Strings.Left("03", 2 - Len(IL1.ToString)) + IL1.ToString, DiskNode.Tag, colDiskInfo, Fnt)
         AddNode(DiskNode, sIL2 + DC.ToString, sIL2 + Strings.Left("03", 2 - Len(IL2.ToString)) + IL2.ToString, DiskNode.Tag, colDiskInfo, Fnt)
@@ -1728,7 +1742,7 @@ Err:
                     GoTo Done
                 End If
             Case 3  'File
-                If MsgBox("Are you sure you want to delete the following file entry?" + vbNewLine + vbNewLine + N.Text, vbQuestion + vbYesNo + vbDefaultButton2) = vbYes Then
+                If MsgBox("Are you sure you want to delete the following File entry?" + vbNewLine + vbNewLine + N.Text, vbQuestion + vbYesNo + vbDefaultButton2) = vbYes Then
 
                     Frm.Show(Me)
 
@@ -1742,7 +1756,7 @@ Err:
 
                 End If
             Case 4  'Script
-                If MsgBox("Are you sure you want to delete the following script entry?" + vbNewLine + vbNewLine + N.Text, vbQuestion + vbYesNo + vbDefaultButton2) = vbYes Then
+                If MsgBox("Are you sure you want to delete the following Script entry?" + vbNewLine + vbNewLine + N.Text, vbQuestion + vbYesNo + vbDefaultButton2) = vbYes Then
                     'P = N.Parent
                     Frm.Show(Me)
 
@@ -1766,8 +1780,9 @@ Err:
                 End If
             Case 6  'High Score File
                 If N.Text <> sHSFile Then
-                    If MsgBox("Are you sure you want to delete the following High Score file?" + vbNewLine + vbNewLine + Strings.Right(N.Text, Len(N.Text) - Len(sHSFile)), vbQuestion + vbYesNo + vbDefaultButton2) = vbYes Then
+                    If MsgBox("Are you sure you want to delete the following High Score File?" + vbNewLine + vbNewLine + Strings.Right(N.Text, Len(N.Text) - Len(sHSFile)), vbQuestion + vbYesNo + vbDefaultButton2) = vbYes Then
                         N.Text = sHSFile
+                        N.Nodes.Remove(N.Nodes(4))
                         N.Nodes.Remove(N.Nodes(3))
                         N.Nodes.Remove(N.Nodes(2))
                         N.Nodes.Remove(N.Nodes(1))
@@ -1811,9 +1826,9 @@ Done:
             Case colScript      'Script node
                 NodeType = 4
             Case Else
-                If Strings.Left(SelNode.Text, 8) = sDirArt Then
+                If Strings.Left(SelNode.Text, Len(sDirArt)) = sDirArt Then
                     NodeType = 5    'DirArt node
-                ElseIf Strings.Left(SelNode.Text, 9) = sHSFile Then
+                ElseIf Strings.Left(SelNode.Text, Len(sHSFile)) = sHSFile Then
                     NodeType = 6    'High Score File node
                 Else
                     NodeType = 0    'All other nodes
@@ -1833,9 +1848,9 @@ Done:
 
         If CurrentDisk > 0 Then
             If DiskSizeA.Count > CurrentDisk Then
-                TssDisk.Text = "Disk " + CurrentDisk.ToString + ": " + (MaxDiskSize - DiskSizeA(CurrentDisk)).ToString + " block" + If(MaxDiskSize - DiskSizeA(CurrentDisk) <> 1, "s free", " free")
+                TssDisk.Text = "Disk " + CurrentDisk.ToString + ": " + (SectorsPerDisk - DiskSizeA(CurrentDisk)).ToString + " block" + If(SectorsPerDisk - DiskSizeA(CurrentDisk) <> 1, "s free", " free")
             Else
-                TssDisk.Text = "Disk " + CurrentDisk.ToString + ": " + MaxDiskSize.ToString + " blocks free"
+                TssDisk.Text = "Disk " + CurrentDisk.ToString + ": " + SectorsPerDisk.ToString + " blocks free"
             End If
         Else
             TssDisk.Text = ""
@@ -1932,6 +1947,31 @@ Err:
 
         'Verify IL, Loop, ZP, and address values (cannot be 0, otherwise IL=Max mod IL)
         Select Case txtEdit.Tag
+            Case sTracksPerDisk
+                If (Len(txtEdit.Text) < 2) Or (txtEdit.Text <> ExtTracksPerDisk.ToString) Then
+                    txtEdit.Text = StdTracksPerDisk.ToString
+                End If
+                Select Case txtEdit.Text
+                    Case StdTracksPerDisk.ToString
+                        If DiskTracksA(CurrentDisk) <> StdTracksPerDisk Then
+                            DiskTracksA(CurrentDisk) = StdTracksPerDisk
+                            DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
+                            SelNode.Parent.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
+                            If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
+                        End If
+                    Case Else
+                        If DiskTracksA(CurrentDisk) <> ExtTracksPerDisk Then
+                            DiskTracksA(CurrentDisk) = ExtTracksPerDisk
+                            DiskSectorsA(CurrentDisk) = ExtSectorsPerDisk
+                            SelNode.Parent.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
+                            If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
+                        End If
+                End Select
+
+                Text = DiskNode.Text
+
             Case sIL0
                 If Len(txtEdit.Text) < 2 Then
                     txtEdit.Text = Strings.Left("00", 2 - Len(txtEdit.Text)) + txtEdit.Text
@@ -3166,6 +3206,27 @@ Err:
                     Case sZP
                         .ToolTipTitle = "Zeropage Usage"
                         TTT = tZP
+                    Case sIL0
+                        .ToolTipTitle = "Sector Interleave 0"
+                        TTT = tIL0
+                    Case sIL1
+                        .ToolTipTitle = "Sector Interleave 1"
+                        TTT = tIL1
+                    Case sIL2
+                        .ToolTipTitle = "Sector Interleave 2"
+                        TTT = tIL2
+                    Case sIL3
+                        .ToolTipTitle = "Sector Interleave 3"
+                        TTT = tIL3 + TracksPerDisk.ToString
+                    Case sProdID
+                        .ToolTipTitle = "Product ID"
+                        TTT = tProdID
+                    Case sHSFile
+                        .ToolTipTitle = "High Score File"
+                        TTT = tHSFile
+                    Case sTracksPerDisk
+                        .ToolTipTitle = "Tracks on Disk"
+                        TTT = tTracksPerDisk
                         'Case sPacker
                         '.ToolTipTitle = "Packer to be used"
                         'TTT = tPacker
@@ -3419,6 +3480,33 @@ Err:
                         End If
                     End If
                     NewBundle = True
+                Case "tracks:"
+                    If NewD = False Then
+                        NewD = True
+                        AddDiskToScriptNode(BaseNode)
+                    End If
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If ScriptEntryArray(0) <> ExtTracksPerDisk.ToString Then
+                            ScriptEntryArray(0) = StdTracksPerDisk.ToString
+                            DiskTracksA(CurrentDisk) = StdTracksPerDisk
+                            DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
+                            DiskNode.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
+                            If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
+                        Else
+                            DiskTracksA(CurrentDisk) = ExtTracksPerDisk
+                            DiskSectorsA(CurrentDisk) = ExtSectorsPerDisk
+                            DiskNode.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
+                            If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
+                        End If
+                        If DiskNode.Nodes(sTracksPerDisk + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sTracksPerDisk + DC.ToString, sTracksPerDisk + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sTracksPerDisk + DC.ToString), sTracksPerDisk + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        End If
+                    End If
+                    NewBundle = True
                 Case "zp:"
                     If NewD = False Then
                         NewD = True
@@ -3438,18 +3526,6 @@ Err:
                         End If
                     End If
                     NewBundle = True
-                    'Case "loop:"
-                    'If NewD = False Then
-                    'NewD = True
-                    'AddDiskToScriptNode(BaseNode)
-                    'End If
-                    'UpdateNode(DiskNode.Nodes(sLoop), sLoop + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
-                    'If LoopSet = False Then 'Loop can only be set from the first disk
-                    'DiskNode.Nodes.Add(LoopNode)
-                    'ZPSet = True
-                    'End If
-                    'NewBundle = True
-                Case "prodid:"
                 Case "il0:"
                     If NewD = False Then
                         NewD = True
@@ -3733,6 +3809,33 @@ Done:
                         End If
                     End If
                     NewBundle = True
+                Case "tracks:"
+                    If NewD = False Then
+                        NewD = True
+                        AddDiskToScriptNode(SN)
+                    End If
+                    If ScriptEntryArray(0) IsNot Nothing Then
+                        If Len(ScriptEntryArray(0)) <> ExtTracksPerDisk.ToString Then
+                            ScriptEntryArray(0) = StdTracksPerDisk.ToString
+                            DiskTracksA(CurrentDisk) = StdTracksPerDisk
+                            DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
+                            DiskNode.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
+                            If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
+                        Else
+                            DiskTracksA(CurrentDisk) = ExtTracksPerDisk
+                            DiskSectorsA(CurrentDisk) = ExtSectorsPerDisk
+                            DiskNode.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
+                            If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
+                        End If
+                        If DiskNode.Nodes(sTracksPerDisk + DC.ToString) Is Nothing Then
+                            AddNode(DiskNode, sTracksPerDisk + DC.ToString, sTracksPerDisk + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        Else
+                            UpdateNode(DiskNode.Nodes(sTracksPerDisk + DC.ToString), sTracksPerDisk + ScriptEntryArray(0), DiskNode.Tag, colDiskInfo, Fnt)
+                        End If
+                    End If
+                    NewBundle = True
                 Case "zp:"
                     If NewD = False Then
                         NewD = True
@@ -3921,6 +4024,13 @@ Err:
         AddNode(SN, "D" + DC.ToString, "[Disk" + DC.ToString + "]", DC + &H10000, If(SNisBaseNode, colDisk, colDiskGray))
         DiskNode = SN.Nodes("D" + DC.ToString)
         DiskNode.NodeFont = New Font(TV.Font, FontStyle.Bold)
+
+        ReDim Preserve DiskNodeA(CurrentDisk), DiskSizeA(CurrentDisk), DiskTracksA(CurrentDisk), DiskSectorsA(CurrentDisk)
+        DiskNodeA(CurrentDisk) = DiskNode
+        DiskSizeA(CurrentDisk) = 0
+        DiskTracksA(CurrentDisk) = StdTracksPerDisk
+        DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
+
         If SNisBaseNode Then
             'Dim N As TreeNode = SN.Nodes("D" + DC.ToString)
 
@@ -3932,6 +4042,7 @@ Err:
             AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + "demo", DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sDemoStart + DC.ToString, sDemoStart + "$", DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sDirArt + DC.ToString, sDirArt, DiskNode.Tag, colDiskInfo, Fnt)
+            AddNode(DiskNode, sTracksPerDisk + DC.ToString, sTracksPerDisk + TracksPerDisk.ToString, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sIL0 + DC.ToString, sIL0 + Strings.Left("04", 2 - Len(IL0.ToString)) + IL0.ToString, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sIL1 + DC.ToString, sIL1 + Strings.Left("03", 2 - Len(IL1.ToString)) + IL1.ToString, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sIL2 + DC.ToString, sIL2 + Strings.Left("03", 2 - Len(IL2.ToString)) + IL2.ToString, DiskNode.Tag, colDiskInfo, Fnt)
@@ -4532,42 +4643,58 @@ Err:
                                     Script += "Start:" + vbTab + SA + vbNewLine
                                 End If
                             Case sDirArt + CurrentDisk.ToString
-                                Script += "DirArt:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sDirArt)) + vbNewLine
+                                If Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sDirArt)) <> "" Then
+                                    Script += "DirArt:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sDirArt)) + vbNewLine
+                                End If
                             Case sHSFile + CurrentDisk.ToString
-                                Script += "HSFile:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sHSFile))
+                                If Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sHSFile)) <> "" Then
+                                    Script += "HSFile:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sHSFile))
 
-                                If DiskNode.Nodes(J).Nodes.Count > 0 Then
-                                    If DiskNode.Nodes(J).Nodes(0).ForeColor = colFileParamEdited Then            'Add Load Address
-                                        Script += vbTab + Strings.Right(DiskNode.Nodes(J).Nodes(0).Text, 4)
-                                        If DiskNode.Nodes(J).Nodes(1).ForeColor = colFileParamEdited Then        'Add File Offset
-                                            'Trim Offset down to 4 digits if possible
-                                            Dim O As String = Strings.Right(DiskNode.Nodes(J).Nodes(1).Text, 8).TrimStart("0")
-                                            If Len(O) < 4 Then O = Strings.Left("0000", 4 - Len(O)) + O
-                                            Script += vbTab + O
-                                            If DiskNode.Nodes(J).Nodes(2).ForeColor = colFileParamEdited Then    'Add File Length
-                                                Script += vbTab + Strings.Right(DiskNode.Nodes(J).Nodes(2).Text, 4)
+                                    If DiskNode.Nodes(J).Nodes.Count > 0 Then
+                                        If DiskNode.Nodes(J).Nodes(0).ForeColor = colFileParamEdited Then            'Add Load Address
+                                            Script += vbTab + Strings.Right(DiskNode.Nodes(J).Nodes(0).Text, 4)
+                                            If DiskNode.Nodes(J).Nodes(1).ForeColor = colFileParamEdited Then        'Add File Offset
+                                                'Trim Offset down to 4 digits if possible
+                                                Dim O As String = Strings.Right(DiskNode.Nodes(J).Nodes(1).Text, 8).TrimStart("0")
+                                                If Len(O) < 4 Then O = Strings.Left("0000", 4 - Len(O)) + O
+                                                Script += vbTab + O
+                                                If DiskNode.Nodes(J).Nodes(2).ForeColor = colFileParamEdited Then    'Add File Length
+                                                    Script += vbTab + Strings.Right(DiskNode.Nodes(J).Nodes(2).Text, 4)
+                                                End If
                                             End If
                                         End If
                                     End If
+                                    Script += vbNewLine
                                 End If
-                                Script += vbNewLine
                             Case sProdID
                                 Dim SA As String = Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sProdID) - 1)
                                 If SA <> "" Then
                                     Script += "ProdID:" + vbTab + SA + vbNewLine
                                 End If
                             Case sZP
-                                Script += "ZP:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sZP) - 1) + vbNewLine
-                                'Case sLoop
-                                'Script += "Loop:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sLoop)) + vbNewLine
+                                If Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sZP) - 1) <> "02" Then
+                                    Script += "ZP:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sZP) - 1) + vbNewLine
+                                End If
+                            Case sTracksPerDisk + CurrentDisk.ToString
+                                If Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sTracksPerDisk)) = ExtTracksPerDisk.ToString Then
+                                    Script += "Tracks:" + vbTab + ExtTracksPerDisk.ToString + vbNewLine
+                                End If
                             Case sIL0 + CurrentDisk.ToString
-                                Script += "IL0:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL0)) + vbNewLine
+                                If Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL0)) <> ("0" + DefaultIL0.ToString) Then
+                                    Script += "IL0:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL0)) + vbNewLine
+                                End If
                             Case sIL1 + CurrentDisk.ToString
-                                Script += "IL1:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL1)) + vbNewLine
+                                If Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL1)) <> ("0" + DefaultIL1.ToString) Then
+                                    Script += "IL1:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL1)) + vbNewLine
+                                End If
                             Case sIL2 + CurrentDisk.ToString
-                                Script += "IL2:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL2)) + vbNewLine
+                                If Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL2)) <> ("0" + DefaultIL2.ToString) Then
+                                    Script += "IL2:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL2)) + vbNewLine
+                                End If
                             Case sIL3 + CurrentDisk.ToString
-                                Script += "IL3:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL3)) + vbNewLine
+                                If Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL3)) <> ("0" + DefaultIL3.ToString) Then
+                                    Script += "IL3:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL3)) + vbNewLine
+                                End If
                         End Select
                     Next
                 Case &H20000 To &H2FFFF
@@ -4946,6 +5073,10 @@ Done:
         If ParentNode Is Nothing Then Exit Sub
         'If PartNode Is Nothing Then Exit Sub
 
+        If DiskSizeA.Length < CurrentDisk Then
+            ParentNode = BaseNode
+        End If
+
         If ChkSize.Checked = False Then
             'No recalc, only renumber
             ReNumberEntries(BaseNode, PartNodeIndex)
@@ -4993,8 +5124,8 @@ Done:
                     'Disk
                     If CurrentDisk > 0 Then
                         DiskNodeA(CurrentDisk).Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
-                            If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (MaxDiskSize - DiskSizeA(CurrentDisk)).ToString + " block" +
-                            If((MaxDiskSize - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
+                        If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
+                        If((DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
                     End If
                     DiskNode = ParentNode.Nodes(I)
                     CurrentDisk = (DiskNode.Tag And &HFFFF)
@@ -5006,7 +5137,7 @@ Done:
                             If DiskNode.Nodes(J).Nodes.Count = 4 Then
                                 Dim HSFileSize As Integer = (Convert.ToInt32(Strings.Right(DiskNode.Nodes(J).Nodes(2).Text, 4), 16) / &H100) + 1 + 2
 
-                                If DiskSizeA(CurrentDisk) + HSFileSize > MaxDiskSize Then
+                                If DiskSizeA(CurrentDisk) + HSFileSize > SectorsPerDisk Then
                                     MsgBox(ErrorDiskSizeExceeded, vbOKOnly + vbCritical, "Disk is full!")
                                     Exit For
                                 End If
@@ -5020,7 +5151,7 @@ Done:
                     BundleNode = ParentNode.Nodes(I)
                     CurrentBundle = (BundleNode.Tag And &HFFFF)
                     Dim CPS As Integer = CalcPartSize(ParentNode.Nodes(I))
-                    If DiskSizeA(CurrentDisk) + CPS > MaxDiskSize Then
+                    If DiskSizeA(CurrentDisk) + CPS > SectorsPerDisk Then
                         BundleNode.Text = "[Bundle " + CurrentBundle.ToString + "]"
                         MsgBox(ErrorDiskSizeExceeded, vbOKOnly + vbCritical, "Disk is full!")
                         Exit For
@@ -5035,8 +5166,8 @@ Done:
         If ParentNode.Name = BaseNode.Name Then
             If CurrentDisk > 0 Then
                 DiskNodeA(CurrentDisk).Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
-                            If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (MaxDiskSize - DiskSizeA(CurrentDisk)).ToString + " block" +
-                            If((MaxDiskSize - DiskSizeA(DC)) = 1, "", "s") + " free]"
+                            If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
+                            If((DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
             End If
             UpdatePartNames(BaseNode)
         End If
@@ -5141,8 +5272,18 @@ Err:
                             vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
                 Case sZP + "$"
                     .ToolTipTitle = "Editing the Zeropage Usage of the Loader"
-                    TTT = "Type in the first of the two adjacent zeropage addresses you want the loader to use." +
-                             vbNewLine + "If this field is left empty, Sparkle will use $02-$03 as default." +
+                    TTT = "Type in the first of the three adjacent zeropage addresses you want the loader to use." +
+                             vbNewLine + "If this field is left empty, Sparkle will use $02-$04 as default." +
+                             vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
+                Case sProdID + "$"
+                    .ToolTipTitle = "Editing the Product ID of the Demo"
+                    TTT = "Type in a hexademical value (max. 6 digits) that will be used to identify all the disks in this script." +
+                             vbNewLine + "If this field is left empty, Sparkle will generate a pseudorandom number every time this script is processed." +
+                             vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
+                Case sTracksPerDisk
+                    .ToolTipTitle = "Editing the Product ID of the Demo"
+                    TTT = "Type 35 for a standard disk with 35 tracks and 664 block or 40 for an extended disk with 40 tracks and 749 blocks." +
+                             vbNewLine + "If this field is left empty, Sparkle will create 35-track standard disks as default." +
                              vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
                     'Case sLoop
                     '.ToolTipTitle = "Editing where the demo should loop after loading the last disk"

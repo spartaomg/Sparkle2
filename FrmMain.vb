@@ -48,7 +48,7 @@ Public Class FrmMain
         CalcILTab()
 
         Track(1) = 0
-        For T = 1 To 34
+        For T = 1 To ExtTracksPerDisk - 1
             Select Case T
                 Case 1 To 17
                     Track(T + 1) = Track(T) + (21 * 256)
@@ -56,7 +56,7 @@ Public Class FrmMain
                     Track(T + 1) = Track(T) + (19 * 256)
                 Case 25 To 30
                     Track(T + 1) = Track(T) + (18 * 256)
-                Case 31 To 35
+                Case 31 To 40
                     Track(T + 1) = Track(T) + (17 * 256)
             End Select
         Next
@@ -204,6 +204,15 @@ Err:
 
         Disk = File.ReadAllBytes(D64Name)
 
+        Select Case Disk.Length
+            Case StdBytesPerDisk
+                TracksPerDisk = StdTracksPerDisk
+                SectorsPerDisk = StdSectorsPerDisk
+            Case ExtBytesPerDisk
+                TracksPerDisk = ExtTracksPerDisk
+                SectorsPerDisk = ExtSectorsPerDisk
+        End Select
+
         GetILfromDisk()
         CalcILTab()
 
@@ -216,6 +225,7 @@ Err:
         CS = 1      'Sector #01
 
         CP = Track(CT) + CS * 256
+
         ShowSector()
 
         ResetUndo()
@@ -346,7 +356,7 @@ Err:
     End Sub
 
     Private Sub MakeDisk(sender As Object, e As EventArgs, Optional OnTheFly As Boolean = False)  'Args needed for button Sub calls
-        'On Error GoTo Err
+        On Error GoTo Err
 
         Dim DiskOK As Boolean
 
@@ -457,7 +467,7 @@ Err:
     Private Sub TsbNextTrack_Click(sender As Object, e As EventArgs) Handles tsbNextTrack.Click
         On Error GoTo Err
 
-        If CT <> 35 Then
+        If CT <> TracksPerDisk Then
             CT += 1
             CS = 0
             ShowSector()
@@ -473,7 +483,7 @@ Err:
     Private Sub TsbLastTrack_Click(sender As Object, e As EventArgs) Handles tsbLastTrack.Click
         On Error GoTo Err
 
-        CT = 35
+        CT = TracksPerDisk
         CS = 0
         ShowSector()
 
@@ -495,11 +505,11 @@ Err:
 
             Dim I As Integer
 
-            For I = 0 To 663
+            For I = 0 To SectorsPerDisk - 1
                 If (TabT(I) = CT) And (TabS(I) = CS) Then Exit For
             Next
 
-            If I >= 663 Then Exit Sub
+            If I >= SectorsPerDisk - 1 Then Exit Sub
 
             CS = TabS(I + 1)
             CT = TabT(I + 1)
@@ -526,12 +536,12 @@ Err:
                 End If
             Next
         Else
-            For I = 0 To 663
+            For I = 0 To SectorsPerDisk - 1
                 If (TabT(I) = CT) And (TabS(I) = CS) Then Exit For
             Next
 
             If I = 0 Then Exit Sub
-            If I > 663 Then Exit Sub
+            If I > SectorsPerDisk - 1 Then Exit Sub
 
             CS = TabS(I - 1)
             CT = TabT(I - 1)
@@ -845,14 +855,16 @@ Err:
 
         Select Case CT
             Case 1 To 17
-                TslIL.Text = "Interleave: " + IL0.ToString
+                SsIL.Text = " Sector interleave: " + IL0.ToString
             Case 18 To 24
-                TslIL.Text = "Interleave: " + IL1.ToString
+                SsIL.Text = " Sector interleave: " + IL1.ToString
             Case 25 To 30
-                TslIL.Text = "Interleave: " + IL2.ToString
+                SsIL.Text = " Sector interleave: " + IL2.ToString
             Case Else
-                TslIL.Text = "Interleave: " + IL3.ToString
+                SsIL.Text = " Sector interleave: " + IL3.ToString
         End Select
+
+        SsTrackCnt.Text = "  Tracks on disk: " + TracksPerDisk.ToString
 
         Dim tmpSect As String = ""
         Dim Tmp As Byte
@@ -862,7 +874,7 @@ Err:
         If CT = 1 And CS = 0 Then
             tsbPrevSector4.Enabled = False
             tsbNextSector4.Enabled = True
-        ElseIf CT = 35 And CS = 12 Then
+        ElseIf CT = TracksPerDisk And CS = TabS(SectorsPerDisk - 1) Then
             tsbPrevSector4.Enabled = True
             tsbNextSector4.Enabled = False
         Else
@@ -903,7 +915,7 @@ Err:
         txtCT.Text = CT.ToString
         txtCS.Text = CS.ToString
 
-        SetLastSector()
+        SetMaxSector()
 
         Exit Sub
 Err:
@@ -1108,7 +1120,7 @@ Err:
     End Sub
 
     Private Sub TsbScriptEditor_Click(sender As Object, e As EventArgs) Handles TsbScriptEditor.Click
-        'On Error GoTo Err
+        On Error GoTo Err
 
         Using A As New FrmEditor
             A.ShowDialog(Me)
@@ -1176,7 +1188,7 @@ Err:
         Else
             Dim I As Integer = txtCT.Text
             If I < 1 Then I = 1
-            If I > 35 Then I = 35
+            If I > TracksPerDisk Then I = TracksPerDisk
             CT = I
             ShowSector()
         End If
@@ -1235,6 +1247,8 @@ Err:
             CT = PartT(PartT.Count - 1)
             CS = PartS(PartS.Count - 1)
             ShowSector()
+            TsbLastPart.Enabled = False
+            TsbNextPart.Enabled = False
         End If
 
         Exit Sub
@@ -1251,7 +1265,7 @@ Err:
 
             Dim I, J As Integer
 
-            For I = 0 To 663
+            For I = 0 To SectorsPerDisk - 1
                 If (TabT(I) = CT) And (TabS(I) = CS) Then Exit For
             Next
 
@@ -1259,7 +1273,9 @@ Err:
                 If PartDiskLoc(J) > I Then Exit For
             Next
 
-            If J > PartNo Then J = PartNo
+            If J >= PartNo Then
+                J = PartNo
+            End If
 
             CT = PartT(J)
             CS = PartS(J)
@@ -1282,7 +1298,7 @@ Err:
 
             Dim I, J As Integer
 
-            For I = 0 To 663
+            For I = 0 To SectorsPerDisk - 1
                 If (TabT(I) = CT) And (TabS(I) = CS) Then Exit For
             Next
 
@@ -1384,7 +1400,7 @@ Err:
                     If I > 18 Then I = 18
                 Case 25 To 30
                     If I > 18 Then I = 17
-                Case 31 To 35
+                Case 31 To TracksPerDisk
                     If I > 18 Then I = 16
             End Select
             CS = I
@@ -1592,7 +1608,7 @@ FindFirstS:
 
         If S = 255 Then             'Track full? Technicaly, this cannot happen as we selected the first track with an empty sector count > 0
             CT += 1
-            If CT <= 35 Then
+            If CT <= TracksPerDisk Then
                 GoTo FindFirstS
             Else
                 GoTo NoGo
@@ -1690,7 +1706,7 @@ Err:
 
         ReDim PartT(PartNo), PartS(PartNo), PartDiskLoc(PartNo)
 
-        If Disk(1) = 0 Then Exit Sub
+        If (Disk(0) = 0) And (Disk(1) = 0) Then Exit Sub
 
 NextPart:
         PartNo += 1
@@ -1703,9 +1719,17 @@ NextPart:
 
         BlockNo += EORtransform(Disk(Track(TabT(BlockNo)) + (TabS(BlockNo) * 256) + 1))
 
-        If BlockNo < 664 Then
+        If BlockNo < SectorsPerDisk Then
             If EORtransform(Disk(Track(TabT(BlockNo)) + (TabS(BlockNo) * 256) + 1)) <> 0 Then GoTo NextPart
         End If
+
+        PartNo += 1
+
+        ReDim Preserve PartT(PartNo), PartS(PartNo), PartDiskLoc(PartNo)
+
+        PartT(PartNo) = TabT(BlockNo)  'First Track of Bundle
+        PartS(PartNo) = TabS(BlockNo)  'First Sector of Bundle
+        PartDiskLoc(PartNo) = BlockNo
 
         Exit Sub
 Err:
