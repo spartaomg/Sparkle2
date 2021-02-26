@@ -831,7 +831,7 @@ Err:
             SaverSupportsIO = False
         End If
 
-        Dim SaveCode() As Byte ' = My.Resources.SS
+        Dim SaveCode() As Byte
 
         If SaverSupportsIO Then
             SaveCode = My.Resources.SSIO
@@ -851,7 +851,7 @@ Err:
 
         'Copy first block of saver plugin to disk
         For I As Integer = 0 To 255
-            Disk(Track(CT) + CS * 256 + I) = SaveCode(2 + I)
+            Disk(Track(CT) + (CS * 256) + I) = SaveCode(2 + I)
         Next
 
         'Mark sector off in BAM
@@ -874,7 +874,7 @@ Err:
         For I As Integer = 0 To SaveCode.Length - 256 - 1 - 2
             Dim J As Integer = 0 - I
             If J < 0 Then J += 256
-            Disk(Track(CT) + CS * 256 + J) = EORtransform(SaveCode(256 + 2 + I))
+            Disk(Track(CT) + (CS * 256) + J) = EORtransform(SaveCode(256 + 2 + I))
         Next
 
         'Mark sector off in BAM
@@ -3001,10 +3001,10 @@ NextStart:
             End If
         Next
 
-        IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabT.bin", TabT)
-        IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabS.bin", TabS)
-        IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabStartS.bin", TabStartS)
-        IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabSCnt.bin", TabSCnt)
+        'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabT.bin", TabT)
+        'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabS.bin", TabS)
+        'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabStartS.bin", TabStartS)
+        'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabSCnt.bin", TabSCnt)
 
         Exit Sub
 Err:
