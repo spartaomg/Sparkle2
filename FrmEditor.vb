@@ -1968,7 +1968,7 @@ Err:
                         End If
                 End Select
 
-                Text = DiskNode.Text
+                'Text = DiskNode.Text
 
             Case sIL0
                 If Len(txtEdit.Text) < 2 Then
