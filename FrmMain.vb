@@ -871,15 +871,63 @@ Err:
         Dim TA As String
         Dim C, R As Integer
 
-        If CT = 1 And CS = 0 Then
+        SetMaxSector()
+
+        If (CT = 1) And (CS = 0) Then
+            TsbFirstPart.Enabled = False
+            TsbPrevPart.Enabled = False
             tsbPrevSector4.Enabled = False
             tsbNextSector4.Enabled = True
-        ElseIf CT = TracksPerDisk And CS = TabS(SectorsPerDisk - 1) Then
+            TsbNextPart.Enabled = True
+            TsbLastPart.Enabled = True
+        ElseIf (CT = TracksPerDisk) And (CS = TabS(SectorsPerDisk - 1)) Then
+            TsbFirstPart.Enabled = True
+            TsbPrevPart.Enabled = True
             tsbPrevSector4.Enabled = True
             tsbNextSector4.Enabled = False
+            TsbNextPart.Enabled = False
+            TsbLastPart.Enabled = False
         Else
+            TsbFirstPart.Enabled = True
+            TsbPrevPart.Enabled = True
             tsbPrevSector4.Enabled = True
             tsbNextSector4.Enabled = True
+            TsbNextPart.Enabled = True
+            TsbLastPart.Enabled = True
+        End If
+
+        If CT = 1 Then
+            tsbFirstTrack.Enabled = False
+            tsbPrevTrack.Enabled = False
+            tsbNextTrack.Enabled = True
+            tsbLastTrack.Enabled = True
+        ElseIf CT = TracksPerDisk Then
+            tsbFirstTrack.Enabled = True
+            tsbPrevTrack.Enabled = True
+            tsbNextTrack.Enabled = False
+            tsbLastTrack.Enabled = False
+        Else
+            tsbFirstTrack.Enabled = True
+            tsbPrevTrack.Enabled = True
+            tsbNextTrack.Enabled = True
+            tsbLastTrack.Enabled = True
+        End If
+
+        If CS = 0 Then
+            tsbSector0.Enabled = False
+            tsbPrevSector.Enabled = False
+            tsbNextSector.Enabled = True
+            tsbLastSector.Enabled = True
+        ElseIf CS = MaxSector Then
+            tsbSector0.Enabled = True
+            tsbPrevSector.Enabled = True
+            tsbNextSector.Enabled = False
+            tsbLastSector.Enabled = False
+        Else
+            tsbSector0.Enabled = True
+            tsbPrevSector.Enabled = True
+            tsbNextSector.Enabled = True
+            tsbLastSector.Enabled = True
         End If
 
         CP = Track(CT) + CS * 256
@@ -914,8 +962,6 @@ Err:
 
         txtCT.Text = CT.ToString
         txtCS.Text = CS.ToString
-
-        SetMaxSector()
 
         Exit Sub
 Err:
@@ -1247,8 +1293,8 @@ Err:
             CT = PartT(PartT.Count - 1)
             CS = PartS(PartS.Count - 1)
             ShowSector()
-            TsbLastPart.Enabled = False
-            TsbNextPart.Enabled = False
+            'TsbLastPart.Enabled = False
+            'TsbNextPart.Enabled = False
         End If
 
         Exit Sub

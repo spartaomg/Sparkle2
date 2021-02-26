@@ -332,30 +332,26 @@ Err:
             BlocksFree = ExtSectorsPerDisk
             SectorsPerDisk = ExtSectorsPerDisk
 
-            For Cnt As Integer = (37 * 4) To (41 * 4) - 1
-                Disk(CP + Cnt) = 255
+            For Cnt As Integer = (36 + 7) * 4 To ((41 + 7) * 4) - 1
+                Disk(Track(18) + Cnt) = 255
             Next
             For Cnt As Integer = 36 To 40
-                Disk(CP + (Cnt * 4) + 0) = 17
-                Disk(CP + (Cnt * 4) + 3) = 1
+                Disk(Track(18) + ((Cnt + 7) * 4) + 0) = 17
+                Disk(Track(18) + ((Cnt + 7) * 4) + 3) = 1
             Next
         Else
             ReDim Preserve Disk(StdBytesPerDisk - 1)
             BlocksFree = StdSectorsPerDisk
             SectorsPerDisk = StdSectorsPerDisk
 
-            For Cnt As Integer = (37 * 4) To (41 * 4) - 1
-                Disk(CP + Cnt) = 0
+            For Cnt As Integer = (36 + 7) * 4 To ((41 + 7) * 4) - 1
+                Disk(Track(18) + Cnt) = 0
             Next
             For Cnt As Integer = 36 To 40
-                Disk(CP + (Cnt * 4) + 0) = 0
-                Disk(CP + (Cnt * 4) + 3) = 0
+                Disk(Track(18) + ((Cnt + 7) * 4) + 0) = 0
+                Disk(Track(18) + ((Cnt + 7) * 4) + 3) = 0
             Next
         End If
-
-        'ReDim TabT(SectorsPerDisk - 1), TabS(SectorsPerDisk - 1), TabSCnt(SectorsPerDisk - 1), TabStartS(TracksPerDisk)   'TabStartS is 1 based
-
-        'CalcILTab()
 
         Exit Sub
 Err:
@@ -367,19 +363,15 @@ Err:
     Public Sub NewDisk()
         On Error GoTo Err
 
-        If TracksPerDisk = 40 Then
+        If TracksPerDisk = ExtTracksPerDisk Then
             ReDim Disk(ExtBytesPerDisk - 1)
-            BlocksFree = 664 + 85
-            SectorsPerDisk = 664 + 85
+            BlocksFree = ExtSectorsPerDisk
+            SectorsPerDisk = ExtSectorsPerDisk
         Else
             ReDim Disk(StdBytesPerDisk - 1)
-            BlocksFree = 664
-            SectorsPerDisk = 664
+            BlocksFree = StdSectorsPerDisk
+            SectorsPerDisk = StdSectorsPerDisk
         End If
-
-        'ReDim TabT(SectorsPerDisk - 1), TabS(SectorsPerDisk - 1), TabSCnt(SectorsPerDisk - 1), TabStartS(TracksPerDisk)   'TabStartS is 1 based
-
-        'CalcILTab()
 
         Dim B As Byte
 
@@ -430,15 +422,15 @@ Err:
             Disk(CP + (Cnt * 4) + 3) = 1
         Next
 
-        If TracksPerDisk = 40 Then
-            For Cnt = (37 * 4) To (41 * 4) - 1
-                Disk(CP + Cnt) = 255
-            Next
-            For Cnt = 36 To 40
-                Disk(CP + (Cnt * 4) + 0) = 17
-                Disk(CP + (Cnt * 4) + 3) = 1
-            Next
-        End If
+        'If TracksPerDisk = ExtTracksPerDisk Then
+        'For Cnt = (36 + 7) * 4 To ((41 + 7) * 4) - 1
+        'Disk(CP + Cnt) = 255
+        'Next
+        'For Cnt = 36 To 40
+        'Disk(CP + ((Cnt + 7) * 4) + 0) = 17
+        'Disk(CP + ((Cnt + 7) * 4) + 3) = 1
+        'Next
+        'End If
 
         Disk(CP + (18 * 4) + 0) = 17
         Disk(CP + (18 * 4) + 1) = 252
@@ -526,15 +518,18 @@ Err:
     Public Sub DeleteBit(T As Byte, S As Byte, Optional UpdateBlocksFree As Boolean = True)
         On Error GoTo Err
 
+        'Ignore tracks > 35
+        'If T > 35 Then Exit Sub
+
         Dim BP As Integer   'BAM Position for Bit Change
         Dim BB As Integer   'BAM Bit
 
-        BP = Track(18) + (T * 4) + 1 + Int(S / 8)
+        BP = Track(18) + (T * 4) + 1 + Int(S / 8) + If(T > 35, 7 * 4, 0)
         BB = 255 - (2 ^ (S Mod 8))    '=0-7
 
         Disk(BP) = Disk(BP) And BB
 
-        BP = Track(18) + (T * 4)
+        BP = Track(18) + (T * 4) + If(T > 35, 7 * 4, 0)
         Disk(BP) -= 1
 
         If UpdateBlocksFree = True Then BlocksFree -= 1
@@ -1515,10 +1510,12 @@ FindNext:
                 If ScriptEntryArray.Length > 0 Then
                     If IsNumeric(ScriptEntryArray(0)) Then
                         Dim TmpTracks As Integer = Convert.ToInt32(ScriptEntryArray(0), 10)
-                        If TmpTracks = 40 Then
-                            TracksPerDisk = 40
+                        If TmpTracks = ExtTracksPerDisk Then
+                            TracksPerDisk = ExtTracksPerDisk
+                            SectorsPerDisk = ExtSectorsPerDisk
                         Else
-                            TracksPerDisk = 35
+                            TracksPerDisk = StdTracksPerDisk
+                            SectorsPerDisk = StdSectorsPerDisk
                         End If
                         UpdateDiskSizeOnTheFly()
                     End If

@@ -28,8 +28,6 @@ Public Class FrmEditor
     Private ReadOnly colScriptGray As Color = Color.FromArgb(35, 35, 35)
     Private ReadOnly colNewEntry As Color = Color.Navy
 
-    Private ReadOnly ErrorDiskSizeExceeded As String = "The size of this disk exceeds the standard disk size of 664 blocks!"
-
     Private WithEvents SCC As SubClassCtrl.SubClassing
     Private Const WM_VSCROLL As Integer = &H115
     Private Const WM_HSCROLL As Integer = &H114
@@ -1848,9 +1846,9 @@ Done:
 
         If CurrentDisk > 0 Then
             If DiskSizeA.Count > CurrentDisk Then
-                TssDisk.Text = "Disk " + CurrentDisk.ToString + ": " + (SectorsPerDisk - DiskSizeA(CurrentDisk)).ToString + " block" + If(SectorsPerDisk - DiskSizeA(CurrentDisk) <> 1, "s free", " free")
+                TssDisk.Text = "Disk " + CurrentDisk.ToString + ": " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" + If(SectorsPerDisk - DiskSizeA(CurrentDisk) <> 1, "s free", " free")
             Else
-                TssDisk.Text = "Disk " + CurrentDisk.ToString + ": " + SectorsPerDisk.ToString + " blocks free"
+                TssDisk.Text = "Disk " + CurrentDisk.ToString + ": " + DiskSectorsA(CurrentDisk).ToString + " blocks free"
             End If
         Else
             TssDisk.Text = ""
@@ -5028,7 +5026,7 @@ TryAgain:
         BundleBitPtrA(CurrentBundle) = BitPtr
         BundleBitPosA(CurrentBundle) = BitPos
 
-        If Strings.Left(PartN.Name, 1) = "P" Then
+        If (Prgs.Count > 0) And (Strings.Left(PartN.Name, 1) = "P") Then
             BufferCnt += 1
         End If
 
@@ -5137,9 +5135,10 @@ Done:
                             If DiskNode.Nodes(J).Nodes.Count = 4 Then
                                 Dim HSFileSize As Integer = (Convert.ToInt32(Strings.Right(DiskNode.Nodes(J).Nodes(2).Text, 4), 16) / &H100) + 1 + 2
 
-                                If DiskSizeA(CurrentDisk) + HSFileSize > SectorsPerDisk Then
-                                    MsgBox(ErrorDiskSizeExceeded, vbOKOnly + vbCritical, "Disk is full!")
-                                    Exit For
+                                If DiskSizeA(CurrentDisk) + HSFileSize > DiskSectorsA(CurrentDisk) Then
+                                    MsgBox("The size of this disk exceeds the " + If(DiskSectorsA(CurrentDisk) = StdSectorsPerDisk, "standard", "extended") + " disk size of " +
+                                           DiskSectorsA(CurrentDisk).ToString + " blocks!", vbOKOnly + vbCritical, "Disk is full!")
+                                    'Exit For
                                 End If
                                 DiskSizeA(CurrentDisk) += HSFileSize
                             End If
@@ -5151,10 +5150,23 @@ Done:
                     BundleNode = ParentNode.Nodes(I)
                     CurrentBundle = (BundleNode.Tag And &HFFFF)
                     Dim CPS As Integer = CalcPartSize(ParentNode.Nodes(I))
-                    If DiskSizeA(CurrentDisk) + CPS > SectorsPerDisk Then
+                    If DiskSectorsA Is Nothing Then
+                        ReDim Preserve DiskSectorsA(CurrentDisk), DiskTracksA(CurrentDisk)
+                        DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
+                        DiskTracksA(CurrentDisk) = StdTracksPerDisk
+                    ElseIf DiskSectorsA.Length < CurrentDisk Then
+                        ReDim Preserve DiskSectorsA(CurrentDisk), DiskTracksA(CurrentDisk)
+                        DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
+                        DiskTracksA(CurrentDisk) = StdTracksPerDisk
+                    ElseIf currentdisk = 0 Then
+                        DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
+                        DiskTracksA(CurrentDisk) = StdTracksPerDisk
+                    End If
+                    If DiskSizeA(CurrentDisk) + CPS > DiskSectorsA(CurrentDisk) Then
                         BundleNode.Text = "[Bundle " + CurrentBundle.ToString + "]"
-                        MsgBox(ErrorDiskSizeExceeded, vbOKOnly + vbCritical, "Disk is full!")
-                        Exit For
+                        MsgBox("The size of this disk exceeds the " + If(DiskSectorsA(CurrentDisk) = StdSectorsPerDisk, "standard", "extended") + " disk size of " +
+                                           DiskSectorsA(CurrentDisk).ToString + " blocks!", vbOKOnly + vbCritical, "Disk is full!")
+                        'Exit For
                     End If
                     DiskSizeA(CurrentDisk) += CPS
                 Case 3
@@ -5192,10 +5204,13 @@ Err:
                     CurrentBundle = (BundleNode.Tag And &HFFFF)
                     BufferCnt = BundleSizeA(CurrentBundle)
                     UncompBundleSize = BundleOrigSizeA(CurrentBundle)
-
-                    BundleNode.Text = "[Bundle " + Strings.Right(BundleNode.Name, Len(BundleNode.Name) - 1) + ": " + BufferCnt.ToString +
+                    If UncompBundleSize > 0 Then
+                        BundleNode.Text = "[Bundle " + Strings.Right(BundleNode.Name, Len(BundleNode.Name) - 1) + ": " + BufferCnt.ToString +
                     " block" + If(BufferCnt = 1, "", "s") + " packed from " + UncompBundleSize.ToString + " block" + If(UncompBundleSize = 1, "", "s") +
                     " unpacked, " + (Int(10000 * BufferCnt / UncompBundleSize) / 100).ToString + "% of unpacked size]"
+                    Else
+                        BundleNode.Text = "[Bundle " + Strings.Right(BundleNode.Name, Len(BundleNode.Name) - 1) + "]"
+                    End If
                 Case 3
                     'Script
                     UpdatePartNames(ParentNode.Nodes(I))
