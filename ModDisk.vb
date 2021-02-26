@@ -960,7 +960,7 @@ Err:
             Next
 
             For J As Integer = 0 To 255
-                Disk(Track(CT) + CS * 256 + J) = Buffer(J)
+                Disk(Track(CT) + (CS * 256) + J) = Buffer(J)
             Next
 
             If SaverSupportsIO Then
@@ -1004,7 +1004,7 @@ Err:
         Buffer(If(SaverSupportsIO, 251, 252) - HSLength - 1) = &HF8                       'End of File Bundle flag
 
         For I As Integer = 0 To 255
-            Disk(Track(CT) + CS * 256 + I) = Buffer(I)
+            Disk(Track(CT) + (CS * 256) + I) = Buffer(I)
         Next
 
         Exit Sub
@@ -1072,28 +1072,28 @@ Err:
             ST = CT
             SS = CS
             For Cnt = 0 To 253
-                If I * 254 + Cnt < Loader.Length Then
-                    Disk(Track(CT) + CS * 256 + 2 + Cnt) = Loader(I * 254 + Cnt)
+                If (I * 254) + Cnt < Loader.Length Then
+                    Disk(Track(CT) + (CS * 256) + 2 + Cnt) = Loader((I * 254) + Cnt)
                 End If
             Next
             DeleteBit(CT, CS, True)
 
             AddInterleave(IL)   'Go to next free sector with Interleave IL
             If I < L - 1 Then
-                Disk(Track(ST) + SS * 256 + 0) = CT
-                Disk(Track(ST) + SS * 256 + 1) = CS
+                Disk(Track(ST) + (SS * 256) + 0) = CT
+                Disk(Track(ST) + (SS * 256) + 1) = CS
             Else
-                Disk(Track(ST) + SS * 256 + 0) = 0
+                Disk(Track(ST) + (SS * 256) + 0) = 0
                 If Loader.Length Mod 254 = 0 Then
-                    Disk(Track(ST) + SS * 256 + 1) = 254 + 1
+                    Disk(Track(ST) + (SS * 256) + 1) = 254 + 1
                 Else
-                    Disk(Track(ST) + SS * 256 + 1) = ((Loader.Length) Mod 254) + 1
+                    Disk(Track(ST) + (SS * 256) + 1) = ((Loader.Length) Mod 254) + 1
                 End If
             End If
         Next
 
         CT = 18 : CS = 1
-        Cnt = Track(CT) + CS * 256
+        Cnt = Track(CT) + (CS * 256)
 SeekNewDirBlock:
         If Disk(Cnt) <> 0 Then
             Cnt = Track(Disk(Cnt)) + Disk(Cnt + 1) * 256
