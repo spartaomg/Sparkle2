@@ -3478,7 +3478,7 @@ Err:
                         End If
                     End If
                     NewBundle = True
-                Case "tracks:"
+                Case "tracks:", "trackno:"
                     If NewD = False Then
                         NewD = True
                         AddDiskToScriptNode(BaseNode)
@@ -3807,7 +3807,7 @@ Done:
                         End If
                     End If
                     NewBundle = True
-                Case "tracks:"
+                Case "tracks:", "trackno:"
                     If NewD = False Then
                         NewD = True
                         AddDiskToScriptNode(SN)
@@ -4675,7 +4675,7 @@ Err:
                                 End If
                             Case sTracksPerDisk + CurrentDisk.ToString
                                 If Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sTracksPerDisk)) = ExtTracksPerDisk.ToString Then
-                                    Script += "Tracks:" + vbTab + ExtTracksPerDisk.ToString + vbNewLine
+                                    Script += "TrackNo:" + vbTab + ExtTracksPerDisk.ToString + vbNewLine
                                 End If
                             Case sIL0 + CurrentDisk.ToString
                                 If Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sIL0)) <> ("0" + DefaultIL0.ToString) Then

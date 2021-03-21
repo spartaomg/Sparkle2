@@ -1501,7 +1501,7 @@ FindNext:
                     End If
                 End If
                 NewBundle = True
-            Case "tracks:"
+            Case "tracks:", "trackno:"
                 If NewD = False Then
                     NewD = True
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
@@ -2985,7 +2985,8 @@ NextSector:
 NextStart:
                 If S >= SMax Then
                     S -= SMax
-                    If (T < 18) And (S > 0) Then S -= 1 'If track 1-17 then subtract one more if S>0
+                    If (T < 18) And (S > 0) Then S -= 1 'Wrap around: Subtract 1 if S>0 for tracks 1-17
+                    'If S > 0 Then S -= 1               'Wrap around: Subtract 1 if S>0 for all tracks
                 End If
                 If TabStartS(T) = 255 Then
                     'MsgBox(T.ToString + ":" + S.ToString)
