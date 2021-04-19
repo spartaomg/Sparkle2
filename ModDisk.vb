@@ -1051,10 +1051,10 @@ Err:
             Loader = My.Resources.SLT
         End If
 
-        For I = 0 To Loader.Length - 3      'Find JMP $017f instruction (JMP Load)
-            If (Loader(I) = &H4C) And (Loader(I + 1) = &H7F) And (Loader(I + 2) = &H1) Then
-                Loader(I - 2) = AdLo        'Lo Byte return address at the end of Loader
-                Loader(I - 5) = AdHi        'Hi Byte return address at the end of Loader
+        For I = 0 To Loader.Length - 6      'Find JMP Sparkle_LoadFetched instruction
+            If (Loader(I) = &H10) And (Loader(I + 3) = &HAD) And (Loader(I + 5) = &H4C) Then
+                Loader(I) = AdHi            'Hi Byte return address at the end of Loader
+                Loader(I + 3) = AdLo        'Lo Byte return address at the end of Loader
                 Exit For
             End If
         Next
@@ -2970,6 +2970,8 @@ Err:
                     SMax = 17
                     IL = IL3
             End Select
+
+            IL = IL Mod SMax
 
             GoTo NextStart
 

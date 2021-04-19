@@ -56,6 +56,8 @@
     Private LitSI As Integer            'Sequence array index of last literal sequence
     Private StartPtr As Integer
 
+    'Private Cycles As Integer
+    'Private BitStreamBytes As Integer
     Public Sub NewPackFile(PN As Byte(), Optional FA As String = "", Optional FUIO As Boolean = False)
         On Error GoTo Err
 
@@ -303,6 +305,9 @@ Err:
 
         SI = PrgLen - 1
         StartPtr = SI
+
+        'Cycles += 61 'From NextFile label
+        'BitStreamBytes = 0
 
 Restart:
         Do
@@ -583,7 +588,10 @@ Err:
     Private Sub AddMatchBit()
         On Error GoTo Err
 
-        If LitCnt = -1 Then AddBits(MatchSelector, 1)   'Last Literal Length was -1, we need the Match selector bit (1)
+        If LitCnt = -1 Then
+            AddBits(MatchSelector, 1)   'Last Literal Length was -1, we need the Match selector bit (1)
+            'Cycles += 10
+        End If
 
         LitCnt = -1
 
@@ -606,6 +614,8 @@ Err:
         Buffer(BytePtr - 2) = MOff - 1
         BytePtr -= 3
 
+        'Cycles += 77 + (15 * MLen)
+
         Exit Sub
 Err:
         ErrCode = Err.Number
@@ -624,6 +634,8 @@ Err:
         Buffer(BytePtr - 1) = MOff - 1
         BytePtr -= 2
 
+        'Cycles += 67 + (15 * MLen)
+
         Exit Sub
 Err:
         ErrCode = Err.Number
@@ -640,6 +652,8 @@ Err:
 
         Buffer(BytePtr) = ((MOff - 1) * 4) + (MLen - 1)
         BytePtr -= 1
+
+        'Cycles += 54 + (15 * MLen)
 
         Exit Sub
 Err:
@@ -695,6 +709,7 @@ Err:
 
         If FirstLitOfBlock = False Then
             AddBits(LitSelector, 1)               'Add Literal Selector if this is not the first (Literal) byte in the buffer
+            'Cycles += 8
         Else
             FirstLitOfBlock = False
         End If
@@ -702,12 +717,15 @@ Err:
         Select Case Lits
             Case 0
                 AddBits(0, 1)               'Add Literal Length Selector 0 - read no more bits
+                'Cycles += 52
             Case 1 To MaxLitLen - 1
                 AddBits(1, 1)               'Add Literal Length Selector 1 - read 4 more bits
                 AddNibble(Lits)             'Add Literal Length: 01-0f, 4 bits (0001-1111)
+                'Cycles += 62 + ((Lits + 1) * 15)
             Case MaxLitLen
                 AddBits(1, 1)               'Add Literal Length Selector 1 - read 4 more bits
                 AddNibble(0)                'Add Literal Length: 0, 4 bits (0000) - we will have a longer literal sequence
+                'Cycles += 72 + ((Lits + 1) * 15)
         End Select
 
         'DO NOT RESET LitCnt HERE!!!
@@ -740,6 +758,7 @@ Err:
                 BitsLeft = 8
                 BitPtr = BytePtr    'New BitPtr pos
                 BytePtr -= 1        'and BytePtr pos
+                'BitStreamBytes += 1 'Number of bitstream bytes in buffer
             End If
             If (Bit And 2 ^ I) <> 0 Then
                 Buffer(BitPtr) = Buffer(BitPtr) Or 2 ^ BitPos
@@ -773,6 +792,11 @@ Err:
 
         'Buffer(BytePtr) = EndTag            'Not needed, byte 0 will be overwritten to EndTag during loading
         AddMatchBit()
+
+        'Cycles += 19
+        'Cycles += BitStreamBytes * 14
+
+        'Debug.Print(BufferCnt.ToString + vbTab + Cycles.ToString)
 
         BlockCnt += 1
         BufferCnt += 1
@@ -1052,6 +1076,9 @@ Err:
         BitsLeft = 7
         NibblePtr = 0
         BytePtr = 255
+
+        'Cycles = 61             'From NextFile label
+        'BitStreamBytes = 0
 
         'DO NOT RESET LitCnt HERE!!! It is needed for match tag check
 
