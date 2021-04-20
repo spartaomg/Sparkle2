@@ -6,7 +6,7 @@ Friend Module ModDisk
     Public ReadOnly UserDeskTop As String = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
     Public ReadOnly UserFolder As String = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
 
-    Public DiskLoop As Integer = 0
+    'Public DiskLoop As Integer = 0
 
     Public Drive() As Byte
     Public DirBlocks(511) As Byte
@@ -1367,7 +1367,7 @@ Err:
         CurrentBundle = 0
         DiskCnt = -1
         TotalBundles = 0
-        DiskLoop = 0    'Reset Loop variable
+        'DiskLoop = 0    'Reset Loop variable
         'Reset Disk Variables
         If ResetDiskVariables() = False Then GoTo NoDisk
         Dim NewD As Boolean = True
@@ -1708,11 +1708,11 @@ Err:
         If AddHeaderAndID() = False Then GoTo NoDisk
         If InjectLoader(-1, 18, 7, 1) = False Then GoTo NoDisk
 
-        If LastDisk = True Then
-            If DiskLoop > DiskCnt + 1 Then
-                DiskLoop = DiskCnt + 1
-            End If
-        End If
+        'If LastDisk = True Then
+        'If DiskLoop > DiskCnt + 1 Then
+        'DiskLoop = DiskCnt + 1
+        'End If
+        'End If
 
         If InjectDriveCode(DiskCnt, LoaderBundles, If(LastDisk = False, DiskCnt + 1, &H80)) = False Then GoTo NoDisk
         If DirArt <> "" Then AddDirArt()
@@ -2508,6 +2508,11 @@ Err:
         On Error GoTo Err
 
         ResetDiskVariables = True
+
+        If DiskCnt = 127 Then
+            MsgBox("You have reached the maximum number of disks in this project!", vbOKOnly + vbInformation, "Can't have more than 128 disks :(")
+            GoTo NoDisk
+        End If
 
         DiskCnt += 1
         ReDim Preserve DiskSizeA(DiskCnt)
