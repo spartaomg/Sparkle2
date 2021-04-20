@@ -110,7 +110,7 @@ Public Class FrmEditor
     Private ReadOnly sDirArt As String = "DirArt: "
     Private ReadOnly sZP As String = "Zeropage: "
     Private ReadOnly sProdID As String = "Product ID: "
-    Private ReadOnly sHSFile As String = "High Score File: "
+    Private ReadOnly sHSFile As String = "Hi-Score File: "
     Private ReadOnly sTracksPerDisk As String = "Tracks on Disk: "
 
     Private ReadOnly sIL0 As String = "Interleave 0: "
@@ -121,7 +121,7 @@ Public Class FrmEditor
     Private ReadOnly sFile As String = "File: "
 
     Private ReadOnly sNewBlock As String = "Start the first file of this bundle in a new sector on the disk: " '"Start bundle in a new block on the disk: "
-    Private ReadOnly sHSFileSize As String = "High Score File + Plugin Size: "
+    Private ReadOnly sHSFileSize As String = "Hi-Score File + Plugin Size: "
 
     Private ReadOnly TT As New ToolTip
 
@@ -151,8 +151,8 @@ Public Class FrmEditor
                 "Press <Delete> to delete this script entry and all its content."
     Private ReadOnly tBaseScript As String = "Double click or press <Enter> to load a script file."
     Private ReadOnly tZP As String = "Double click or press <Enter> to edit the loader's zeropage usage."
-    Private ReadOnly tHSFile As String = "Double click or press <Enter> to add a default high score file to this disk." + vbNewLine +
-                "Press <Delete> to delete the high score file from this disk."
+    Private ReadOnly tHSFile As String = "Double click or press <Enter> to add a default hi-score file to this disk." + vbNewLine +
+                "Press <Delete> to delete the hi-score file from this disk."
     Private ReadOnly tProdID As String = "Double click or start typing to edit the Product ID (hexadecimal value, max 6 digits."
     Private ReadOnly tTracksPerDisk As String = "Double click or start typing to edit the number of tracks on the disk (35 vs 40)."
     Private ReadOnly tIL0 As String = "Double click or start typing to edit the sector interleave of tracks 1-17"
@@ -1776,9 +1776,9 @@ Err:
                         N.Text = sDirArt
                     End If
                 End If
-            Case 6  'High Score File
+            Case 6  'Hi-Score File
                 If N.Text <> sHSFile Then
-                    If MsgBox("Are you sure you want to delete the following High Score File?" + vbNewLine + vbNewLine + Strings.Right(N.Text, Len(N.Text) - Len(sHSFile)), vbQuestion + vbYesNo + vbDefaultButton2) = vbYes Then
+                    If MsgBox("Are you sure you want to delete the following Hi-Score File?" + vbNewLine + vbNewLine + Strings.Right(N.Text, Len(N.Text) - Len(sHSFile)), vbQuestion + vbYesNo + vbDefaultButton2) = vbYes Then
                         N.Text = sHSFile
                         N.Nodes.Remove(N.Nodes(4))
                         N.Nodes.Remove(N.Nodes(3))
@@ -1827,7 +1827,7 @@ Done:
                 If Strings.Left(SelNode.Text, Len(sDirArt)) = sDirArt Then
                     NodeType = 5    'DirArt node
                 ElseIf Strings.Left(SelNode.Text, Len(sHSFile)) = sHSFile Then
-                    NodeType = 6    'High Score File node
+                    NodeType = 6    'Hi-Score File node
                 Else
                     NodeType = 0    'All other nodes
                 End If
@@ -2538,7 +2538,7 @@ Err:
         DFL = True
 
         If OverlapsIO() = True Then
-            'MsgBox("The High Score File cannot overlap with the I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
+            'MsgBox("The Hi-Score File cannot overlap with the I/O space!", vbOKOnly + vbExclamation, "Hi-Score File Error")
             'NewFile = ""
             'Exit Sub
             NewFile += "*"
@@ -3220,7 +3220,7 @@ Err:
                         .ToolTipTitle = "Product ID"
                         TTT = tProdID
                     Case sHSFile
-                        .ToolTipTitle = "High Score File"
+                        .ToolTipTitle = "Hi-Score File"
                         TTT = tHSFile
                     Case sTracksPerDisk
                         .ToolTipTitle = "Tracks on Disk"
@@ -4171,7 +4171,7 @@ Err:
         ReDim Prg(0)
 
         If Strings.Right(FilePath, 1) = "*" Then
-            'MsgBox("The High Score File cannot be under I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
+            'MsgBox("The Hi-Score File cannot be under I/O space!", vbOKOnly + vbExclamation, "Hi-Score File Error")
             'Exit Sub
             Prg = IO.File.ReadAllBytes(Replace(FilePath, "*", ""))
             Ext = LCase(Strings.Right(Replace(FilePath, "*", ""), 3))
@@ -4317,7 +4317,7 @@ Err:
         If FAddr + FLen > &H10000 Then
             FLen = (&H10000 - FAddr) And &HF00
             If FLen < &H100 Then
-                MsgBox("The High Score File's size must be at least $100 bytes!", vbOKOnly + vbExclamation, "High Score File Error")
+                MsgBox("The Hi-Score File's size must be at least $100 bytes!", vbOKOnly + vbExclamation, "Hi-Score File Error")
                 Exit Sub
             End If
         End If
