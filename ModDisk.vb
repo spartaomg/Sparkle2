@@ -2509,8 +2509,8 @@ Err:
 
         ResetDiskVariables = True
 
-        If DiskCnt = 127 Then
-            MsgBox("You have reached the maximum number of disks in this project!", vbOKOnly + vbInformation, "Can't have more than 128 disks :(")
+        If DiskCnt = 126 Then
+            MsgBox("You have reached the maximum number of disks in this project!", vbOKOnly + vbInformation, "Can't have more than 127 disks :(")
             GoTo NoDisk
         End If
 
