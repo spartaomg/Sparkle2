@@ -92,7 +92,7 @@ Friend Module ModDisk
     Public DemoStart As String = ""
     Public LoaderZP As String = "02"
 
-    'High Score File variables
+    'Hi-Score File variables
     Public HSFileName As String = ""
     Public HSFile() As Byte
     Public HSAddress As Integer = 0
@@ -810,17 +810,17 @@ Err:
         If HSFile.Length = 0 Then Exit Sub
         If HSFileName = "" Then Exit Sub
         If BundleNo > 125 Then
-            MsgBox("The High Score File Saver Plugin cannot be added to the disk because the number of file bundles exceeds 126!" + vbNewLine + vbNewLine +
-                "The Plugin and the High Score File would use bundle indices $7e and $7f, respectively.", vbOKOnly + vbExclamation, "High Score File Saver Plugin Error")
+            MsgBox("The Hi-Score File Saver Plugin cannot be added to the disk because the number of file bundles exceeds 126!" + vbNewLine + vbNewLine +
+                "The Plugin and the Hi-Score File would use bundle indices $7e and $7f, respectively.", vbOKOnly + vbExclamation, "Hi-Score File Saver Plugin Error")
             Exit Sub
         End If
 
         Dim BlocksNeeded = Int(HSLength / &H100) + 1 + 2
 
         If BlocksFree < BlocksNeeded Then
-            MsgBox("The High Score File Saver Plugin cannot be added because there is not enough free space on the disk!" + vbNewLine + vbNewLine +
-                "The Plugin and the High Score File would need " + BlocksNeeded.ToString + " free blocks but there " + If(BlocksFree = 1, "is", "are") + " only " + BlocksFree.ToString +
-                " block" + If(BlocksFree = 1, "", "s") + " available on the disk.", vbOKOnly + vbExclamation, "High Score File Saver Plugin Error")
+            MsgBox("The Hi-Score File Saver Plugin cannot be added because there is not enough free space on the disk!" + vbNewLine + vbNewLine +
+                "The Plugin and the Hi-Score File would need " + BlocksNeeded.ToString + " free blocks but there " + If(BlocksFree = 1, "is", "are") + " only " + BlocksFree.ToString +
+                " block" + If(BlocksFree = 1, "", "s") + " available on the disk.", vbOKOnly + vbExclamation, "Hi-Score File Saver Plugin Error")
             Exit Sub
         End If
 
@@ -973,7 +973,7 @@ Err:
 
         Next
 
-        'Last block of High Score File
+        'Last block of Hi-Score File
         SctPtr += 1
 
         CT = TabT(SctPtr)
@@ -2158,7 +2158,7 @@ NoSort:
 
         'If Right(FN, 1) = "*" Then
         'FN = ""
-        'MsgBox("The High Score File cannot be loaded under the I/O space!", vbOKOnly + vbExclamation, "High Score File Error")
+        'MsgBox("The Hi-Score File cannot be loaded under the I/O space!", vbOKOnly + vbExclamation, "Hi-Score File Error")
         'GoTo NoDisk
         'End If
 
@@ -2254,7 +2254,7 @@ NoSort:
             If FAN + FLN > &H10000 Then
                 FLN = (&H10000 - FAN) And &HF00
                 If FLN < &H100 Then
-                    MsgBox("The High Score File's size must be at least $100 bytes!", vbOKOnly + vbExclamation, "High Score File Error")
+                    MsgBox("The Hi-Score File's size must be at least $100 bytes!", vbOKOnly + vbExclamation, "Hi-Score File Error")
                     GoTo NoDisk
                 End If
             End If
@@ -2282,7 +2282,7 @@ NoSort:
 
         Else
 
-            MsgBox("The following High Score File does not exist:" + vbNewLine + vbNewLine + FN, vbOKOnly + vbCritical, "High Score File not found")
+            MsgBox("The following Hi-Score File does not exist:" + vbNewLine + vbNewLine + FN, vbOKOnly + vbCritical, "Hi-Score File not found")
             GoTo NoDisk
 
         End If
@@ -2526,7 +2526,7 @@ Err:
         'Reset disk system to support 35 tracks
         TracksPerDisk = 35
 
-        'Reset High Score Saver plugin variables
+        'Reset Hi-Score Saver plugin variables
         bSaverPlugin = False
         HSFileName = ""
         HSAddress = 0
