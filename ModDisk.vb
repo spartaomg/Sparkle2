@@ -839,8 +839,8 @@ Err:
             SaveCode = My.Resources.SS
         End If
 
-        SaveCode(&HC + 2) = (HSAddress - 1) And &HFF
-        SaveCode(&H13 + 2) = Int((HSAddress - 1) / &H100)
+        SaveCode(&HD + 2) = (HSAddress - 1) And &HFF
+        SaveCode(&H14 + 2) = Int((HSAddress - 1) / &H100)
 
         'Calculate sector pointer on disk
         Dim SctPtr As Integer = SectorsPerDisk - 2 - (Int(HSLength / 256) + 1)
