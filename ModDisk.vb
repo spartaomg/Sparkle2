@@ -138,6 +138,7 @@ Friend Module ModDisk
     Public NewFile As String
 
     Public DiskSizeA() As Integer
+    Public DiskStartBundle() As Integer
     Public BundleSizeA() As Integer
     Public BundleOrigSizeA() As Integer
     Public FileSizeA() As Integer

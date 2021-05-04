@@ -215,6 +215,8 @@ Public Class FrmEditor
 
         SC = 0 : DC = 0 : PC = 0 : FC = 0
 
+        ReDim DiskStartBundle(DC)
+
         NewD = False
 
         If Script <> "" Then
@@ -1535,9 +1537,12 @@ Err:
         CurrentBundle = PC
 
         StartUpdate()
+        Dim BI As String = Hex(PC - DiskStartBundle(CurrentDisk) - 1)
+        If Len(BI) < 2 Then BI = "0" + BI
+
         With BundleNode
             .Nodes.Clear()
-            .Text = "[Bundle " + PC.ToString + "]"
+            .Text = "[Bundle " + BI + "]"
             .Name = "P" + PC.ToString
             .Tag = PC + &H20000
             .ForeColor = colBunlde
@@ -1567,12 +1572,15 @@ Err:
 
         DC += 1
 
+        ReDim Preserve DiskStartBundle(DC)
+        DiskStartBundle(DC) = PC
+
         CurrentDisk = DC
 
         StartUpdate()
         With DiskNode
             .Nodes.Clear()
-            .Text = "[Disk " + DC.ToString + If(ChkSize.Checked, ": 0 blocks used, " + StdSectorsPerDisk.ToString + " blocks free]", "]")
+            .Text = "[Disk " + Hex(DC + 127) + If(ChkSize.Checked, ": 0 blocks used, " + StdSectorsPerDisk.ToString + " blocks free]", "]")
             .Name = "D" + DC.ToString
             .ForeColor = colDisk
             .Tag = DC + &H10000
@@ -1954,7 +1962,7 @@ Err:
                         If DiskTracksA(CurrentDisk) <> StdTracksPerDisk Then
                             DiskTracksA(CurrentDisk) = StdTracksPerDisk
                             DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
-                            SelNode.Parent.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            SelNode.Parent.Text = "[Disk " + Hex(CurrentDisk + 127) + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
                             If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
                             If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
                         End If
@@ -1962,7 +1970,7 @@ Err:
                         If DiskTracksA(CurrentDisk) <> ExtTracksPerDisk Then
                             DiskTracksA(CurrentDisk) = ExtTracksPerDisk
                             DiskSectorsA(CurrentDisk) = ExtSectorsPerDisk
-                            SelNode.Parent.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            SelNode.Parent.Text = "[Disk " + Hex(CurrentDisk + 127) + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
                             If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
                             If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
                         End If
@@ -2184,7 +2192,9 @@ Err:
         End If
 
         If IsHSFile Then
-            DFLN = (DFLN And &HFF00) + &H100
+            If DFLN Mod 256 <> 0 Then
+                DFLN = (DFLN And &HFF00) + &H100
+            End If
         End If
 
         'File Address+ File Length cannot be > $10000
@@ -3101,7 +3111,7 @@ Err:
         BundleBitPosA(PC) = 15
 
         DiskCnt = DC
-        ReDim DiskSizeA(DiskCnt)
+        ReDim DiskSizeA(DiskCnt), DiskStartBundle(DiskCnt)
 
         StartUpdate()
 
@@ -3109,6 +3119,7 @@ Err:
 
         'LoopSet = False
         ZPSet = False
+        ProdIDSet = False
 
         AddBaseNode()
 
@@ -3340,6 +3351,8 @@ Err:
         CurrentBundle = PC
         CurrentFile = FC
 
+        ReDim DiskStartBundle(DC)
+
         ResetBundleArrays()
 
         BaseNode.Text = "This Script: " + ScriptName
@@ -3348,6 +3361,7 @@ Err:
 
         'LoopSet = False
         ZPSet = False
+        ProdIDSet = False
 
         Dim Fnt As New Font("Consolas", 10)
         NewBundle = True
@@ -3488,13 +3502,13 @@ Err:
                             ScriptEntryArray(0) = StdTracksPerDisk.ToString
                             DiskTracksA(CurrentDisk) = StdTracksPerDisk
                             DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
-                            DiskNode.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            DiskNode.Text = "[Disk " + Hex(CurrentDisk + 127) + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
                             If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
                             If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
                         Else
                             DiskTracksA(CurrentDisk) = ExtTracksPerDisk
                             DiskSectorsA(CurrentDisk) = ExtSectorsPerDisk
-                            DiskNode.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            DiskNode.Text = "[Disk " + Hex(CurrentDisk + 127) + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
                             If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
                             If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
                         End If
@@ -3817,13 +3831,13 @@ Done:
                             ScriptEntryArray(0) = StdTracksPerDisk.ToString
                             DiskTracksA(CurrentDisk) = StdTracksPerDisk
                             DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
-                            DiskNode.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            DiskNode.Text = "[Disk " + Hex(CurrentDisk + 127) + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
                             If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
                             If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
                         Else
                             DiskTracksA(CurrentDisk) = ExtTracksPerDisk
                             DiskSectorsA(CurrentDisk) = ExtSectorsPerDisk
-                            DiskNode.Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                            DiskNode.Text = "[Disk " + Hex(CurrentDisk + 127) + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
                             If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
                             If((SectorsPerDisk - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
                         End If
@@ -4018,8 +4032,11 @@ Err:
 
         DC += 1
 
+        ReDim Preserve DiskStartBundle(DC)
+        DiskStartBundle(DC) = PC
+
         CurrentDisk = DC
-        AddNode(SN, "D" + DC.ToString, "[Disk" + DC.ToString + "]", DC + &H10000, If(SNisBaseNode, colDisk, colDiskGray))
+        AddNode(SN, "D" + DC.ToString, "[Disk" + Hex(DC + 127).ToString + "]", DC + &H10000, If(SNisBaseNode, colDisk, colDiskGray))
         DiskNode = SN.Nodes("D" + DC.ToString)
         DiskNode.NodeFont = New Font(TV.Font, FontStyle.Bold)
 
@@ -4760,7 +4777,7 @@ Done:   Frm.Close()
             FC = 0
             SC = 0
             FirstBundleOfDisk = True
-            ReDim PDiskNoA(PC), PNewBlockA(PC)
+            ReDim PDiskNoA(PC), PNewBlockA(PC), DiskStartBundle(DC)
         End If
 
         If ParentNode.Nodes.Count > 0 Then
@@ -4769,9 +4786,11 @@ Done:   Frm.Close()
                     Case 1
                         'Disk Node
                         DC += 1
+                        ReDim Preserve DiskStartBundle(DC)
+                        DiskStartBundle(DC) = PC
                         DiskNode = ParentNode.Nodes(I)
                         If DiskNode.Index >= NodeIndex Then
-                            DiskNode.Text = "[Disk " + DC.ToString + "]"
+                            DiskNode.Text = "[Disk " + Hex(DC + 127) + "]"
                             DiskNode.Name = "D" + DC.ToString
                             DiskNode.Tag = &H10000 + DC
                         End If
@@ -4785,7 +4804,9 @@ Done:   Frm.Close()
                         PNewBlockA(PC) = Strings.Right(BundleNode.Nodes(0).Text, 3) = "YES"
 
                         If BundleNode.Index >= NodeIndex Then
-                            BundleNode.Text = "[Bundle " + PC.ToString + "]"
+                            Dim BI As String = Hex(PC - DiskStartBundle(DC) - 1)
+                            If Len(BI) < 2 Then BI = "0" + BI
+                            BundleNode.Text = "[Bundle " + BI + "]"
                             BundleNode.Name = If(FirstBundleOfDisk, "P", "p") + PC.ToString
                             BundleNode.Tag = &H20000 + PC
                         End If
@@ -4822,6 +4843,7 @@ Err:
             FC = 0
             SC = 0
             FirstBundleOfDisk = True
+            ReDim DiskStartBundle(DC)
         End If
 
         If ParentNode.Nodes.Count > 0 Then
@@ -4830,6 +4852,9 @@ Err:
                     Case 1
                         'Disk Node
                         DC += 1
+                        ReDim Preserve DiskStartBundle(DC)
+                        DiskStartBundle(DC) = PC
+
                         DiskNode = ParentNode.Nodes(I)
                         DiskNode.Name = "D" + DC.ToString
                         FirstBundleOfDisk = True
@@ -5121,7 +5146,7 @@ Done:
                 Case 1
                     'Disk
                     If CurrentDisk > 0 Then
-                        DiskNodeA(CurrentDisk).Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                        DiskNodeA(CurrentDisk).Text = "[Disk " + Hex(CurrentDisk + 127) + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
                         If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
                         If((DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
                     End If
@@ -5163,7 +5188,9 @@ Done:
                         DiskTracksA(CurrentDisk) = StdTracksPerDisk
                     End If
                     If DiskSizeA(CurrentDisk) + CPS > DiskSectorsA(CurrentDisk) Then
-                        BundleNode.Text = "[Bundle " + CurrentBundle.ToString + "]"
+                        Dim BI As String = Hex(PC - DiskStartBundle(DC) - 1)
+                        If Len(BI) < 2 Then BI = "0" + BI
+                        BundleNode.Text = "[Bundle " + BI + "]"
                         MsgBox("The size of this disk exceeds the " + If(DiskSectorsA(CurrentDisk) = StdSectorsPerDisk, "standard", "extended") + " disk size of " +
                                            DiskSectorsA(CurrentDisk).ToString + " blocks!", vbOKOnly + vbCritical, "Disk is full!")
                         'Exit For
@@ -5177,7 +5204,7 @@ Done:
 
         If ParentNode.Name = BaseNode.Name Then
             If CurrentDisk > 0 Then
-                DiskNodeA(CurrentDisk).Text = "[Disk " + CurrentDisk.ToString + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
+                DiskNodeA(CurrentDisk).Text = "[Disk " + Hex(CurrentDisk + 127) + ": " + DiskSizeA(CurrentDisk).ToString + " block" +
                             If(DiskSizeA(CurrentDisk) = 1, "", "s") + " used, " + (DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)).ToString + " block" +
                             If((DiskSectorsA(CurrentDisk) - DiskSizeA(CurrentDisk)) = 1, "", "s") + " free]"
             End If
@@ -5198,18 +5225,26 @@ Err:
             Select Case Int(ParentNode.Nodes(I).Tag / &H10000)
                 Case 1
                     'Disk
+                    DiskNode = ParentNode.Nodes(I)
+                    CurrentDisk = DiskNode.Tag And &HFFFF
                 Case 2
                     'Bundle
                     BundleNode = ParentNode.Nodes(I)
                     CurrentBundle = (BundleNode.Tag And &HFFFF)
                     BufferCnt = BundleSizeA(CurrentBundle)
                     UncompBundleSize = BundleOrigSizeA(CurrentBundle)
+                    Dim BI As String = Hex((BundleNode.Tag And &HFFFF) - DiskStartBundle(CurrentDisk) - 1)
+                    If Len(BI) < 2 Then BI = "0" + BI
                     If UncompBundleSize > 0 Then
-                        BundleNode.Text = "[Bundle " + Strings.Right(BundleNode.Name, Len(BundleNode.Name) - 1) + ": " + BufferCnt.ToString +
-                    " block" + If(BufferCnt = 1, "", "s") + " packed from " + UncompBundleSize.ToString + " block" + If(UncompBundleSize = 1, "", "s") +
-                    " unpacked, " + (Int(10000 * BufferCnt / UncompBundleSize) / 100).ToString + "% of unpacked size]"
+                        BundleNode.Text = "[Bundle " + BI + ": " + BufferCnt.ToString +
+                                          " block" + If(BufferCnt = 1, "", "s") + " packed from " + UncompBundleSize.ToString + " block" + If(UncompBundleSize = 1, "", "s") +
+                                          " unpacked, " + (Int(10000 * BufferCnt / UncompBundleSize) / 100).ToString + "% of unpacked size]"
+
+                        'BundleNode.Text = "[Bundle " + Strings.Right(BundleNode.Name, Len(BundleNode.Name) - 1) + ": " + BufferCnt.ToString +
+                        '" block" + If(BufferCnt = 1, "", "s") + " packed from " + UncompBundleSize.ToString + " block" + If(UncompBundleSize = 1, "", "s") +
+                        '" unpacked, " + (Int(10000 * BufferCnt / UncompBundleSize) / 100).ToString + "% of unpacked size]"
                     Else
-                        BundleNode.Text = "[Bundle " + Strings.Right(BundleNode.Name, Len(BundleNode.Name) - 1) + "]"
+                        BundleNode.Text = "[Bundle " + BI + "]"
                     End If
                 Case 3
                     'Script
