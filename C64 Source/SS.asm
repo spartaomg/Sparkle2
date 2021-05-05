@@ -6,7 +6,7 @@
 //----------------------------
 
 {
-.import source "SL.sym"			//Import labels from SL.asm
+#import "SL.sym"			//Import labels from SL.asm
 
 //Constants & variables
 .const	SupportIO	=cmdLineVars.get("io").asBoolean()
@@ -38,6 +38,9 @@ SLSaveStart:
 //		Init
 //----------------------------------
 
+		cmp	#$00		//Max. value determined by default hi-score file in script
+		bcc	*+4		//Abort saving if file size is outside range
+		lda	#$00
 		sta	ByteCnt+1	//HiByte of total bytes to be sent, ByteCnt = #$00 by default
 		tax
 		lda	ByteConv,x	//Block count EOR-transformed
@@ -193,7 +196,7 @@ BHdrEnd:
 //----------------------------
 
 {
-.import source "SD.sym"			//import labels from SD.asm
+#import "SD.sym"			//import labels from SD.asm
 
 //Constants & variables
 .const	DO		=$02

@@ -1,7 +1,8 @@
 //--------------------------------
 //	Sparkle loader labels	
-//	KickAss format		
+//	Kickass format		
 //--------------------------------
+#importonce
 
 .label Sparkle_SendCmd		=$160	//Requests a bundle (A=#$00-#$7f) and prefetches its first sector, or
 					//Requests a new disk (A=#$80-#$fe [#$80 + disk index]) without loading its first bundle, or

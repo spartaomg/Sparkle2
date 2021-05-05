@@ -406,7 +406,7 @@ Partial Class FrmMain
         '
         Me.ssLabel.AutoToolTip = True
         Me.ssLabel.Name = "ssLabel"
-        Me.ssLabel.Size = New System.Drawing.Size(476, 17)
+        Me.ssLabel.Size = New System.Drawing.Size(477, 17)
         Me.ssLabel.Spring = True
         Me.ssLabel.Text = "Current File:"
         Me.ssLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
@@ -507,7 +507,7 @@ Partial Class FrmMain
         Me.TsbAddFile.ImageTransparentColor = System.Drawing.Color.White
         Me.TsbAddFile.Name = "TsbAddFile"
         Me.TsbAddFile.Size = New System.Drawing.Size(24, 24)
-        Me.TsbAddFile.ToolTipText = "Add file to Sparkle disk"
+        Me.TsbAddFile.ToolTipText = "Add standard file to Sparkle disk"
         '
         'ToolStripSeparator2
         '
