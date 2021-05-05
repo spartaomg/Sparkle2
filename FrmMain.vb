@@ -1166,7 +1166,7 @@ Err:
     End Sub
 
     Private Sub TsbScriptEditor_Click(sender As Object, e As EventArgs) Handles TsbScriptEditor.Click
-	On Error GoTo Err
+	'On Error GoTo Err
 
 	Using A As New FrmEditor
 	    A.ShowDialog(Me)

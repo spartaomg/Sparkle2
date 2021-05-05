@@ -274,7 +274,7 @@ NextChar:
 		GoTo Done
 	    End If
 	Else                                                'Found EOL
-Done:       ScriptEntry = Strings.Mid(Script, SS, SE - SS)  'Finish this entry
+Done:       ScriptEntry = Mid(Script, SS, SE - SS)  'Finish this entry
 	    ScriptLine = ScriptEntry
 	    If Mid(Script, SE, 1) = Chr(13) Then            'Skip vbCrLf (2 chars)
 		SS = SE + 2
@@ -387,7 +387,7 @@ Err:
 	    Disk(CP + Cnt) = &HA0
 	Next
 
-	For Cnt = 1 To Strings.Len(DiskHeader)
+	For Cnt = 1 To Len(DiskHeader)
 	    B = Asc(Mid(DiskHeader, Cnt, 1))
 	    If B > &H5F Then B -= &H20
 	    Disk(CP + &H8F + Cnt) = B
@@ -1259,21 +1259,21 @@ Err:
 
 	If DiskHeaderA(DiskIndex) = "" Then DiskHeaderA(DiskIndex) = "demo disk" + If(DiskCnt > 0, " " + (DiskIndex + 1).ToString, "")
 
-	For Cnt = 1 To Strings.Len(DiskHeaderA(DiskIndex))
-	    B = Asc(Strings.Mid(DiskHeaderA(DiskIndex), Cnt, 1))
+	For Cnt = 1 To Len(DiskHeaderA(DiskIndex))
+	    B = Asc(Mid(DiskHeaderA(DiskIndex), Cnt, 1))
 	    If B > &H5F Then B -= &H20
 	    Disk(CP + &H8F + Cnt) = B
 	Next
 
 	If DiskIDA(DiskIndex) <> "" Then
-	    For Cnt = 1 To Strings.Len(DiskIDA(DiskIndex))
-		B = Asc(Strings.Mid(DiskIDA(DiskIndex), Cnt, 1))
+	    For Cnt = 1 To Len(DiskIDA(DiskIndex))
+		B = Asc(Mid(DiskIDA(DiskIndex), Cnt, 1))
 		If B > &H5F Then B -= &H20
 		Disk(CP + &HA1 + Cnt) = B
 	    Next
 	Else
-	    For Cnt = 1 To Strings.Len(DiskID)
-		B = Asc(Strings.Mid(DiskID, Cnt, 1))
+	    For Cnt = 1 To Len(DiskID)
+		B = Asc(Mid(DiskID, Cnt, 1))
 		If B > &H5F Then B -= &H20
 		Disk(CP + &HA1 + Cnt) = B
 	    Next
@@ -1612,25 +1612,29 @@ NoDisk:
 		    S += vbNewLine
 		End If
 		'Add relative path of subscript to relative path of subscript entries
-		If Strings.Left(LCase(Lines(I)), 5) = "file:" Then
+		If Left(LCase(Lines(I)), 5) = "file:" Then
 		    If (InStr(Right(Lines(I), Len(Lines(I)) - 5), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 5), SPath) = 0) Then
 			Lines(I) = "File:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 5).TrimStart(vbTab)    'Trim any extra leading TABs
 		    End If
-		ElseIf Strings.Left(LCase(Lines(I)), 7) = "script:" Then
+		ElseIf Left(LCase(Lines(I)), 7) = "script:" Then
 		    If (InStr(Right(Lines(I), Len(Lines(I)) - 7), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 7), SPath) = 0) Then
 			Lines(I) = "Script:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 7).TrimStart(vbTab)
 		    End If
-		ElseIf Strings.Left(LCase(Lines(I)), 5) = "list:" Then
+		ElseIf Left(LCase(Lines(I)), 5) = "list:" Then
 		    If (InStr(Right(Lines(I), Len(Lines(I)) - 5), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 5), SPath) = 0) Then
 			Lines(I) = "Script:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 5).TrimStart(vbTab)
 		    End If
-		ElseIf Strings.Left(LCase(Lines(I)), 5) = "path:" Then
+		ElseIf Left(LCase(Lines(I)), 5) = "path:" Then
 		    If (InStr(Right(Lines(I), Len(Lines(I)) - 5), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 5), SPath) = 0) Then
 			Lines(I) = "Path:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 5).TrimStart(vbTab)
 		    End If
-		ElseIf Strings.Left(LCase(Lines(I)), 7) = "dirart:" Then
+		ElseIf Left(LCase(Lines(I)), 7) = "dirart:" Then
 		    If (InStr(Right(Lines(I), Len(Lines(I)) - 7), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 7), SPath) = 0) Then
 			Lines(I) = "DirArt:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 7).TrimStart(vbTab)
+		    End If
+		ElseIf Left(LCase(Lines(I)), 7) = "hsfile:" Then
+		    If (InStr(Right(Lines(I), Len(Lines(I)) - 7), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 7), SPath) = 0) Then
+			Lines(I) = "HSFile:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 7).TrimStart(vbTab)
 		    End If
 		End If
 		S += Lines(I)
@@ -1668,7 +1672,7 @@ Err:
 	    DiskHeader = Left(DiskHeader, 16)
 	End If
 
-	For Cnt = 1 To Strings.Len(DiskHeader)
+	For Cnt = 1 To Len(DiskHeader)
 	    B = Asc(Mid(DiskHeader, Cnt, 1))
 	    If B > &H5F Then B -= &H20
 	    Disk(CP + &H8F + Cnt) = B
@@ -1774,7 +1778,7 @@ TryAgain:
 
 		If R = DialogResult.OK Then
 		    D64Name = SaveDLG.FileName
-		    If Strings.Right(D64Name, 4) <> ".d64" Then
+		    If Right(D64Name, 4) <> ".d64" Then
 			D64Name += ".d64"
 		    End If
 		    IO.File.WriteAllBytes(D64Name, Disk)
@@ -2171,7 +2175,7 @@ NoSort:
 	'GoTo NoDisk
 	'End If
 
-	If Strings.InStr(FN, ":") = 0 Then  'relative file path
+	If InStr(FN, ":") = 0 Then  'relative file path
 	    FN = ScriptPath + FN            'look for file in script's folder
 	End If
 
@@ -2193,13 +2197,13 @@ NoSort:
 	    Select Case I
 		Case 2      'File Offset max. $ffff ffff (dword)
 		    If ScriptEntryArray(I).Length < 8 Then
-			ScriptEntryArray(I) = Left("00000000", 8 - Strings.Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+			ScriptEntryArray(I) = Left("00000000", 8 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
 		    ElseIf (I = 2) And (ScriptEntryArray(I).Length > 8) Then
 			ScriptEntryArray(I) = Right(ScriptEntryArray(I), 8)
 		    End If
 		Case Else   'File Address, File Length max. $ffff
 		    If ScriptEntryArray(I).Length < 4 Then
-			ScriptEntryArray(I) = Left("0000", 4 - Strings.Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+			ScriptEntryArray(I) = Left("0000", 4 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
 		    ElseIf ScriptEntryArray(I).Length > 4 Then
 			ScriptEntryArray(I) = Right(ScriptEntryArray(I), 4)
 		    End If
@@ -2212,7 +2216,7 @@ NoSort:
 
 	    Select Case ScriptEntryArray.Count
 		Case 1  'No parameters in script
-		    If Strings.InStr(Strings.LCase(Replace(FN, "*", "")), ".sid") <> 0 Then   'SID file - read parameters from file
+		    If InStr(LCase(Replace(FN, "*", "")), ".sid") <> 0 Then   'SID file - read parameters from file
 			FA = ConvertIntToHex(P(P(7)) + (P(P(7) + 1) * 256), 4)
 			FO = ConvertIntToHex(P(7) + 2, 8)
 			FL = ConvertIntToHex((P.Length - P(7) - 2), 4)
@@ -2321,12 +2325,12 @@ NoDisk:
 
 	Dim P() As Byte
 
-	If Strings.Right(FN, 1) = "*" Then
+	If Right(FN, 1) = "*" Then
 	    FN = Replace(FN, "*", "")
 	    FUIO = True
 	End If
 
-	If Strings.InStr(FN, ":") = 0 Then  'relative file path
+	If InStr(FN, ":") = 0 Then  'relative file path
 	    FN = ScriptPath + FN            'look for file in script's folder
 	End If
 
@@ -2348,13 +2352,13 @@ NoDisk:
 	    Select Case I
 		Case 2      'File Offset max. $ffff ffff (dword)
 		    If ScriptEntryArray(I).Length < 8 Then
-			ScriptEntryArray(I) = Left("00000000", 8 - Strings.Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+			ScriptEntryArray(I) = Left("00000000", 8 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
 		    ElseIf (I = 2) And (ScriptEntryArray(I).Length > 8) Then
 			ScriptEntryArray(I) = Right(ScriptEntryArray(I), 8)
 		    End If
 		Case Else   'File Address, File Length max. $ffff
 		    If ScriptEntryArray(I).Length < 4 Then
-			ScriptEntryArray(I) = Left("0000", 4 - Strings.Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+			ScriptEntryArray(I) = Left("0000", 4 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
 		    ElseIf ScriptEntryArray(I).Length > 4 Then
 			ScriptEntryArray(I) = Right(ScriptEntryArray(I), 4)
 		    End If
@@ -2377,7 +2381,7 @@ NoDisk:
 
 	    Select Case ScriptEntryArray.Count
 		Case 1  'No parameters in script
-		    If Strings.InStr(Strings.LCase(FN), ".sid") <> 0 Then   'SID file - read parameters from file
+		    If InStr(LCase(FN), ".sid") <> 0 Then   'SID file - read parameters from file
 			FA = ConvertIntToHex(P(P(7)) + (P(P(7) + 1) * 256), 4)
 			FO = ConvertIntToHex(P(7) + 2, 8)
 			FL = ConvertIntToHex((P.Length - P(7) - 2), 4)
@@ -2478,11 +2482,11 @@ NoDisk:
 
 	SplitScriptEntry = True
 
-	If Strings.InStr(ScriptEntry, vbTab) = 0 Then
+	If InStr(ScriptEntry, vbTab) = 0 Then
 	    ScriptEntryType = ScriptEntry
 	Else
-	    ScriptEntryType = Strings.Left(ScriptEntry, Strings.InStr(ScriptEntry, vbTab) - 1)
-	    ScriptEntry = Strings.Right(ScriptEntry, ScriptEntry.Length - Strings.InStr(ScriptEntry, vbTab))
+	    ScriptEntryType = Left(ScriptEntry, InStr(ScriptEntry, vbTab) - 1)
+	    ScriptEntry = Right(ScriptEntry, ScriptEntry.Length - InStr(ScriptEntry, vbTab))
 	End If
 
 	LastNonEmpty = -1

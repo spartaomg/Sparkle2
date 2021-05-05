@@ -1,6 +1,6 @@
-#------------------------------------
-#modify the path of kickass as needed
-#------------------------------------
+::------------------------------------
+::modify the path of kickass as needed
+::------------------------------------
 
 java -jar c:\KickAss.jar SL.asm -afo
 
