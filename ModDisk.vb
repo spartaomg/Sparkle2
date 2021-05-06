@@ -1,6 +1,4 @@
-﻿Imports System.Windows.Forms.VisualStyles
-
-Friend Module ModDisk
+﻿Friend Module ModDisk
     Public ErrCode As Integer = 0
 
     Public ReadOnly UserDeskTop As String = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)

@@ -1,5 +1,4 @@
 ﻿Friend Module ModPacker
-    'Private ReadOnly NewCalc As Boolean = True
     Structure Sequence
 	Public Len As Integer           'Length of the sequence in bytes (0 based)
 	Public Off As Integer           'Offset of Match sequence in bytes (1 based), 0 if Literal Sequence

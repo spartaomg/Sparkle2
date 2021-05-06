@@ -391,7 +391,7 @@ Err:
     End Sub
 
     Private Sub TV_KeyDown(sender As Object, e As KeyEventArgs) Handles TV.KeyDown
-	'On Error GoTo Err
+	On Error GoTo Err
 
 	Dim S As String
 	Dim N As TreeNode = TV.SelectedNode
@@ -1317,7 +1317,7 @@ Done:
     End Sub
 
     Private Sub AddScriptNode()
-	'On Error GoTo Err
+	On Error GoTo Err
 
 	FileType = 4    'Script file
 	OpenDemoFile()
@@ -5101,7 +5101,7 @@ Done:
     End Sub
 
     Private Sub CalcDiskSize(ParentNode As TreeNode, Optional PartNodeIndex As Integer = -1)
-	'On Error GoTo Err
+	On Error GoTo Err
 
 	'THIS WILL CALCULATE EVERY DISK'S AND Bundle'S SIZE IN THE SCRIPT AND UPDATE EVERY DISK AND Bundle NODE
 	'ALWAYS CALL IT WITH BASENODE
