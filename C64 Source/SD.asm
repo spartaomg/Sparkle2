@@ -2,7 +2,7 @@
 //	SPARKLE
 //	Inspired by Lft's Spindle and Krill's Loader
 //	Drive Code
-//	Tested on 1541-II, 1571, 1541 Ultimate-II+, and THCM's SX-64
+//	Tested on 1541-II, 1571, 1541 Ultimate-II+, Oceanic, and THCM's SX-64
 //----------------------------------------------------------------------------------------
 //	- 2-bit + ATN protocol, combined fixed-order and out-of-order loading
 //	- 125-cycle on-the-fly GCR read-decode-verify loop with 1 BVC instruction
@@ -778,16 +778,16 @@ StoreTr:	sta	cT		//Store new track number - SKIP IF JSR FROM RANDOM
 //		GCR loop patch
 //--------------------------------------
 		
-		ldx	#$02		//Y=sector count (17, 18, 20, 21 for zones 0, 1, 2, 3, respectively)
+		ldx	#$02		//Y=sector count (17, 18, 19, 21 for zones 0, 1, 2, 3, respectively)
 MLoop:		lda.z	Mod1,x
 		sta.z	LoopMod1-1,x
-		lda	Mod2a+1,x	//Restore LDA $1c01 for zone 3
+		lda	Mod2a+1,x
 		sta.z	LoopMod2,x
 		dex
 		bpl	MLoop
 		cpy	#$15
 		beq	SkipPatch
-		lda	#$4c		//Update LoopMod4 in zones 0-2
+		lda	#$4c		//Patch for zones 0-2
 		sta.z	LoopMod2
 		lda	#>Mod2
 		sta.z	LoopMod2+2
@@ -796,7 +796,7 @@ MLoop:		lda.z	Mod1,x
 
 		cpy	#$13
 		bcs	SkipPatch
-		lda	#<OPC_BNE
+		lda	#<OPC_BNE	//Patch for zones 0-1
 		sta.z	LoopMod1
 		lda	#<Mod1-(LoopMod1+2)
 		sta.z	LoopMod1+1
@@ -1285,9 +1285,8 @@ ZPCode:
 
 //----------------------------------------------------------------------------------------------
 //
-//		MODIFIED 125-CYCLE LOOP, AIM: 280-312 RPM (283-312 will work)
 //	 		125-cycle GCR read+decode+verify loop on ZP
-//			 works with rotation speeds of 284-311 rpm
+//		     loads reliably with rotation speeds of 282-312 rpm
 //		     across all four disk zones with max wobble in VICE
 //
 //----------------------------------------------------------------------------------------------
