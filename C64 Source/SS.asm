@@ -1,19 +1,44 @@
-//TAB=8
 //----------------------------
 //	Sparkle 2
 //	Hi-Score File Saver
 //	C64 CODE
 //----------------------------
+//	Version history
+//
+//	v1.0 	- initial version
+//		  tested on real hardware
+//		  high score file size: $0100-$0f00
+//
+//	v1.1	- added support for loading/saving under the I/O space
+//		- escape without saving
+//		  calling the function with X=0 will allow to return without saving
+//
+//	v1.2	- simplified Send function in C64 code
+//		  relying on Sparkle_SendCmd
+//
+//----------------------------
+//	BLOCK STRUCTURE
+//
+//		00 01 02 03 04		...			F9 FA FB FC FD FE FF
+//First block:	00 BC [DATA: $F7 bytes]				F6 00 AH 00 AL 81 FE
+//Other block:	81 [DATA: $FA bytes]				F9 00 AH 00 AL
+
+//First block end:00 FF*F8 [DATA: max $F7 bytes]		F5 00 AH 00 AL 81 FE
+//Other block end:81 FF*F8 [DATA: max $F9 bytes]		F7 00 AH 00 AL
+//*FF = new block count (converts to 00 on the drive), will be overwritten to 00 by the drive = End Sequence (00 F8)
+
+//----------------------------
 
 {
 #import "SL.sym"			//Import labels from SL.asm
 
-//Constants & variables
 .const	SupportIO	=cmdLineVars.get("io").asBoolean()
 
-//ZP locations
 .const	ZP		=$02
 .const	Bits		=$04
+
+.const	sendbyte	=$18		//AO-1, CO=1, DO=0 on C64 -> $1800=$94
+.const	c64busy		=$f8		//DO NOT CHANGE IT TO #$FF!!!
 
 .var	FirstLit	=$f7		//First block's literal count
 .var	NextLit		=$fa		//All other block's literal count
@@ -34,31 +59,30 @@ ByteCnt:
 .byte	$00,$f7				//First 2 bytes of block - 00 and block count, will be overwritten by Byte counter
 
 SLSaveStart:
-//----------------------------------
+//----------------------------------------
 //		Init
-//----------------------------------
+//----------------------------------------
 
 		cmp	#$00		//Max. value determined by default hi-score file in script
 		bcc	*+4		//Abort saving if file size is outside range
 		lda	#$00
 		sta	ByteCnt+1	//HiByte of total bytes to be sent, ByteCnt = #$00 by default
-		tax
+		tax			//This way the function can be called with A (like the other loader functions)
 		lda	ByteConv,x	//Block count EOR-transformed
 		sta	BlockCnt+1
-		lda	#$00		//Will be updated during disk building using the Hi-Score Files Load Address-1
+		lda	#$00
 		sta	AdLo
 		txa
 		clc
-		adc	#$00		//Will be updated during disk building using the Hi-Score Files Load Address-1
+		adc	#$00
 		sta	AdHi
-		jsr	Set01		//Always start with $01=#$35
+		jsr	Set01
 		bne	StartSend	//Branch always, first we send the block count, if 0, nothing to be saved, job done
-
 SendNextBlock:
 
-//----------------------------------
+//----------------------------------------
 //		Send Block Header
-//----------------------------------
+//----------------------------------------
 
 HdrCtr:		ldy	#BHdrEnd-BlockHdr-1
 HdrLoop:	lda	BlockHdr,y
@@ -66,9 +90,9 @@ HdrLoop:	lda	BlockHdr,y
 		dey
 		bpl	HdrLoop
 
-//----------------------------------
+//----------------------------------------
 //		Update Address and Byte Counter
-//----------------------------------
+//----------------------------------------
 
 		lda	AdLo		//AdLo and AdHi are part of the Block Header
 		clc			//Only update them once the Block Header is sent!!!
@@ -87,9 +111,9 @@ HdrLoop:	lda	BlockHdr,y
 		bcs	*+5
 		dec	ByteCnt+1
 
-//----------------------------------
+//----------------------------------------
 //		Send Literals
-//----------------------------------
+//----------------------------------------
 		
 		ldy	LitCnt
 		iny
@@ -105,12 +129,12 @@ LitLoop:
 		dey
 		bne	LitLoop
 
-//----------------------------------
-//		Send Trailing Zeros
-//----------------------------------
+//----------------------------------------
+//		Send Tailing Zeros
+//----------------------------------------
 
 		lda	HdrCtr+1	//#$07 vs #$05
-		cmp	#<BHdrLong-BlockHdr-1
+		cmp	#<BHdrLong-BlockHdr-1	//#$05? - this is needed - in the case of the first block, addition's result is #$fe
 		bne	SkipZeros
 		sec			//+1
 		adc	LitCnt		//=LitCnt-1
@@ -129,24 +153,24 @@ ZeroLoop:	lda	#$00
 SkipZeros:	lda	#BHdrLong-BlockHdr-1	
 		sta	HdrCtr+1
 
-//----------------------------------
+//----------------------------------------
 //		Send BlockCnt, Update LitCnt
-//----------------------------------
+//----------------------------------------
 
 		lda	LitCnt
 		cmp	#<FirstLit	//First block? (sending #$f8 literals)
 		bne	SkipBCnt
 BlockCnt:	lda	#$f7		//=#$01 EOR-tranformed, minimum block count
 		jsr	Send
-		lda	#<NextLit	//Update LitCnt
+		lda	#<NextLit	//update LitCnt
 		sta	LitCnt
 SkipBCnt:
 
-//----------------------------------
+//----------------------------------------
 //		Check Next Block
-//----------------------------------
+//----------------------------------------
 
-StartSend:	lda	ByteCnt+1	//If function is called with X=0 then we will return immediately
+StartSend:	lda	ByteCnt+1	//If function is called with A=0 then we will return immediately
 		bne	ToNext		//Otherwise, block count is sent to signal stat of transfer
 		lda	ByteCnt
 		beq	Send		//A=#$00, signal transfer complete
@@ -157,16 +181,16 @@ StartSend:	lda	ByteCnt+1	//If function is called with X=0 then we will return im
 ToNext:		jsr	Send		//A<>#$00, signal next block
 		jmp	SendNextBlock
 
-//----------------------------------
+//----------------------------------------
 //		Sending a byte
-//----------------------------------
+//----------------------------------------
 
 Send:		sta	Bits
 		lda	#$31
 		jmp	SS_Send
 
 ByteConv:
-.byte	$ff,$f7,$fd,$f5,$fb,$f3,$f9,$f1,$fe,$f6,$fc,$f4,$fa,$f2,$f8,$f0
+.byte $ff,$f7,$fd,$f5,$fb,$f3,$f9,$f1,$fe,$f6,$fc,$f4,$fa,$f2,$f8,$f0
 BlockHdr:
 LitCnt:
 .byte	FirstLit,$00
@@ -174,12 +198,12 @@ AdHi:
 .byte	$00
 IOFlag:
 .if (SupportIO == true)	{
-.byte	$00				//I/O flag
+.byte $00				//I/O flag
 }
 AdLo:
 .byte	$00,$81
 BHdrLong:
-.byte	$fe,$00				//First byte ($fe) can be anything, the drive code will change it to $fe anyway
+.byte $fe,$00				//First byte ($fe) can be anything, the drive code will change it to $fe anyway
 BHdrEnd:
 }
 *=$29f9	"C64 Close Sequence"		//Close Sequence of previous bundle
@@ -188,7 +212,6 @@ BHdrEnd:
 }
 }
 
-
 //----------------------------
 //	Sparkle 2
 //	Hi-Score File Saver
@@ -196,16 +219,14 @@ BHdrEnd:
 //----------------------------
 
 {
-#import "SD.sym"			//import labels from SD.asm
+#import "SD.sym"			//Import labels from SD.asm
 
-//Constants & variables
 .const	DO		=$02
 .const	CO		=$08
 .const	AA		=$10
 .const 	busy		=AA		//DO=0,CO=0,AA=1	$1800=#$10	dd00=010010xx (#$4b)
 .const	ready		=CO		//DO=0,CO=1,AA=0	$1800=#$08	dd00=100000xx (#$83)
 
-//ZP Usage
 .const	nS		=$02		//Next Sector
 .const	ZP07		=$57		//=#$07
 .const	WList		=$3e		//Wanted Sector list ($3e-$52) (00=unfetched, [-]=wanted, [+]=fetched)
@@ -220,10 +241,6 @@ BHdrEnd:
 
 .pseudopc $0100	{			//Stack pointer =#$00 at start
 
-//----------------------------------
-//		Init
-//----------------------------------
-
 Start:		lda	#<SFetchJmp	//Modify JMP address for Checksum Error on ZP - fetch again if checksum does not match
 		sta	FetchAgain+1	//First 5 bytes will be overwritten with Block Header and Stack
 		
@@ -236,10 +253,6 @@ NextBlock:	ldy	#$02		//Reset BufLoc Hi Byte
 		jsr	Build		//Mark next wanted sector on wanted list
 		sty	ChkSum		//Clear Checksum, Y=#$00 here
 
-//----------------------------------
-//		Receive $100 bytes
-//----------------------------------
-
 GetByteLoop:
 		jsr	NewByte		//Receive 1 block from C64, 1 byte at a time
 
@@ -249,79 +262,77 @@ ByteBfr:	sta	$0700		//And save it to buffer, overwriting internal directory
 		dec	ByteBfr+1
 		bne	GetByteLoop
 
-		jsr	Encode	//Data Block: $104 bytes (#$07+$100 data bytes+checksum+#$00+#$00) needing $145 GCR-encoded bytes
-				//Last $45 bytes of Tab8 are overwritten by GCR codes, but luckily this is not a problem!
-				//Tab8 is encoded as 77788888 and is required to decode the track number in the sector header
-				//The expected value is #$23 (Track 35) which translates to
-				//10|01010011 -> #$53 - thus, GCR loop reads from the lower, intact half of Tab8 :)
-				//On 40-track disks: #$28 = 10|01001001 -> #$49 - lower, intact half of Tab8 again
-				//The high nibble of the track number can only be 0 (01|010), 1 (01|011), or 2 (10|010)
-				//Bit 2 is 0 in all 3 cases making all tracks accessible via the intact part of Tab8 :)
+		jsr	Encode	//Data Block: $104 bytes (#$07+$100 bytes+checksum+#$00+#$00) which needs $145 GCR-encoded bytes
+				//Last $45 bytes of Tab8 is overwritten by GCR codes, but this is not a problem
+				//Tab8 is encoded as 77788888 and the expected value is #$23 (Track 35) which translates to
+				//10|01010011 = #$53 - reads from the lower, intact half of Tab8 :)
+				//The high nibble of the track number can be 0 (01|010), 1 (01|011), or 2 (10|010)
+				//The 3rd bit is 0 in all 3 cases so all tracks are accessible via the intact part of Tab8 :)
 
 		jsr	ToggleLED	//Turn LED on
 
 //----------------------------
 
-SFetch:		ldy	#<SHeaderJmp	
+SFetch:		ldy	#<SHeaderJmp
 		jmp	FetchHeader+2
 
 //----------------------------
-//		Save buffer to disk
-//----------------------------
 					//We are on Track 35/40 here, so it is ALWAYS Speed Zone 0 (32 cycles per byte)
 SHeader:				//96-127*
-		//jmp (SHeader)		//101 End of GCR loop on ZP
+		//jmp (SHeader)		//100	104
 					//we could even add some delay here for zone 0...
 					//Header byte #9 (56666677) = $55, skipped
-		lda	$0103		//105
-		jsr	ShufToRaw	//01
-						//jsr	ShufToRaw		111
-						//ldx	#$99			113
-						//nop	#$64			115
-						//axs	#$00			117
-						//nop				119
-						//eor	BitShufTab,x	123
-						//rts				129/01
-		cmp	LastS		//04
-		clv			//06	Header byte #10 (77788888) = $55, skipped
-		bne	SFetch		//09
-		tax			//11
-		ldy	#$06		//13
-		sty	WList,x		//17	Mark off sector on Wanted List
+		lda	$0103		//104	108
+		jsr	ShufToRaw	//00	04
 
-BvcLoop:	bvc	*		//02	Skip 7 (NOT 9!) more $55 bytes (Header Gap)
-		clv			//04
-		dey			//06
-		bpl	BvcLoop		//08
+						//jsr	ShufToRaw	110	114
+						//ldx	#$99		112	116
+						//nop	#$64		114	---
+						//axs	#$00		116	118
+						//nop			118	---
+						//eor	BitShufTab,x	122	122
+						//rts			128/00	128/00
 
-		sty	$1c03		//12	Y=#$ff
-		lda	#$ce		//14
-		sta	$1c0c		//18
+		cmp	LastS		//03
+		clv			//05	Header byte #10 (77788888) = $55, skipped
+		bne	SFetch		//08
+		tax			//10
+		ldy	#$06		//12
+		sty	WList,x		//16	Mark off sector on Wanted List
 
-		ldx	#$05		//20
+BvcLoop:	bvc	*		//01	Skip 7 (NOT 9!) more $55 bytes (Header Gap)
+		clv			//03
+		dey			//05
+		bpl	BvcLoop		//07
 
-FFLoop:		bvc	*		//02	Byte #18
-		sty	$1c01		//06	Write 5 sync bytes (#$ff)
-		clv			//08	The 1541 ROM code actually writes 6 sync bytes
-		dex			//10
-		bne	FFLoop		//12	BPL to match the 1541 ROM
+		sty	$1c03		//11	Y=#$ff
+		lda	#$ce		//13
+		sta	$1c0c		//15
 
-		ldy	#$bb		//14
-		ldx	#$02		//16
-		txa			//18
-BfrLoop2:	sta	BfrLoop1+2	//22	23
-BfrLoop1:	lda	$0200,y		//26	27
+		ldx	#$05		//19
 
-		bvc	*		//02	02
-		sta	$1c01		//08
-		clv			//04
-		iny			//10
-		bne	BfrLoop1	//12
-		lda	#$07		//14
-		dex			//16
-		bne	BfrLoop2	//19/18
+FFLoop:		bvc	*		//01	Byte #18
+		sty	$1c01		//05	Write 5 sync bytes (#$ff)
+		clv			//07	The 1541 ROM code writes 6 sync bytes
+		dex			//09
+		bne	FFLoop		//11	BPL to match the 1541 ROM
 
-		bvc	*		//02
+		ldy	#$bb		//13
+		ldx	#$02		//15
+		txa			//17
+BfrLoop2:	sta	BfrLoop1+2	//21	22
+BfrLoop1:	lda	$0200,y		//25	26
+
+		bvc	*		//01	01
+		sta	$1c01		//05
+		clv			//07
+		iny			//09
+		bne	BfrLoop1	//11
+		lda	#$07		//13
+		dex			//15
+		bne	BfrLoop2	//18/17
+
+		bvc	*		//01
 		jsr	$fe00		//Using ROM function here to save a few bytes...		
 						//LDA	$1c0c
 						//ORA #$e0
@@ -329,6 +340,7 @@ BfrLoop1:	lda	$0200,y		//26	27
 						//LDA #$00
 						//STA $1c03
 						//RTS
+
 		jsr	ToggleLED	//Trun LED off - no proper ROM function for this unfortunately...
 
 RcvCheck:	jsr	NewByte		//More blocks to write?
@@ -336,23 +348,21 @@ RcvCheck:	jsr	NewByte		//More blocks to write?
 		tax
 		bne	NextBlock
 
-		lda	#<FetchJmp	//Disk writing is done, restore GCR loop
+		lda	#<FetchJmp	//Disk writing is done
 		sta	FetchAgain+1
 
 		ldx	#$44
-		stx	DirSector	//Resetting DirSector to ensure next index-based load refetches the directory
+		stx	DirSector	//Resetting DirSector to ensure next index-based load reloads the directory
 RestoreLoop:
 		lda	$023b,x
 		bmi	*+4
-		ora	#$08		//Restore H2STab and GCR Tab8
+		ora	#$08		//Restore H2STab
 		sta	$02bb,x
 		dex
 		bpl	RestoreLoop
-		jmp	CheckATN	//Back to loading :)
+		jmp	CheckATN
 
-//----------------------------------
-//		Receive 1 byte at a time
-//----------------------------------
+//-----------------------------------------------------
 
 NewByte:	ldx	#$94		//Make sure C64 is ready to send
 		jsr	CheckPort
@@ -365,9 +375,7 @@ CheckPort:	cpx	$1800
 		bne	*-3
 		rts
 
-//----------------------------------
-//		Endcode $104 bytes to $145 GCR bytes
-//----------------------------------
+//-----------------------------------------------------
 
 Encode:		lda	#$bb		//Reset BufLoc Lo Byte
 		sta	BufLoc+1
@@ -375,19 +383,17 @@ Encode:		lda	#$bb		//Reset BufLoc Lo Byte
 		lax	ZP07		//X = Bitcounter for encoded bytes: #$07
 		jsr	GCREncode	//A = First byte of Data Block: #$07
 
-EncodeLoop:	lda	$0700		//Encode 256 data bytes
+EncodeLoop:	lda	$0700		//256 data bytes
 		jsr	GCREncode
 		
 		inc	EncodeLoop+1
 		bne	EncodeLoop
 
-		lda	ChkSum		//Endcode Checksum
+		lda	ChkSum		//Checksum
 		jsr	GCREncode
-		jsr	GCREncode	//Encode two tail 00s, A=00 here
+		jsr	GCREncode	//Two tail 00s, A=00 here
 
-//----------------------------------
-//		Convert nibbles to GCR codes
-//----------------------------------
+//----------------------------
 
 GCREncode:	pha
 		lsr
@@ -401,10 +407,10 @@ GCRize:		tay
 		lda	$f77f,y
 		asl
 		asl
-		asl			//Move 5 GCR bits to the left side of byte
-		ldy	#$05		//Bitcounter for GCR codes
+		asl			//move 5 GCR bits to the left side of byte
+		ldy	#$05		//bitcounter for GCR codes
 NextBit:	asl
-BufLoc:		rol	$02bb		//Current GCR buffer location, reset at the beginning
+BufLoc:		rol	$02bb		//NEEDS TO BE RESET AT THE BEGINNING!!!
 		dex
 		bpl	SkipNext
 		ldx	#$07

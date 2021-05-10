@@ -1,6 +1,6 @@
 //--------------------------------
 //	Sparkle loader labels	
-//	Kickass format		
+//	KickAss format		
 //--------------------------------
 #importonce
 

@@ -655,7 +655,7 @@ Err:
 
     End Function
 
-    Public Sub CalcDirBlocks()
+    Public Sub InjectDirBlocks()
 
 	'DirBlocks(0) = EORtransform(Track)
 	'DirBlocks(1) = EORtransform(Sector)
@@ -677,10 +677,10 @@ Err:
 
 	'Resort directory sectors to allow simple copy from $0100 to $0700
 	'Dir Block: $00,$ff,$fe,$fd,$fc,...,$01
-	'Buffer:	$00,$01,$02,$03,$04,...,$ff
+	'Buffer:    $00,$01,$02,$03,$04,...,$ff
 
 	Dim DB0(255), DB1(255) As Byte
-	Dim B As Integer = 0
+	Dim B As Integer = 0         '255 for SD2
 	For I As Integer = 0 To 255
 	    DB0(B) = DirBlocks(I)
 	    DB1(B) = DirBlocks(I + 256)
@@ -714,7 +714,7 @@ Err:
 	'End If
 
 	Dim B3(255) As Byte
-	Dim B As Integer = 0
+	Dim B As Integer = 0         '255 for SD2
 
 	'Resort and EOR transform Block 3
 	For I = 0 To 255
@@ -724,15 +724,22 @@ Err:
 	Next
 
 	'Add Product ID to $03b9-$03bb (add 2 to address for PRG header)
-	Drive(&HB9 + 2) = Int(ProductID / &H10000) And &HFF
-	Drive(&HBA + 2) = Int(ProductID / &H100) And &HFF
-	Drive(&HBB + 2) = ProductID And &HFF
+	'Drive(&HB9 + 2) = Int(ProductID / &H10000) And &HFF
+	'Drive(&HBA + 2) = Int(ProductID / &H100) And &HFF
+	'Drive(&HBB + 2) = ProductID And &HFF
+	Drive(&H21 + 2) = Int(ProductID / &H10000) And &HFF
+	Drive(&H22 + 2) = Int(ProductID / &H100) And &HFF
+	Drive(&H23 + 2) = ProductID And &HFF
 
-	'Save last, "dummy" bundle info to $03a1-$03a5, needs REVERSED EOR Transform as it is used in the drive code (add 2 to address for PRG header)
-	Drive(&HA1 + 2) = TabT(LastBufferCnt)
-	Drive(&HA2 + 2) = TabStartS(TabT(LastBufferCnt))
-	Drive(&HA3 + 2) = TabSCnt(LastBufferCnt)
-	Drive(&HA4 + 2) = EORtransform(LastBitPtr)
+	'Save last, "dummy" bundle info to $035c-$035f, needs REVERSED EOR Transform as it is used in the drive code (add 2 to address for PRG header)
+	'Drive(&HA1 + 2) = TabT(LastBufferCnt)
+	'Drive(&HA2 + 2) = TabStartS(TabT(LastBufferCnt))
+	'Drive(&HA3 + 2) = TabSCnt(LastBufferCnt)
+	'Drive(&HA4 + 2) = EORtransform(LastBitPtr)
+	Drive(&H5C + 2) = TabT(LastBufferCnt)
+	Drive(&H5D + 2) = TabStartS(TabT(LastBufferCnt))
+	Drive(&H5E + 2) = TabSCnt(LastBufferCnt)
+	Drive(&H5F + 2) = EORtransform(LastBitPtr)
 
 	'Resort blocks in drive code:
 	For I = 0 To 255
@@ -2644,7 +2651,7 @@ Err:
 
 	CalcILTab()
 
-	CalcDirBlocks()
+	InjectDirBlocks()
 
 	For I = 0 To BufferCnt - 1
 	    CT = TabT(I)
