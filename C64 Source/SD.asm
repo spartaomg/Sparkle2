@@ -282,7 +282,7 @@
 .pseudopc $0300	{
 Tab300:
 //	 00  01  02  03  04  05  06  07  08  09  0a  0b  0c  0d  0e  0f
-.byte	XXX,XXX,$1a,$1e,XXX,$14,$12,$16,XXX,XXX,$8e,$8f,$87,XXX,$8a,$8b	//0x
+.byte	XXX,XXX,$94,$90,XXX,$9a,$9c,$98,XXX,XXX,$8e,$8f,$87,XXX,$8a,$8b	//0x
 .byte	$83,XXX,XXX,$8d,$85,XXX,$80,$89,$81,XXX,$86,$8c,$84,XXX,$82,$88	//1x
 .byte	$60
 //0321-23
@@ -311,10 +311,15 @@ ContCode:	sty	WantedCtr	//3e 3f	Y=#$01 here
 		sty	BlockCtr	//40 41
 		sec			//42
 		sbc	cT		//43 44	Calculate Stepper Direction and number of Steps
-		jmp	SkipTabs1	//45-47
+		jmp	*+5		//45-47
 //0348
-.byte					$50,$34,XXX,XXX,XXX,XXX,XXX,XXX	//4x
-.byte	$51,$24
+.byte					$50,$ba					//4x
+//034a
+		beq	Fetch		//4a 4b	We are staying on the same Track, skip track change
+		bcs	SkipStepDn	//4c 4d
+		bcc	SkipTabs2	//4e 4f
+//0350
+.byte	$51,$aa
 //0352
 BitShufTab:
 .byte		$ff,$f6
@@ -325,7 +330,7 @@ SFetchJmp:
 SHeaderJmp:
 .byte				<SH,>SH
 //0358
-.byte					$59,$a4,$f6,$ff
+.byte					$59,$2a,$f6,$ff
 //035c-5f
 NoFlipTab:
 .byte							$fe,$fd,$fc,$fb	//5x
@@ -341,16 +346,22 @@ HeaderJmp:
 DataJmp:
 .byte				<DT,>DT
 //0368
-.byte					$54,$74,$66,$6f,XXX,XXX,XXX,XXX	//6x
-.byte	$55,$64
-//0372
-SkipTabs1:
-		beq	Fetch		//92 93	We are staying on the same Track, skip track change
-		
-		bcs	SkipStepDn	//94 95
-		bcc	SkipTabs2	//96 97
+.byte					$54,$fa,$66,$6f,XXX			//6x
+//036d
+Mod2:		//jmp	Mod2		//			--	79	87	87
+Mod2c:		pha			//			--	--	--	90
+		pla			//			--	--	--	94
+		nop	#$55		//			--	--	--	96	
+Mod2b:		
+Mod2a:		nop			//			--	81	89	98
+		arr	#$f0		//			--	83	91	100
+		tay			//			--	85	93	102
+		jmp	LoopMod2+3	//			--	88	96	105
+		//lda	$1c01		//			84	92	100	109
+
+//.byte	$55,$ea,XXX,XXX,XXX,XXX,XXX,XXX
 //0378
-.byte					$5d,$e4
+.byte					$5d,$6a
 //037a
 RcvByte:	ldy	#$85		//7a 7b
 		sax	$1800		//7c-7e		A&X = #$80 & #$10 = #$00, $dd00=#$1b, $1800=#$85
@@ -363,13 +374,13 @@ RBLoop:		cpy	$1800		//7f-81	4
 		stx	$1800		//8c-8e		Drive busy
 		rts			//8f		20 bytes total, A = Bundle Index
 //0390
-.byte	$53,$04
+.byte	$53,$8a
 //0392
 SkipTabs2:	eor	#$ff		//92 93
 		adc	#$01		//94 95
 		bne	*+4		//96 97
 //0398
-.byte					$5b,$84
+.byte					$5b,$0a
 //039a
 		ldy	#$03		//9a 9b	Y=#$03 -> Stepper moves Down/Outward
 		sty	StepDir		//9c 9d	Store stepper direction UP/INWARD (Y=#$01) or DOWN/OUTWARD (Y=#$03)
@@ -386,17 +397,17 @@ SkipStepDn:	asl			//9e	Y=#$01 is not stored - it is the default value which is r
 
 		jmp	*+5		//a5-a7
 //03a8
-.byte					$5e,$d4
+.byte					$5e,$5a
 //03aa
 		lda	Spartan+1	//aa-ac
 		jmp	*+5		//ad-af
 //03b0
-.byte	$57,$44
+.byte	$57,$ca
 //03b2		
 		sta	$1c00		//b2-b4	Store bitrate
 		jmp	*+5		//b5-b7
 //03b8
-.byte					$5f,$c4
+.byte					$5f,$4a
 //03ba
 		lda	#CSV		//ba bb
 		sta	VerifCtr	//bc bd	Verify track after head movement
@@ -413,19 +424,19 @@ FetchHeader:
 		ldx	#$04		//c4 c5	4 bytes to stack
 		bne	*+4		//c6 c7
 //03c8
-.byte					$58,$b4
+.byte					$58,$3a
 //03ca
 		lda	#$52		//ca cb	First byte of Header
 		bne	Presync		//cc cd	Skip Data Block fetching
 //03ce
 .byte								XXX,XXX	//cx
 //03d0	
-.byte	$52,$14,$6f,$66
+.byte	$52,$9a,$6f,$66
 //03d4
 FetchData:	ldx	#$00		//d4 d5	256 bytes to stack	
 		beq	*+6		//d6 d7
 //03d8
-.byte					$5a,$94,$66,$6f
+.byte					$5a,$1a,$66,$6f
 //03dc
 		ldy	#<DataJmp	//dc dd	Checksum verification after GCR loop will jump to Data Code
 		lda	#$55		//de df	First byte of Data	//dx
@@ -433,68 +444,48 @@ FetchData:	ldx	#$00		//d4 d5	256 bytes to stack
 //03e2
 .byte		$ff,$f6,XXX
 //03e5
-JmpFHeader:	jmp	FetchHeader
-//03e8
-.byte					$5c,$f4,$f6,$ff,XXX
-//03ed
 JmpFData:	jmp	FetchData					//ex
-//03f0
-.byte	$56,$54
-
-//03f2-----------------------------------
+//03e8
+.byte					$5c,$7a,$f6,$ff
+//03ec-----------------------------------
 					//Addr	Cycles
-Presync:	txs			//f2		Header: $0104,$0103..$0101, Data: $0100,$01ff..$0101
-		sty.z	ModJmp+1	//f3 f4		Update Jump Address on ZP
+Presync:	txs			//ec		Header: $0104,$0103..$0101, Data: $0100,$01ff..$0101
+		sty.z	ModJmp+1	//ed ee		Update Jump Address on ZP
+		nop	$da56		//ef-f1		skipping $56,$da
+		bit	$1c00		//f2-f4		We happen to be in a SYNC mark right now, skip it
+		bpl	*-3		//f5 f6
 
-		bit	$1c00		//f5-f7		We happen to be in a SYNC mark right now, skip it
-		bpl	*-3		//f8 f9
+Sync:		bit	$1c00		//f7-f9		Wait for SYNC
+		bmi	Sync		//fa fb
 
-Sync:		bit	$1c00		//fa-fc		Wait for SYNC
-		bmi	Sync		//fd fe
+		nop	$1c01		//fc-fe		Sync byte - MUST be read (VICE bug #582), not necessarily #$ff
+		clv			//ff
 
-		cmp	$1c01		//ff-01		Sync byte - MUST be read (VICE bug #582), not necessarily #$ff
-		clv			//02
+		ldy	#$ff		//00 01
 
-		ldy	#$ff		//03 04
+		bvc	*		//02 03|00-01
+		cmp	$1c01		//04-06|05*	Read1 = 11111222 @ (00-25), which is 01010|010(01) for Header
+		clv			//07	07			    	          or 01010|101(11) for Data
+		bne	Sync		//08 09|09	First byte of Header/Data is discarded
 
-		bvc	*		//05 06|00-01
-		cmp	$1c01		//07-09|05*	Read1 = 11111222 @ (00-25), which is 01010|010(01) for Header
-		clv			//0a	07			    	          or 01010|101(11) for Data
-		bne	Sync		//0b 0c|09	First byte of Header/Data is discarded
-
-		sty.z	CSum+1		//0d 0e|12	Y=#$ff, we are working with inverted GCR Tabs, checksum must be inverted
-		iny			//0f	14	Y=#$00
+		sty.z	CSum+1		//0a 0b|12	Y=#$ff, we are working with inverted GCR Tabs, checksum must be inverted
+		iny			//0c	14	Y=#$00
 		
-		lda	cT		//10 11|17
-		cmp	#$19		//12 13|19	Track number >=25?
-		bcc	SkipDelay	//14 15|22/21	We need different timing for Zone 0 and Zones 1-3
-		pha			//16	--/25	8 cycles difference
-		pla			//17	--/28
-		nop			//18	--/30
-SkipDelay:	sta	(GCRLoop+1),y	//19 1a|28/36	Any value will do in A as long as $0102 and $0103 are the same
-		sta	(GCRLoop+4),y	//1b 1c|34/42	$0102 and $0103 will actually contain the current track number
-		ldx	#$3e		//1d 1e|36/44	X=#$3e		[26-51  28-55  30-59  32-63]
-		lda	$1c01		//1f-21|40/48	*Read2 = 22333334 @ 42/-9  46/-9  46/-13 46/+14
-		sax	t3+1		//22-24|44/52	t3+1 = 00333330	
-		lsr			//25	46/54	C=4 - needed for GCR loop
-		lax	#$00		//26 27|48/56	Clear A, X - both needed for first 2 EORs after BNE in GCR loop
-		iny			//28	50/58	Y=#$01 (<>#$00 for BNE to work after jump in GCR loop)
-		jmp	GCREntry	//29-2b|53/61	Same number of cycles before BNE as in GCR loop
-
-//----------------------------------------------------------------------------------------------
-//		GCR Loop Mod 2 - needs 10 bytes total 
-//----------------------------------------------------------------------------------------------
-
-Mod2:		//jmp	Mod2		//			--	79	87	87
-Mod2c:		pha			//			--	--	--	90
-		pla			//			--	--	--	94
-		nop			//			--	--	--	96	
-Mod2b:		
-Mod2a:		nop			//			--	81	89	98
-		arr	#$f0		//			--	83	91	100
-		tay			//			--	85	93	102
-		jmp	LoopMod2+3	//			--	88	96	105
-		//lda	$1c01		//			84	92	100	109
+		lda	cT		//0d 0e|17
+		cmp	#$19		//0f 10|19	Track number >=25?
+		bcc	SkipDelay	//11 12|22/21	We need different timing for Zones 0-1 and Zones 2-3
+		pha			//13	--/25	8 cycles difference
+		pla			//14	--/28
+		nop			//15	--/30
+SkipDelay:	sta	(GCRLoop+1),y	//16 17|28/36	Any value will do in A as long as $0102 and $0103 are the same
+		sta	(GCRLoop+4),y	//18 19|34/42	$0102 and $0103 will actually contain the current track number
+		ldx	#$3e		//1a 1b|36/44			   [26-51  28-55  30-59  32-63]
+		lda	$1c01		//1c-1e|40/48	*Read2 = 22333334 @ 40/-11 40/+12 48/-11 48/-15
+		sax	t3+1		//1f-21|44/52	t3+1 = 00333330	
+		lsr			//22	46/54	C=4 - needed for GCR loop
+		lax	#$00		//23 24|48/56	Clear A, X - both needed for first 2 EORs after BNE in GCR loop
+		iny			//25	50/58	Y=#$01 (<>#$00 for BNE to work after jump in GCR loop)
+		jmp	GCREntry	//26-28|53/61	Same number of cycles before BNE as in GCR loop
 
 //--------------------------------------
 //		Got Header		HEADER AND DATA CODE MUST BE ON THE SAME PAGE!
@@ -511,7 +502,7 @@ ToFHeader:	bne	FetchHeader
 		jsr	ShufToRaw	//check current sector (only 4 bytes are used on stack, JSR is safe here)
 		tax			//A=X=sector fetched
 		ldy	WList,x
-		bpl	JmpFHeader
+		bpl	FetchHeader
 
 		stx	cS
 
@@ -524,7 +515,7 @@ ToFData:	bne	FetchData
 
 		lax	WantedCtr	//Last sector fetched -> check how many sectors are left to load
 		dex
-		bne	JmpFHeader	//more than one sector left on Wanted List, skip last sector, fetch next
+		bne	ToFHeader	//More than one sector left on Wanted List, skip last sector, fetch next
 		
 		sta	LastBlock	//-> #$01, we have the last block of the bundle	
 		beq	JmpFData	//ALWAYS	
@@ -570,7 +561,7 @@ Flip:		cmp	(ZP0101),y	//DiskID, compare it to NextID in memory, EOR-transformed 
 		bne	ToFHeader	//ID mismatch, fetch again until flip detected
 
 		ldy	#$03
-ProdIDLoop:	lda	BAM_ProdID-1,y		//Also compare Product ID, only continue if same
+ProdIDLoop:	lda	BAM_ProdID-1,y	//Also compare Product ID, only continue if same
 		cmp	ProductID-1,y
 		bne	ToFHeader	//Product ID mismatch, fetch again until same
 		dey
@@ -699,7 +690,7 @@ ChkDir:		cpx	#$12		//next track = Track 18?, if yes, we need to skip it
 		ldy	#$83		//1.5-track seek, set timer at start
 
 //--------------------------------------
-//		Stepper Code	X=Wanted Track
+//		Stepper Code		//X=Wanted Track
 //--------------------------------------
 
 StepTmr:	lda	#$98
@@ -1171,9 +1162,9 @@ Bits64:		ora	#00		// !6745...
 		jmp	Fetch		//Fetching block 3 (track 18, sector 16) WList+$10=#$ff, WantedCtr=1
 					//A,X,Y can be anything here
 T2Base1:
-.byte	$db,$df,$d9,$dd,$d8,$dc
+.byte	$55,$51,$57,$53,$56,$52
 T2Base2:
-.byte	$d3,$d7,$d1,$d5,$d0
+.byte	$5d,$59,$5f,$5b,$5e
 
 //--------------------------------------
 //		Copy block 3 to $0600

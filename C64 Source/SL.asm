@@ -2,7 +2,7 @@
 //	SPARKLE
 //	Inspired by Lft's Spindle and Krill's Loader
 //	C64 Code
-//	Tested on 1541-II, 1571, 1541 Ultimate-II+, and THCM's SX-64
+//	Tested on 1541-II, 1571, 1541 Ultimate-II+, Oceanic, and THCM's SX-64
 //----------------------------------------------------------------------
 //	Version history
 //
@@ -17,9 +17,9 @@
 //
 //	v1.6	- LZ compression/decompression
 //		- new memory layout
-//		  loader code	0100-017f
+//		  loader code		0100-017f
 //		  reset/base irq	0200-023f
-//		  decompression	023f-02ff
+//		  decompression		023f-02ff
 //		  buffer		0300-03ff
 //
 //	v1.7	- LZ+RLE compression/decompression
@@ -65,7 +65,7 @@
 //		- added Base IRQ music player install code
 //		- functions:
 //		  Loader Call:		jsr $0180
-//		  IRQ Installer:		jsr $01d0	X/A = Player Vector Lo/Hi
+//		  IRQ Installer:	jsr $01d0	X/A = Player Vector Lo/Hi
 //		  Alt Loader Call:	jmp $01f0	X/A = (Return Address-1) Lo/Hi
 //		  Fallback IRQ:		    $02e2
 //
@@ -82,7 +82,7 @@
 //		  only last block on disk is partial, so unpacked block length detection has been removed 
 //		- functions:
 //		  Loader Call:		jsr $0180
-//		  IRQ Installer:		jsr $02d0	X/A = Subroutine Vector Lo/Hi
+//		  IRQ Installer:	jsr $02d0	X/A = Subroutine Vector Lo/Hi
 //		  Fallback IRQ:		    $02e1
 //
 //	v2.8	- new communication code with bus lock feature 
@@ -90,21 +90,21 @@
 //		  no drive reset detection currently
 //		- code rearranged:
 //		  Loader Call:		jsr $0180
-//		  IRQ Installer:		jsr $01e0	X/A = Subroutine Vector Lo/Hi
-//						jsr $01e6	without changing subroutine vector
+//		  IRQ Installer:	jsr $01e0	X/A = Subroutine Vector Lo/Hi
+//					jsr $01e6	without changing subroutine vector
 //		  Fallback IRQ:		    $02de
 //		- final, v1.0 release code!
 //
 //	v2.9	- bug fix
 //		  IO was not turned back on after a file was loaded under IO - fixed
-//		  Fallback IRQ:		    $02e1
+//		  Fallback IRQ:		$02e1
 //		- load start optimized
 //		  saved 4 bytes and a few cycles
 //		  X and Y swapped in transfer loop
 //
 //	v3.0	- depacker optimization
 //		  saves approx 10000 cycles on the load of a full disk side
-//		- Fallback IRQ:		    $02dd
+//		- Fallback IRQ:		$02dd
 //
 //	v3.1	- depacker optimization
 //		  new block structure
@@ -112,7 +112,7 @@
 //		  new long literal sequence handling, may save a few bytes on compression, faster depacking
 //		- warning if more than one active drive is on the bus
 //		  also warns if drive is turned off before demo started
-//		- Fallback IRQ:		    $02e1
+//		- Fallback IRQ:		$02e1
 //		- released with Sparkle V1.4
 //
 //	v3.2	- new depacker
@@ -122,19 +122,19 @@
 //		  decompression is about 20% faster
 //		  saves approximately 2700 cycles on the decompression of a single block (1792800 cycles per disk side)
 //		  uses same block structure
-//		- IRQ Installer:		jsr $01d5	X/A = Subroutine Vector Lo/Hi
-//						jsr $01db	without changing subroutine vector
+//		- IRQ Installer:	jsr $01d5	X/A = Subroutine Vector Lo/Hi
+//					jsr $01db	without changing subroutine vector
 //		- FallBack IRQ:		    $02e5
 //		- jsr $e544 eliminated in installer (does not work properly on machines with old Kernal ROM versions)
 //		- released with Sparkle V1.5
 //
 //	v3.3	- major update with random file access
 //		  new memory layout: $0160 - $03ff
-//		  Send Command:	$0160
-//		  Load:		$0180
-//		  Load First:	$0183
-//		  Load Next:	$01fa
-//		  IRQ Installer:	$02d1	Y/X = subroutine vector Lo/Hi, A = $d012
+//		  Send Command:		$0160
+//		  LoadA			$0184
+//		  Load Fetched:		$0187
+//		  Load Next:		$01fc
+//		  IRQ Installer:	$02d2	Y/X = subroutine vector Lo/Hi, A = $d012
 //		  Fallback IRQ:	$02e5
 //		- IRQ installer also sets $d012
 //		- separate SendCmd function to allow drive reset
