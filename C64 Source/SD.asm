@@ -1391,8 +1391,8 @@ Mod2Lo:
 .byte		    $00,$8e,$8d,$0e,$85,$01,$00,$5e,$80,$ce,$89,$4e,$81	//2x
 .byte	XXX,XXX,$3e,$86,$9e,$8c,$1e,$84,XXX,XXX,$7e,$82,$de,$88,$00,$00	//3x	Wanted List $3e-$52 (Sector 15 = #$ff)
 .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$ff,$00	//4x	(0) unfetched, (+) fetched, (-) wanted
-.byte	$00,$00,$00,$0e,$12,$0f,$c5,$07,$ff,$01,$01,$0a,$13,$0b,$00,$03	//5x 
-.byte	$01,$00,$14,$00,$d7,$0d,$1e,$05,$00,XXX,XXX,$00,XXX,$09,$00,$01	//6x	$60-$64 - ILTab
-.byte	$3c,$4b,$5a,$06,$02,$0c,$00,$04,$00,XXX,XXX,$02,$f8,$08,$00,$fd	//7x	$7c=#$f8 for GCR loop mod 
+.byte	$00,$00,$00,$0e,$12,$0f,$c5,$07,$ff,$01,$01,$0a,XXX,$0b,$00,$03	//5x 
+.byte	$01,$00,$14,$00,XXX,$0d,$1e,$05,$00,XXX,XXX,$00,XXX,$09,$00,$01	//6x	$60-$64 - ILTab
+.byte	XXX,XXX,XXX,$06,$02,$0c,$00,$04,$00,XXX,XXX,$02,$f8,$08,$00,$fd	//7x	$7c=#$f8 for GCR loop mod 
 .byte	$fd,$fd,$04,$fc							//8x	LastT, LastS, SCtr, BPtr
 }
