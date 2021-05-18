@@ -235,7 +235,7 @@ BHdrEnd:
 .const	ChkSum		=DirSector	//Temporary value on ZP for H2STab preparation and GCR loop timing
 					//DirSector can be overwritten here
 
-.const	BitShufTab	=Tab300+1	//Bit Shuffle Tab (16 bytes total, insterspersed on page)
+//.const	BitShufTab	=Tab300+1	//Bit Shuffle Tab (16 bytes total, insterspersed on page)
 
 *=$2a00	"Drive Save Code"
 
@@ -277,45 +277,41 @@ SFetch:		ldy	#<SHeaderJmp
 		jmp	FetchHeader+2
 
 //----------------------------
-					//We are on Track 35/40 here, so it is ALWAYS Speed Zone 0 (32 cycles per byte)
-SHeader:				//96-127*
-		//jmp (SHeader)		//100	104
-					//we could even add some delay here for zone 0...
-					//Header byte #9 (56666677) = $55, skipped
-		lda	$0103		//104	108
-		jsr	ShufToRaw	//00	04
 
-						//jsr	ShufToRaw	110	114
-						//ldx	#$99		112	116
-						//nop	#$64		114	---
-						//axs	#$00		116	118
-						//nop			118	---
-						//eor	BitShufTab,x	122	122
-						//rts			128/00	128/00
+SHeader:				//We are on Track 35/40 here, so it is ALWAYS Speed Zone 0 (32 cycles per byte)
+		//jmp (SHeader)		//40
+					//	Header byte #10 (77788888) = $55, skipped
+		lda	$0103		//44
+		jsr	ShufToRaw	//64
 
-		cmp	LastS		//03
-		clv			//05	Header byte #10 (77788888) = $55, skipped
-		bne	SFetch		//08
-		tax			//10
-		ldy	#$06		//12
-		sty	WList,x		//16	Mark off sector on Wanted List
+					//jsr	ShufToRaw	50
+					//ldx	#$99		52
+					//axs	#$00		54
+					//eor	BitShufTab,x	58
+					//rts			64
 
-BvcLoop:	bvc	*		//01	Skip 7 (NOT 9!) more $55 bytes (Header Gap)
-		clv			//03
+		cmp	LastS		//67	First gap byte skipped
+		clv			//69
+		bne	SFetch		//71
+		tax			//73
+		ldy	#$05		//75
+		sty	WList,x		//79	Mark off sector on Wanted List
+
+BvcLoop:	bvc	*		//01	Skip 6 more more $55 bytes (Header Gap)
+		clv			//03	The 1541 ROM code also skips 7 gap bytes, NOT 9!!!
 		dey			//05
 		bpl	BvcLoop		//07
-
-		sty	$1c03		//11	Y=#$ff
+	
+		sty	$1c03		//11	R/W head to output, Y=#$ff
 		lda	#$ce		//13
-		sta	$1c0c		//15
+		sta	$1c0c		//15	Peripheral control register to output
+		ldx	#$06		//19
 
-		ldx	#$05		//19
-
-FFLoop:		bvc	*		//01	Byte #18
-		sty	$1c01		//05	Write 5 sync bytes (#$ff)
-		clv			//07	The 1541 ROM code writes 6 sync bytes
+FFLoop:		bvc	*		//01
+		clv			//07	Write 6 sync bytes (#$ff)
+		sty	$1c01		//05	The 1541 ROM code also writes 6 sync bytes, NOT 5!!!
 		dex			//09
-		bne	FFLoop		//11	BPL to match the 1541 ROM
+		bne	FFLoop		//11
 
 		ldy	#$bb		//13
 		ldx	#$02		//15
@@ -324,8 +320,8 @@ BfrLoop2:	sta	BfrLoop1+2	//21	22
 BfrLoop1:	lda	$0200,y		//25	26
 
 		bvc	*		//01	01
-		sta	$1c01		//05
 		clv			//07
+		sta	$1c01		//05
 		iny			//09
 		bne	BfrLoop1	//11
 		lda	#$07		//13
@@ -334,12 +330,13 @@ BfrLoop1:	lda	$0200,y		//25	26
 
 		bvc	*		//01
 		jsr	$fe00		//Using ROM function here to save a few bytes...		
-						//LDA	$1c0c
-						//ORA #$e0
-						//STA $1c0c
-						//LDA #$00
-						//STA $1c03
-						//RTS
+
+					//LDA $1c0c	Peripheral control register to input
+					//ORA #$e0
+					//STA $1c0c
+					//LDA #$00
+					//STA $1c03	R/W head to input
+					//RTS
 
 		jsr	ToggleLED	//Trun LED off - no proper ROM function for this unfortunately...
 
@@ -350,13 +347,15 @@ RcvCheck:	jsr	NewByte		//More blocks to write?
 
 		lda	#<FetchJmp	//Disk writing is done
 		sta	FetchAgain+1
-
-		ldx	#$44
+		
+RestoreTabs:	ldx	#$44
 		stx	DirSector	//Resetting DirSector to ensure next index-based load reloads the directory
 RestoreLoop:
 		lda	$023b,x
-		bmi	*+4
+		cmp	#$40
+		bcs	*+4
 		ora	#$08		//Restore H2STab
+		and	#$bf		//Restore Tab8
 		sta	$02bb,x
 		dex
 		bpl	RestoreLoop

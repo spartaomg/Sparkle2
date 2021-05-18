@@ -6,7 +6,7 @@
 //----------------------------------------------------------------------------------------
 //	- 2-bit + ATN protocol, combined fixed-order and out-of-order loading
 //	- 125-cycle on-the-fly GCR read-decode-verify loop with 1 BVC instruction
-//	- tolerates disk speeds 284-311 rpm with maximum wobble in VICE
+//	- tolerates disk rotation speeds between 282-312 rpm in VICE in all 4 disk zones
 //	- 72 bycles/block transfer (67-cycle drive transfer loop)
 //	- Spartan Stepping (TM) for uninterrupted loading across neighboring tracks
 //	- LZ blockwise back-to-back compression
@@ -124,18 +124,21 @@
 //		- reset drive with bundle ID #$ff
 //		- released with Sparkle 2
 //
-//	v2.8	- new GCR loop mod
+//	v2.8	- new GCR loop patch
 //		  better speed tolerance in zones 0-2
-//		  zone 3 remains 283-312
+//		  zone 3 remains 282-312 (0 wobble)
+//		- checking trailing 0s after fetching data block 
+//		  idea borrowed from Bitbreaker's Bitfire
+//		  improves reliability
 //
 //----------------------------------------------------------------------------------------
 //	Memory Layout
 //
-//	0000	0083	ZP GCR Tabs and variables
-//	0084	00ff	GCR Loop
+//	0000	0085	ZP GCR Tabs and variables
+//	0086	00ff	GCR Loop
 //	0100	01ff	Data Buffer on Stack
-//	0200	03f4	GCR Tabs with code interleaved
-//	0303	06ed	Drive Code ($12 bytes free)
+//	0200	03f1	GCR Tabs with code interleaved
+//	0330	06dc	Drive Code ($23 bytes free)
 //	0700	07ff	Directory (4 bytes per entry, 64 entries per dir block, 2 dir blocks on disk)
 //
 //	Layout at Start
@@ -148,7 +151,7 @@
 //	Layout in PRG
 //
 //	2300	23f4	GCR Tabs			block 0
-//	23f5	26ed	Drive Code			block	1-3 3	-> block 5	
+//	23f5	26ed	Drive Code			blockS 1-3 3 -> block 5	
 //	2700	27ff	ZP GCR tabs and GCR loop	block 4	-> block 3
 //	2800	28f4	Init code			block 5	-> block 4
 //
@@ -201,7 +204,7 @@
 .const	BAM_ProdID	=$010d
 
 //Constants:
-.const	CSV		=$04	//Checksum Verification Counter Default Value
+.const	CSV		=$02	//Checksum Verification Counter Default Value
 
 .const	DO		=$02
 .const	CO		=$08
@@ -250,14 +253,13 @@
 .const	IncSaver	=$74	//=#$02 if Saver Code is included, otherwise #$00
 .const	SaverCode	=$76	//Indicates whether Saver Code Drive code is in the buffer
 
-.const	SF		=$0128	//$0127
-.const	SH		=$012d	//$012c
+.const	SF		=$0129	//$0127
+.const	SH		=$012e	//$012c
 
-.const	OPC_NOP		=$ea
 .const	OPC_BNE		=$d0
 
 //Free ZP addresses:
-//22,5c,64,6c,70,71,72
+//10,11,30,31,38,39,5c,64,69,6a,6c,70,71,72,79,7a,84,85
 
 .const	Tab200		=$0200
 
@@ -449,43 +451,43 @@ JmpFData:	jmp	FetchData					//ex
 .byte					$5c,$7a,$f6,$ff
 //03ec-----------------------------------
 					//Addr	Cycles
-Presync:	txs			//ec		Header: $0104,$0103..$0101, Data: $0100,$01ff..$0101
-		sty.z	ModJmp+1	//ed ee		Update Jump Address on ZP
+Presync:	sty	ModJmp+1	//ec-ee		Update Jump Address on ZP
 		nop	$da56		//ef-f1		skipping $56,$da
-		bit	$1c00		//f2-f4		We happen to be in a SYNC mark right now, skip it
-		bpl	*-3		//f5 f6
+		txs			//e2		Header: $0104,$0103..$0101, Data: $0100,$01ff..$0101
+		bit	$1c00		//f3-f5		We happen to be in a SYNC mark right now, skip it
+		bpl	*-3		//f6 f7
 
-Sync:		bit	$1c00		//f7-f9		Wait for SYNC
-		bmi	Sync		//fa fb
+Sync:		bit	$1c00		//f8-fa		Wait for SYNC
+		bmi	Sync		//fb fc
 
-		nop	$1c01		//fc-fe		Sync byte - MUST be read (VICE bug #582), not necessarily #$ff
-		clv			//ff
+		nop	$1c01		//fd-ff		Sync byte - MUST be read (VICE bug #582), not necessarily #$ff
+		clv			//00
 
-		ldy	#$ff		//00 01
+		ldy	#$ff		//01 02
 
-		bvc	*		//02 03|00-01
-		cmp	$1c01		//04-06|05*	Read1 = 11111222 @ (00-25), which is 01010|010(01) for Header
-		clv			//07	07			    	          or 01010|101(11) for Data
-		bne	Sync		//08 09|09	First byte of Header/Data is discarded
+		bvc	*		//03 04|00-01
+		cmp	$1c01		//05-07|05*	Read1 = 11111222 @ (00-25), which is 01010|010(01) for Header
+		clv			//08	07			    	          or 01010|101(11) for Data
+		bne	Sync		//09 0a|09	First byte of Header/Data is discarded
 
-		sty.z	CSum+1		//0a 0b|12	Y=#$ff, we are working with inverted GCR Tabs, checksum must be inverted
-		iny			//0c	14	Y=#$00
+		sty.z	CSum+1		//0b 0c|12	Y=#$ff, we are working with inverted GCR Tabs, checksum must be inverted
+		iny			//0d	14	Y=#$00
 		
-		lda	cT		//0d 0e|17
-		cmp	#$19		//0f 10|19	Track number >=25?
-		bcc	SkipDelay	//11 12|22/21	We need different timing for Zones 0-1 and Zones 2-3
-		pha			//13	--/25	8 cycles difference
-		pla			//14	--/28
-		nop			//15	--/30
-SkipDelay:	sta	(GCRLoop+1),y	//16 17|28/36	Any value will do in A as long as $0102 and $0103 are the same
-		sta	(GCRLoop+4),y	//18 19|34/42	$0102 and $0103 will actually contain the current track number
-		ldx	#$3e		//1a 1b|36/44			   [26-51  28-55  30-59  32-63]
-		lda	$1c01		//1c-1e|40/48	*Read2 = 22333334 @ 40/-11 40/+12 48/-11 48/-15
-		sax	t3+1		//1f-21|44/52	t3+1 = 00333330	
-		lsr			//22	46/54	C=4 - needed for GCR loop
-		lax	#$00		//23 24|48/56	Clear A, X - both needed for first 2 EORs after BNE in GCR loop
-		iny			//25	50/58	Y=#$01 (<>#$00 for BNE to work after jump in GCR loop)
-		jmp	GCREntry	//26-28|53/61	Same number of cycles before BNE as in GCR loop
+		lda	cT		//0e 0f|17
+		cmp	#$19		//10 11|19	Track number >=25?
+		bcc	SkipDelay	//12 13|22/21	We need different timing for Zones 0-1 and Zones 2-3
+		pha			//14	--/25	8 cycles difference
+		pla			//15	--/28
+		nop			//16	--/30
+SkipDelay:	sta	(GCRLoop+1),y	//17 18|28/36	Any value will do in A as long as $0102 and $0103 are the same
+		sta	(GCRLoop+4),y	//19 1a|34/42	$0102 and $0103 will actually contain the current track number
+		ldx	#$3e		//1b 1c|36/44			   [26-51  28-55  30-59  32-63]
+		lda	$1c01		//1d-1f|40/48	*Read2 = 22333334 @ 40/-11 40/+12 48/-11 48/-15
+		sax	t3+1		//20-22|44/52	t3+1 = 00333330	
+		lsr			//23	46/54	C=4 - needed for GCR loop
+		lax	#$00		//24 25|48/56	Clear A, X - both needed for first 2 EORs after BNE in GCR loop
+		iny			//26	50/58	Y=#$01 (<>#$00 for BNE to work after jump in GCR loop)
+		jmp	GCREntry	//27-29|53/61	Same number of cycles before BNE as in GCR loop
 
 //--------------------------------------
 //		Got Header		HEADER AND DATA CODE MUST BE ON THE SAME PAGE!
@@ -592,10 +594,26 @@ SkipNFT:	dey
 ToCATN:		jmp	CheckATN
 
 //--------------------------------------
+//		Finish Checksum
+//--------------------------------------
+
+//		jmp 	FinishCSum	//Calc final checksum		29	29	29	29
+FinishCSum:	eor	$0103		//Final checksum		33	33	33	33
+		bne	FetchAgain	//If A=#$00 then CS=OK		35	35	35	35
+ModJmp:		jmp	(HeaderJmp)	//Checksum OK			40	40	40	40
+FetchAgain:	jmp	(FetchJmp)	//Checksum mismatch
+
+//--------------------------------------
 //		Got Data
 //--------------------------------------
-DT:
-Data:		ldy	VerifCtr	//Checksum Verification Counter
+DT:					//			       [26-51	28-55	30-59	32-63]
+Data:		lda	$1c01		//A=77788888			44/-7	44/-11	44/+14	44/+12
+		cpy	#$29		//%00101001	check trailing 0s
+		bne	FetchAgain	//
+		and	#$a0		//%101XXXXX	expected value is %010XXXXX, last nibble varries
+		bne	FetchAgain
+
+		ldy	VerifCtr	//Checksum Verification Counter
 		bne	DataVerif	//If counter<>0, go to verification loop
 
 		ldx	cS		//Current Sector in Buffer
@@ -1270,7 +1288,7 @@ CEnd:
 
 //----------------------------------------------------------
 
-*=$2784	"ZP Code"
+*=$2786	"ZP Code"
 ZPCode:
 .pseudopc ZPCode-$2700	{
 
@@ -1278,7 +1296,7 @@ ZPCode:
 //
 //	 		125-cycle GCR read+decode+verify loop on ZP
 //		     loads reliably with rotation speeds of 282-312 rpm
-//		     across all four disk zones with max wobble in VICE
+//		     		across all four disk zones
 //
 //----------------------------------------------------------------------------------------------
 
@@ -1357,21 +1375,21 @@ GCREntry:	bne	GCRLoop		//			56/55	56/55	64/63	64/63
 
 //----------------------------------------------------------------------------------------------
 
-		eor	$0102		//			59	59	67	67
-		eor	$0103		//			63	63	71	71
-		tax			//Save checksum in X	65	65	73	73
+		eor	CSum+1		//			58	58	66	66
+		tax			//store checksum in X	60	60	68	68
+		clv			//			52	60	70	70
 					//		       [52-77	56-83	60-89	64-95]
-		lda	$1c01		//Final read = 44445555	69/-8	69/-14	77/-12  77/+13
-		arr	#$f0		//A=44444000		71	71	79	79
-		tay			//Y=44444000		73	73	81	81
-		txa			//Return checksum to A	75	75	83	83
-		ldx	t3+1		//X=00333330		78*	78	86	86
-		eor	Tab3,x		//(ZP)			82	82	90*	90
-		eor	Tab4,y		//Checksum (Data) or ID1 (Header) 			86	 86*	 94	 94
-		eor	CSum+1		//Calculate final checksum	    			89	 89	 97	 97*
-		bne	FetchAgain	//If A=#$00 here then checksum is OK			91	 91	 99	 99
-ModJmp:		jmp	(HeaderJmp)	//Continue if A=#$00 (Checksum OK)			96	 96	 104	 104
-FetchAgain:	jmp	(FetchJmp)	//Fetch again if A<>#$00 (Checksum Error)		[78-103  84-111  90-119  96-127]
+		lda	$1c01		//Final read = 44445555	66/-11	66/+10	74/+14	74/+10
+		bvc	*		//			01
+		arr	#$f0		//A=44444000		03
+		tay			//Y=44444000		05
+		txa			//Return checksum to A	07
+		eor	Tab4,y		//Checksum (D)/ID1 (H)	11
+		ldy	$1c01		//X=56666677		15*
+		ldx	t3+1		//X=00333330		18
+		eor	Tab3,x		//(ZP)			22
+		eor	$0102		//			26
+		jmp 	FinishCSum	//Calc final checksum	29
 }
 
 //-------------------------------------------------------------------
@@ -1394,5 +1412,5 @@ Mod2Lo:
 .byte	$00,$00,$00,$0e,$12,$0f,$c5,$07,$ff,$01,$01,$0a,XXX,$0b,$00,$03	//5x 
 .byte	$01,$00,$14,$00,XXX,$0d,$1e,$05,$00,XXX,XXX,$00,XXX,$09,$00,$01	//6x	$60-$64 - ILTab
 .byte	XXX,XXX,XXX,$06,$02,$0c,$00,$04,$00,XXX,XXX,$02,$f8,$08,$00,$fd	//7x	$7c=#$f8 for GCR loop mod 
-.byte	$fd,$fd,$04,$fc							//8x	LastT, LastS, SCtr, BPtr
+.byte	$fd,$fd,$04,$fc,XXX,XXX						//8x	LastT, LastS, SCtr, BPtr
 }
