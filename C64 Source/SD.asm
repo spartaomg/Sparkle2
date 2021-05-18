@@ -126,10 +126,9 @@
 //
 //	v2.8	- new GCR loop patch
 //		  better speed tolerance in zones 0-2
-//		  zone 3 remains 282-312 (0 wobble)
-//		- checking trailing 0s after fetching data block 
+//		  zone 3 remains 282-312 at 0 wobble in VICE
+//		- checking trailing 0s after fetching data block to improve reliability 
 //		  idea borrowed from Bitbreaker's Bitfire
-//		  improves reliability
 //
 //----------------------------------------------------------------------------------------
 //	Memory Layout
