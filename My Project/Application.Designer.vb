@@ -32,7 +32,7 @@ Namespace My
         
         <Global.System.Diagnostics.DebuggerStepThroughAttribute()>  _
         Protected Overrides Sub OnCreateMainForm()
-            Me.MainForm = Global.Sparkle.FrmMain
+            Me.MainForm = Global.Sparkle2.FrmMain
         End Sub
     End Class
 End Namespace

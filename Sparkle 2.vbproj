@@ -6,9 +6,9 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{F1762D96-A50B-44AC-B831-75BE78F56EC3}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <StartupObject>Sparkle.My.MyApplication</StartupObject>
-    <RootNamespace>Sparkle</RootNamespace>
-    <AssemblyName>Sparkle</AssemblyName>
+    <StartupObject>Sparkle2.My.MyApplication</StartupObject>
+    <RootNamespace>Sparkle2</RootNamespace>
+    <AssemblyName>Sparkle2</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <MyType>WindowsForms</MyType>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
@@ -30,8 +30,8 @@
     <PublisherName>Sparta of OMG 2019</PublisherName>
     <SuiteName>Sparkle</SuiteName>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>518</ApplicationRevision>
-    <ApplicationVersion>2.0.21.0518</ApplicationVersion>
+    <ApplicationRevision>519</ApplicationRevision>
+    <ApplicationVersion>2.0.21.0519</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -44,8 +44,9 @@
     <DefineDebug>true</DefineDebug>
     <DefineTrace>true</DefineTrace>
     <OutputPath>bin\Debug\</OutputPath>
-    <DocumentationFile>Sparkle.xml</DocumentationFile>
+    <DocumentationFile>Sparkle2.xml</DocumentationFile>
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+    <Optimize>true</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -54,7 +55,7 @@
     <DefineTrace>true</DefineTrace>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DocumentationFile>Sparkle.xml</DocumentationFile>
+    <DocumentationFile>Sparkle2.xml</DocumentationFile>
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
   </PropertyGroup>
   <PropertyGroup>
@@ -226,4 +227,7 @@
     <Folder Include="bin\Debug\Resources\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>"c:\Users\Tamas\OneDrive\C64\VB\Sparkle 2\C64 Source\build.bat"</PreBuildEvent>
+  </PropertyGroup>
 </Project>

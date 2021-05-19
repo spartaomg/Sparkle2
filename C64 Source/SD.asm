@@ -21,7 +21,7 @@
 //		  tolerates disk speeds 291-307 rpm
 //		- new disk sector layout
 //		  tracks start with Sector 2
-//		  zone 0 with IL4, zones 1-3 with IL3
+//		  zone 3 with IL4, zones 0-2 with IL3
 //
 //	v1.2	- improved 127-cycle GCR RDV loop
 //		  tolerates disk speeds 289-307 rpm
@@ -137,7 +137,7 @@
 //	0086	00ff	GCR Loop
 //	0100	01ff	Data Buffer on Stack
 //	0200	03f1	GCR Tabs with code interleaved
-//	0330	06dc	Drive Code ($23 bytes free)
+//	0330	06da	Drive Code ($25 bytes free)
 //	0700	07ff	Directory (4 bytes per entry, 64 entries per dir block, 2 dir blocks on disk)
 //
 //	Layout at Start
@@ -283,7 +283,7 @@
 .pseudopc $0300	{
 Tab300:
 //	 00  01  02  03  04  05  06  07  08  09  0a  0b  0c  0d  0e  0f
-.byte	XXX,XXX,$94,$90,XXX,$9a,$9c,$98,XXX,XXX,$8e,$8f,$87,XXX,$8a,$8b	//0x
+.byte	XXX,XXX,$94,$90,XXX,$9a,$9c,$98,XXX,XXX,$8e,$8f,$87,XXX,$8a,$8b	//0x	Template for Tab2 and Tab8
 .byte	$83,XXX,XXX,$8d,$85,XXX,$80,$89,$81,XXX,$86,$8c,$84,XXX,$82,$88	//1x
 .byte	$60
 //0321-23
@@ -492,23 +492,36 @@ SkipDelay:	sta	(GCRLoop+1),y	//17 18|28/36	Any value will do in A as long as $01
 //		Got Header		HEADER AND DATA CODE MUST BE ON THE SAME PAGE!
 //--------------------------------------
 
-HD:
-Header:		tay			//A=0 here
-		lda	(GCRLoop+1),y	//= lda $0102
-		jsr	ShufToRaw	//check current track (only 4 bytes are used on stack, JSR is safe here)
-		cmp	cT
-ToFHeader:	bne	FetchHeader
+HD:		//A=$0103
+Header:		jsr	ShufToRaw
+		tay			//Y=fetched sector
+		lda	$0102
+		jsr	ShufToRaw
+		cmp	cT		//A=fetched track
+ToFHeader:	bne	FetchHeader	//check current track 
+		ldx	WList,y
+		bpl	FetchHeader	//check current sector
+		
+		sty	cS		
 
-		lda	(GCRLoop+4),y	//= lda $0103
-		jsr	ShufToRaw	//check current sector (only 4 bytes are used on stack, JSR is safe here)
-		tax			//A=X=sector fetched
-		ldy	WList,x
-		bpl	FetchHeader
+		cpy	LastS		
+ToFData:	bne	FetchData		
+		//tay			//A=0 here
+		//lda	(GCRLoop+1),y	//= lda $0102
+		//jsr	ShufToRaw	//check current track (only 4 bytes are used on stack, JSR is safe here)
+		//cmp	cT
+//ToFHeader:	bne	FetchHeader
 
-		stx	cS
+		//lda	(GCRLoop+4),y	//= lda $0103
+		//jsr	ShufToRaw	//check current sector (only 4 bytes are used on stack, JSR is safe here)
+		//tax			//A=X=sector fetched
+		//ldy	WList,x
+		//bpl	FetchHeader
 
-		cpx	LastS		//Is this the last sector of a bundle?
-ToFData:	bne	FetchData
+		//stx	cS
+
+		//cpx	LastS		//Is this the last sector of a bundle?
+//ToFData:	bne	FetchData
 
 		lda	cT
 		cmp	LastT
@@ -597,8 +610,8 @@ ToCATN:		jmp	CheckATN
 //--------------------------------------
 
 //		jmp 	FinishCSum	//Calc final checksum		29	29	29	29
-FinishCSum:	eor	$0103		//Final checksum		33	33	33	33
-		bne	FetchAgain	//If A=#$00 then CS=OK		35	35	35	35
+FinishCSum:	cmp	$0103		//Final checksum		33	33	33	33
+		bne	FetchAgain	//If A=($0103) then CS=OK	35	35	35	35
 ModJmp:		jmp	(HeaderJmp)	//Checksum OK			40	40	40	40
 FetchAgain:	jmp	(FetchJmp)	//Checksum mismatch
 
@@ -785,15 +798,15 @@ StoreTr:	sta	cT		//Store new track number - SKIP IF JSR FROM RANDOM
 //--------------------------------------
 //		GCR loop patch
 //--------------------------------------
-		
-		ldx	#$02		//Y=sector count (17, 18, 19, 21 for zones 0, 1, 2, 3, respectively)
+
+		ldx	#$02		//Restore loop to default
 MLoop:		lda.z	Mod1,x
 		sta.z	LoopMod1-1,x
 		lda	Mod2a+1,x
 		sta.z	LoopMod2,x
 		dex
 		bpl	MLoop
-		cpy	#$15
+		cpy	#$15		//Y=sector count (17, 18, 19, 21 for zones 0, 1, 2, 3, respectively)
 		beq	SkipPatch
 		lda	#$4c		//Patch for zones 0-2
 		sta.z	LoopMod2
@@ -827,7 +840,7 @@ Reset:		jmp	($fffc)
 
 CheckATN:	lda	$1c00		//Fetch Motor and LED status
 		ora	#$08		//Make sure LED will be turned back on when we restart
-		tax			//This need to be precalculated here, so that we do not affect Z flag at Restart
+		tax			//This needs to be precalculated here, so that we do not affect Z flag at Restart
 
 		ldy	#$64		//100 frames (2 seconds) delay before turning motor off (#$fa for 5 sec)
 DelayOut:	lda	#$4f		//Approx. 1 frame delay (20000 cycles = $4e20 -> $4e+$01=$4f)
@@ -871,7 +884,7 @@ GetByte:	lda	#$80		//$dd00=#$9b, $1800=#$94
 		sty	NewBundle	//So does NewBundle
 
 		asl
-		bcs	NewDiskID	//A=#$80-#$ff, Y=#$00 - flip disk
+		bcs	NewDiskID	//A=#$80-#$fe, Y=#$00 - flip disk
 		beq	CheckDir	//A=#$00, skip Random flag
 		inc	Random
 CheckDir:	ldx	#$11		//A=#$00-#$7f, X=#$11 (dir sector 17) - DO NOT CHANGE TO INX, IT IS ALSO A JUMP TARGET!!!
@@ -1316,7 +1329,7 @@ GCRLoop:	eor	$0102,x		//$01ff^...		60	60	68	68
 		sax.z	t5+1		//t5+1 = 00005555	76	76	84	84
 LoopMod2:	//arr	#$f0		//A=44444000		78	--	--	--
 		//tay			//Y=44444000		80	--	--	--
-		jmp	Mod2a
+		jmp	Mod2a		//We start on track 18 (zone 2) by default
 					//		       [78-103	84-111	90-119	96-127]
 		lda	$1c01		//Read4 = 56666677	84/+6	92/+8	100/+10	109/+13
 		sax.z	t7+1		//t7+1 = 00006677	87	95	103	112
@@ -1339,15 +1352,15 @@ Write2:		pha			//Buffer=$01ff/$0103	118	126	134	143		SP=#$ff->#$fe or #$03->#$02
 		lax	$1c01		//Read5 = 77788888	122/-7	130/-9	138/-11	147/-12
 					//X=77788888
 		alr	#$40		//			124	132	140	149
-					//DO NOT MOVE AND #$E0 BELOW BVC!!!
+					//DO NOT MOVE ALR #$40 BELOW BVC!!!
 
 //----------------------------------------------------------------------------------------------
 
 		bvc	*		//			00-01
 
-		tay			//Y=77700000		03
+		tay			//Y=00700000		03
 
-t7:		lda	Tab7,y		//00006677,77700000	07
+t7:		lda	Tab7,y		//00006677,00700000	07
 t8:		eor	Tab8,x		//00000000,77788888	11
 Write3:		pha			//Buffer=$01fe/$0102	14					SP=#$fe->#$fd or #$02->#$01
 					//$0102 = Track	       [00-25	00-27	00-29	00-31]
@@ -1375,8 +1388,8 @@ GCREntry:	bne	GCRLoop		//			56/55	56/55	64/63	64/63
 //----------------------------------------------------------------------------------------------
 
 		eor	CSum+1		//			58	58	66	66
-		tax			//store checksum in X	60	60	68	68
-		clv			//			52	60	70	70
+		tax			//Store checksum in X	60	60	68	68
+		clv			//			62	62	70	70
 					//		       [52-77	56-83	60-89	64-95]
 		lda	$1c01		//Final read = 44445555	66/-11	66/+10	74/+14	74/+10
 		bvc	*		//			01

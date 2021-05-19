@@ -16,6 +16,8 @@
 //	v1.2	- simplified Send function in C64 code
 //		  relying on Sparkle_SendCmd
 //
+//	v1.3	- adjusting Tab
+//
 //----------------------------
 //	BLOCK STRUCTURE
 //
@@ -114,10 +116,10 @@ HdrLoop:	lda	BlockHdr,y
 //----------------------------------------
 //		Send Literals
 //----------------------------------------
-		
+
 		ldy	LitCnt
 		iny
-LitLoop:	
+LitLoop:
 .if (SupportIO==true)	{
 		dec	$01				
 		}			//To allow saving data from under the I/O space
@@ -130,7 +132,7 @@ LitLoop:
 		bne	LitLoop
 
 //----------------------------------------
-//		Send Tailing Zeros
+//		Send Trailing Zeros
 //----------------------------------------
 
 		lda	HdrCtr+1	//#$07 vs #$05
@@ -182,7 +184,7 @@ ToNext:		jsr	Send		//A<>#$00, signal next block
 		jmp	SendNextBlock
 
 //----------------------------------------
-//		Sending a byte
+//		Send a byte
 //----------------------------------------
 
 Send:		sta	Bits
@@ -243,9 +245,13 @@ BHdrEnd:
 
 Start:		lda	#<SFetchJmp	//Modify JMP address for Checksum Error on ZP - fetch again if checksum does not match
 		sta	FetchAgain+1	//First 5 bytes will be overwritten with Block Header and Stack
-		
+
 		bne	RcvCheck	//Branch always, first let's check if we will receive anything...
-		
+
+//--------------------------------------
+//		Find next sector in chain
+//--------------------------------------
+
 NextBlock:	ldy	#$02		//Reset BufLoc Hi Byte
 		sty	BufLoc+2
 		dey			//Find and mark next wanted sector on track, Y=#$01 (=block count)
@@ -253,8 +259,11 @@ NextBlock:	ldy	#$02		//Reset BufLoc Hi Byte
 		jsr	Build		//Mark next wanted sector on wanted list
 		sty	ChkSum		//Clear Checksum, Y=#$00 here
 
-GetByteLoop:
-		jsr	NewByte		//Receive 1 block from C64, 1 byte at a time
+//--------------------------------------
+//		Receive 256 bytes of data
+//--------------------------------------
+
+GetByteLoop:	jsr	NewByte		//Receive 1 block from C64, 1 byte at a time
 
 ByteBfr:	sta	$0700		//And save it to buffer, overwriting internal directory
 		eor	ChkSum
@@ -262,56 +271,62 @@ ByteBfr:	sta	$0700		//And save it to buffer, overwriting internal directory
 		dec	ByteBfr+1
 		bne	GetByteLoop
 
+//--------------------------------------
+//		Encode data block
+//--------------------------------------
+
 		jsr	Encode	//Data Block: $104 bytes (#$07+$100 bytes+checksum+#$00+#$00) which needs $145 GCR-encoded bytes
 				//Last $45 bytes of Tab8 is overwritten by GCR codes, but this is not a problem
-				//Tab8 is encoded as 77788888 and the expected value is #$23 (Track 35) which translates to
-				//10|01010011 = #$53 - reads from the lower, intact half of Tab8 :)
+				//Tab8 is encoded as 77788888 and the expected value is #$23 or #$28 (track 35 or 40)
+				//which is encoded as 10|01010011 = #$53 or 10|010 - reads from the lower, intact half of Tab8 :)
 				//The high nibble of the track number can be 0 (01|010), 1 (01|011), or 2 (10|010)
 				//The 3rd bit is 0 in all 3 cases so all tracks are accessible via the intact part of Tab8 :)
 
 		jsr	ToggleLED	//Turn LED on
 
-//----------------------------
+//--------------------------------------
+//		Write data block to disk
+//--------------------------------------
 
 SFetch:		ldy	#<SHeaderJmp
 		jmp	FetchHeader+2
 
-//----------------------------
+//--------------------------------------
 
 SHeader:				//We are on Track 35/40 here, so it is ALWAYS Speed Zone 0 (32 cycles per byte)
 		//jmp (SHeader)		//40
 					//	Header byte #10 (77788888) = $55, skipped
-		lda	$0103		//44
-		jsr	ShufToRaw	//64
+					//	A=$0103 here, no need to reload :)
+		jsr	ShufToRaw	//60
 
-					//jsr	ShufToRaw	50
-					//ldx	#$99		52
-					//axs	#$00		54
-					//eor	BitShufTab,x	58
-					//rts			64
+					//jsr	ShufToRaw	46
+					//ldx	#$99		48
+					//axs	#$00		50
+					//eor	BitShufTab,x	54
+					//rts			60
 
-		cmp	LastS		//67	First gap byte skipped
-		clv			//69
-		bne	SFetch		//71
-		tax			//73
-		ldy	#$05		//75
-		sty	WList,x		//79	Mark off sector on Wanted List
+		cmp	LastS		//63	First gap byte = $55, skipped
+		bne	SFetch		//65
+		tax			//67
+		ldy	#$05		//69
+		clv			//71	Optimal CLV timing for all 4 speed zones [68-74]
+		sty	WList,x		//75	Mark off sector on Wanted List
 
-BvcLoop:	bvc	*		//01	Skip 6 more more $55 bytes (Header Gap)
+GapLoop:	bvc	*		//01	Skip 6 more more $55 bytes (Header Gap)
 		clv			//03	The 1541 ROM code also skips 7 gap bytes, NOT 9!!!
 		dey			//05
-		bpl	BvcLoop		//07
-	
+		bpl	GapLoop		//07
+
 		sty	$1c03		//11	R/W head to output, Y=#$ff
 		lda	#$ce		//13
 		sta	$1c0c		//15	Peripheral control register to output
 		ldx	#$06		//19
 
-FFLoop:		bvc	*		//01
+SyncLoop:	bvc	*		//01
 		clv			//07	Write 6 sync bytes (#$ff)
 		sty	$1c01		//05	The 1541 ROM code also writes 6 sync bytes, NOT 5!!!
 		dex			//09
-		bne	FFLoop		//11
+		bne	SyncLoop	//11
 
 		ldy	#$bb		//13
 		ldx	#$02		//15
@@ -329,7 +344,7 @@ BfrLoop1:	lda	$0200,y		//25	26
 		bne	BfrLoop2	//18/17
 
 		bvc	*		//01
-		jsr	$fe00		//Using ROM function here to save a few bytes...		
+		jsr	$fe00		//Using ROM function here to save a few bytes...
 
 					//LDA $1c0c	Peripheral control register to input
 					//ORA #$e0
@@ -340,15 +355,23 @@ BfrLoop1:	lda	$0200,y		//25	26
 
 		jsr	ToggleLED	//Trun LED off - no proper ROM function for this unfortunately...
 
+//--------------------------------------
+//		Check for next block
+//--------------------------------------
+
 RcvCheck:	jsr	NewByte		//More blocks to write?
 
 		tax
 		bne	NextBlock
 
+//--------------------------------------
+//		Saving done, restore loader
+//--------------------------------------
+
 		lda	#<FetchJmp	//Disk writing is done
 		sta	FetchAgain+1
-		
-RestoreTabs:	ldx	#$44
+
+		ldx	#$44
 		stx	DirSector	//Resetting DirSector to ensure next index-based load reloads the directory
 RestoreLoop:
 		lda	$023b,x
@@ -361,20 +384,24 @@ RestoreLoop:
 		bpl	RestoreLoop
 		jmp	CheckATN
 
-//-----------------------------------------------------
+//--------------------------------------
+//		Receive a byte
+//--------------------------------------
 
 NewByte:	ldx	#$94		//Make sure C64 is ready to send
 		jsr	CheckPort
 		lda	#$80		//$dd00=#$9b, $1800=#$94
 		ldx	#busy		//=#$10 (AA=1, CO=0, DO=0)
 		jsr	RcvByte		//OK to use stack here
-		
+
 		ldx	#$95		//Wait for C64 to signal transfer complete
 CheckPort:	cpx	$1800
 		bne	*-3
 		rts
 
-//-----------------------------------------------------
+//--------------------------------------
+//		Convert 260 bytes to GCR codes
+//--------------------------------------
 
 Encode:		lda	#$bb		//Reset BufLoc Lo Byte
 		sta	BufLoc+1
@@ -384,7 +411,7 @@ Encode:		lda	#$bb		//Reset BufLoc Lo Byte
 
 EncodeLoop:	lda	$0700		//256 data bytes
 		jsr	GCREncode
-		
+
 		inc	EncodeLoop+1
 		bne	EncodeLoop
 
@@ -392,7 +419,7 @@ EncodeLoop:	lda	$0700		//256 data bytes
 		jsr	GCREncode
 		jsr	GCREncode	//Two tail 00s, A=00 here
 
-//----------------------------
+//--------------------------------------
 
 GCREncode:	pha
 		lsr
