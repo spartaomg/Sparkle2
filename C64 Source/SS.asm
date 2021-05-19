@@ -16,7 +16,7 @@
 //	v1.2	- simplified Send function in C64 code
 //		  relying on Sparkle_SendCmd
 //
-//	v1.3	- adjusting Tab
+//	v1.3	- adjusting drive code to new Tab8 layout and trailing 0 check 
 //
 //----------------------------
 //	BLOCK STRUCTURE
