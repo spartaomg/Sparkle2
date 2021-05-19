@@ -230,4 +230,7 @@
   <PropertyGroup>
     <PreBuildEvent>"c:\Users\Tamas\OneDrive\C64\VB\Sparkle 2\C64 Source\build.bat"</PreBuildEvent>
   </PropertyGroup>
+  <PropertyGroup>
+    <PostBuildEvent>"c:\Users\Tamas\OneDrive\C64\VB\Sparkle 2\copy.bat"</PostBuildEvent>
+  </PropertyGroup>
 </Project>
