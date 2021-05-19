@@ -275,12 +275,15 @@ ByteBfr:	sta	$0700		//And save it to buffer, overwriting internal directory
 //		Encode data block
 //--------------------------------------
 
-		jsr	Encode	//Data Block: $104 bytes (#$07+$100 bytes+checksum+#$00+#$00) which needs $145 GCR-encoded bytes
-				//Last $45 bytes of Tab8 is overwritten by GCR codes, but this is not a problem
-				//Tab8 is encoded as 77788888 and the expected value is #$23 or #$28 (track 35 or 40)
-				//which is encoded as 10|01010011 = #$53 or 10|010 - reads from the lower, intact half of Tab8 :)
-				//The high nibble of the track number can be 0 (01|010), 1 (01|011), or 2 (10|010)
-				//The 3rd bit is 0 in all 3 cases so all tracks are accessible via the intact part of Tab8 :)
+		jsr	Encode	//Data Block: $104 bytes (#$07+$100 data bytes+checksum+#$00+#$00) -> $145 GCR-encoded bytes
+
+		//The last $45 bytes of Tab8 are overwritten by GCR codes, but luckily this is not a problem!
+		//Tab8 is encoded as 77788888 and is required to decode the track number in the sector header
+		//The expected value is either #$23 (Track 35) which is encoded as 10|01010011 -> #$53
+		//Or #$28 (Track 40) endcoded as 10|01001001 -> #$49 which values are used for indexing into Tab8
+		//In both cases, the GCR loop reads from the lower, intact half of Tab8 :)
+		//In fact, the high nibble of the track number can only be 0 (01|010), 1 (01|011), or 2 (10|010)
+		//Bit 2 is 0 in all 3 cases making all tracks accessible via the intact part of Tab8 :)
 
 		jsr	ToggleLED	//Turn LED on
 
