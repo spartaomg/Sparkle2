@@ -642,16 +642,35 @@ Err:
 
 	EORtransform = Input
 
-	Select Case (Input And &H99)
-	    Case 0, 9, &H90, &H99
+	Select Case (Input And &H9)
+	    Case 0, 9
 		Return EORtransform Xor &HFF
-	    Case 1, 8, &H91, &H98
+	    Case 1, 8
 		Return EORtransform Xor &HF6
-	    Case &H10, &H19, &H80, &H89
-		Return EORtransform Xor &H6F
-	    Case &H11, &H18, &H81, &H88
-		Return EORtransform Xor &H66
 	End Select
+
+	'Select Case (Input And &H99)
+	'Case 0, 9, &H90, &H99
+	'Return EORtransform Xor &HFF
+	'Case 1, 8, &H91, &H98
+	'Return EORtransform Xor &HF6
+	'Case &H10, &H19, &H80, &H89
+	'Return EORtransform Xor &H6F
+	'Case &H11, &H18, &H81, &H88
+	'Return EORtransform Xor &H66
+	'End Select
+
+	'Select Case (Input And &H69)
+	'Case 0, 9, &H60, &H69
+	'Return EORtransform Xor &HFF
+	'Case 1, 8, &H61, &H68
+	'Return EORtransform Xor &HF6
+	'Case &H20, &H29, &H40, &H49
+	'Return EORtransform Xor &H9F
+	'Case &H21, &H28, &H41, &H48
+	'Return EORtransform Xor &H96
+	'End Select
+
 
     End Function
 
@@ -723,23 +742,24 @@ Err:
 	    If B < 0 Then B += 256
 	Next
 
-	'Add Product ID to $03b9-$03bb (add 2 to address for PRG header)
-	'Drive(&HB9 + 2) = Int(ProductID / &H10000) And &HFF
-	'Drive(&HBA + 2) = Int(ProductID / &H100) And &HFF
-	'Drive(&HBB + 2) = ProductID And &HFF
-	Drive(&H21 + 2) = Int(ProductID / &H10000) And &HFF
-	Drive(&H22 + 2) = Int(ProductID / &H100) And &HFF
-	Drive(&H23 + 2) = ProductID And &HFF
+	'-------------------
+	'   ProductID
+	'-------------------
+	'Add Product ID (add 2 to address for PRG header)
+	Dim PID As Integer = &HED
+	Drive(PID + 0 + 2) = Int(ProductID / &H10000) And &HFF
+	Drive(PID + 1 + 2) = Int(ProductID / &H100) And &HFF
+	Drive(PID + 2 + 2) = ProductID And &HFF
 
-	'Save last, "dummy" bundle info to $035c-$035f, needs REVERSED EOR Transform as it is used in the drive code (add 2 to address for PRG header)
-	'Drive(&HA1 + 2) = TabT(LastBufferCnt)
-	'Drive(&HA2 + 2) = TabStartS(TabT(LastBufferCnt))
-	'Drive(&HA3 + 2) = TabSCnt(LastBufferCnt)
-	'Drive(&HA4 + 2) = EORtransform(LastBitPtr)
-	Drive(&H5C + 2) = TabT(LastBufferCnt)
-	Drive(&H5D + 2) = TabStartS(TabT(LastBufferCnt))
-	Drive(&H5E + 2) = TabSCnt(LastBufferCnt)
-	Drive(&H5F + 2) = EORtransform(LastBitPtr)
+	'-------------------
+	'   NoFlipTab
+	'-------------------
+	'Save last, "dummy" bundle info, needs REVERSED EOR Transform as it is used in the drive code (add 2 to address for PRG header)
+	Dim NFT As Integer = &H21
+	Drive(NFT + 0 + 2) = TabT(LastBufferCnt)
+	Drive(NFT + 1 + 2) = TabStartS(TabT(LastBufferCnt))
+	Drive(NFT + 2 + 2) = TabSCnt(LastBufferCnt)
+	Drive(NFT + 3 + 2) = EORtransform(LastBitPtr)
 
 	'Resort blocks in drive code:
 	For I = 0 To 255

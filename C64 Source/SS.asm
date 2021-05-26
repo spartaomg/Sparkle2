@@ -378,9 +378,8 @@ RcvCheck:	jsr	NewByte		//More blocks to write?
 		stx	DirSector	//Resetting DirSector to ensure next index-based load reloads the directory
 RestoreLoop:
 		lda	$023b,x
-		cmp	#$40
-		bcs	*+4
-		ora	#$08		//Restore H2STab
+		bmi	*+4		//Tab8 values >#$7f, H2STab values <#$80 
+		ora	#$04		//Restore H2STab
 		and	#$bf		//Restore Tab8
 		sta	$02bb,x
 		dex
