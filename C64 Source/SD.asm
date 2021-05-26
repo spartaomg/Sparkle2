@@ -141,7 +141,7 @@
 //	0086	00ff	GCR Loop
 //	0100	01ff	Data Buffer on Stack
 //	0200	03f1	GCR Tabs with code interleaved
-//	0330	06c5	Drive Code ($3a bytes free)
+//	0330	06c4	Drive Code ($3b bytes free)
 //	0700	07ff	Directory (4 bytes per entry, 64 entries per dir block, 2 dir blocks on disk)
 //
 //	Layout at Start
@@ -154,7 +154,7 @@
 //	Layout in PRG
 //
 //	2300	23f1	GCR Tabs			block 0
-//	2330	26c5	Drive Code			blockS 1-3 3 -> block 5	
+//	2330	26c4	Drive Code			blockS 1-3 3 -> block 5	
 //	2700	27ff	ZP GCR tabs and GCR loop	block 4	-> block 3
 //	2800	28f4	Init code			block 5	-> block 4
 //
@@ -226,7 +226,7 @@
 .const	Random		=$18	//Marks random file access
 .const	VerifCtr	=$19	//Checksum Verification Counter
 .const	NewBundle	=$23	//#$00->#$01, stop motor if #$01
-.const	StepDir		=$28	//Seek Direction
+.const	StepDir		=$28	//Stepping  Direction
 .const	LastBlock	=$29	//#$01 if last block of a Bundle is fetched, otherwise $00
 .const	WList		=$3e	//Wanted Sector list ($3e-$52) (00=unfetched, [-]=wanted, [+]=fetched)
 .const	DirSector	=$56	//Initial value=#$c5 (<>#$10 or #$11)
@@ -240,39 +240,39 @@
 .const	NBC		=$66	//New Block Count temporary storage
 
 .const	StepTmrRet	=$68	//Indicates whether StepTimer code is called in subroutine
-.const	BitRateRet	=$6e	//Indicates	whether Store code is called in subroutine
-.const	TrackChg	=$78	//Indicates whether Tranck change is needed AFTER CATN (last block of bundle=last sector of track)
-
-.const	NextID	=$7e		//Next Side's ID - will be updated from 18:00:$fd of next side
-.const	ILTab		=$7f	//Inverted Custom Interleave Table
-.const	IL0		=$82	//for nS
-
-.const	ZP01ff		=$58	//$58/$59 = $01ff
-.const	ZP0101		=$59	//$59/$5a = $0101
-.const	ZP12		=$54	//=#$12
-.const	ZP07		=$57	//=#$07
-.const	ZPf8		=$7c	//=#$f8
-
+.const	BitRateRet	=$6e	//Indicates whether Store code is called in subroutine
 .const	IncSaver	=$74	//=#$02 if Saver Code is included, otherwise #$00
 .const	SaverCode	=$76	//Indicates whether Saver Code Drive code is in the buffer
+.const	TrackChg	=$78	//Indicates whether Track change is needed AFTER CATN (last block of bundle=last sector of track)
+
+.const	NextID		=$7e	//Next Side's ID - will be updated from 18:00:$fd of next side
+.const	ILTab		=$7f	//Inverted Custom Interleave Table ($7f-$83)
+.const	IL0		=$82	//for nS
+
+.const	ZP12		=$3b	//=#$12, part of Tab6
+.const	ZP00		=$6b	//=#$00, part of Tab6
+.const	ZP01ff		=$58	//$58/$59 = $01ff
+.const	ZP0101		=$59	//$59/$5a = $0101
 
 .const	SF		=$0129	//$0127
 .const	SH		=$012e	//$012c
 
+.const	OPC_JMP		=$4c
 .const	OPC_BNE		=$d0
 
 //Free ZP addresses:
-//10,11,30,31,38,39,5c,64,69,6a,6c,70,71,72,79,7a,$7c,84,85
+//10,11,30,31,38,39,54,5c,64,69,6a,6c,70,71,72,79,7a,$7c,84,85
 
+.const	TabZP		=$00
 .const	Tab200		=$0200
 
 //GCR Decoding Tabs:
 .const	Tab1		=Tab300+1
 .const	Tab2		=Tab200
-.const	Tab3		=$00
-.const	Tab4		=Tab300                   
-.const	Tab5		=$00
-.const	Tab6		=$01
+.const	Tab3		=TabZP
+.const	Tab4		=Tab300
+.const	Tab5		=TabZP
+.const	Tab6		=TabZP+1
 .const	Tab7		=Tab300
 .const	Tab8		=Tab200+1
 
@@ -350,8 +350,8 @@ Mod2c:		pha			//5e			--	--	--	90
 		nop			//60			--	--	--	96	
 Mod2b:		
 Mod2a:		nop			//61			--	81	89	98
-		arr	#$f0		//62 63			--	83	91	100
-		tay			//64			--	85	93	102
+		arr	#$f0		//62 63			78	83	91	100
+		tay			//64			80	85	93	102
 		jmp	LoopMod2+3	//65-67			--	88	96	105
 		//lda	$1c01		//			84	92	100	109
 //0368
@@ -402,7 +402,7 @@ SkipTabs2:	inc	StepTmrRet	//92 93	#$00->#$01 - signal need for RTS
 FT:
 Fetch:		lda	VerifCtr	//a4 a5	If checksum verification needed at disk spin up...
 		nop			//a6
-		nop	$5a5e		//a7-a9	SKIP $5e,$5a
+		nop	$5a5e		//a7-a9	SKIPPING $5e,$5a
 		bne	FetchData	//aa ab	...then fetch any data block instead of a Header
 FetchHeader:
 		ldy	#<HeaderJmp	//b2 b3	Checksum verification after GCR loop will jump to Header Code
@@ -418,9 +418,9 @@ FetchHeader:
 //03ba
 FetchData:	ldx	#$00		//ba bb	256 bytes to stack	
 		ldy	#<DataJmp	//bc bd	Checksum verification after GCR loop will jump to Data Code
-		lda	#$55		//be bf	First byte of Data	//dx
+		lda	#$55		//be bf	First byte of Data
 
-Presync:	sty	ModJmp+1	//c0-c2		Update Jump Address on ZP
+Presync:	sty	ModJmp+1	//c0-c2		Update Jump Address
 		txs			//c3		Header: $0104,$0103..$0101, Data: $0100,$01ff..$0101
 		ldy	#$ff		//c4 c5
 		bne	*+4		//c6 c7
@@ -429,15 +429,17 @@ Presync:	sty	ModJmp+1	//c0-c2		Update Jump Address on ZP
 //03ca
 		bit	$1c00		//ca-cc		We happen to be in a SYNC mark right now, skip it
 		bpl	*-3		//cd ce
-		nop	$0a52		//cf-d1		SKIP $52,$0a
+		nop	$0a52		//cf-d1		SKIPPING $52,$0a
 Sync:		bit	$1c00		//d2-d4		Wait for SYNC
 		bmi	*-3		//d5 d6
-		nop	$1a5a		//d7-d9		SKIP $5a,$1a
+		nop	$1a5a		//d7-d9		SKIPPING $5a,$1a
 		nop	$1c01		//da-dc		Sync byte - MUST be read (VICE bug #582), not necessarily #$ff
 		clv			//dd
+
+					//Addr |Cycles
 		bvc	*		//de df|00-01
-		cmp	$1c01		//e0-e2|05*	Read1 = 11111222 @ (00-25), which is 01010|010(01) for Header
-		clv			//e3	07			    	          or 01010|101(11) for Data
+		cmp	$1c01		//e0-e2|05	*Read1 = 11111222  ->	01010|010(01) for Header
+		clv			//e3	07				01010|101(11) for Data
 		beq	SkipTabs3	//e4 e5|10	First byte of Header/Data is discarded
 		bne	Sync		//e6 e7|--
 //03e8
@@ -462,11 +464,12 @@ SkipDelay:	sta	$0102,y		//fe-00|28/36	Any value will do in A as long as $0102 an
 		sta	(GCRLoop+4),y	//01 02|34/42	$0102 and $0103 will actually contain the current track number
 		ldx	#$3e		//03 04|36/44			   [26-51  28-55  30-59  32-63]
 		lda	$1c01		//05-07|40/48	*Read2 = 22333334 @ 40/-11 40/+12 48/-11 48/-15
-		sax	t3+1		//08-0a|44/52	t3+1 = 00333330	
-		lsr			//0b	46/54	C=4 - needed for GCR loop
-		lax	#$00		//0c 0d|48/56	Clear A, X - both needed for first 2 EORs after BNE in GCR loop
-		iny			//0e	50/58	Y=#$01 (<>#$00 for BNE to work after jump in GCR loop)
-		jmp	GCREntry	//0f-11|53/61	Same number of cycles before BNE as in GCR loop
+		sax.z	t3+1		//08 09|43/51	t3+1 = 00333330	
+		lsr			//0a	45/53	C=4 - needed for GCR loop
+		lax	ZP00		//0b 0c|48/56	Clear A, X - both needed for first 2 EORs after BNE in GCR loop
+					//		LAX #$00 would work but we need ZP for timing
+		iny			//0d	50/58	Y=#$01 (<>#$00 for BNE to work after jump in GCR loop)
+		jmp	GCREntry	//0e-10|53/61	Same number of cycles before BNE as in GCR loop
 
 //--------------------------------------
 //		Got Header
@@ -774,7 +777,7 @@ MLoop:		lda.z	Mod1,x
 		bpl	MLoop
 		cpy	#$15		//Y=sector count (17, 18, 19, 21 for zones 0, 1, 2, 3, respectively)
 		beq	SkipPatch
-		lda	#$4c		//Patch for zones 0-2
+		lda	#<OPC_JMP	//Patch for zones 0-2
 		sta.z	LoopMod2
 		lda	#>Mod2
 		sta.z	LoopMod2+2
@@ -877,7 +880,7 @@ CheckDir:	ldx	#$11		//A=#$00-#$7f, X=#$11 (dir sector 17) - DO NOT CHANGE TO INX
 		inx			//A=#$40-#$7f, X=#$12 (dir sector 18)
 		cmp	#$f8		//Index=#$7e - check if we are loading the Saver Code
 		bne	CompareDir
-		lda	IncSaver	//=#$02 if Saver Code is included on Disk, #$00 otherwise
+		lda	IncSaver	//A=#$02 if Saver Code is included on Disk, #$00 otherwise
 		sta	SaverCode
 
 CompareDir:	cpx	DirSector	//Dir Sector, initial value=#$c5		
@@ -1240,7 +1243,7 @@ ChainLoop:	lda	WList,x		//86,87	Check if sector is unfetched (=00)
 		bne	NxtSct		//88,89	If sector is not unfetched (it is either fetched or wanted), go to next sector
 
 		lda	#$ff		//8a,8b
-		nop	#$00		//8c,8d	SKIP $028d
+		nop	#$00		//8c,8d	SKIPPING $028d
 MarkSct:	sta	WList,x		//8e,8f	Mark Sector as wanted (or used in the case of random bundle, STA <=> STY)
 		stx	LastS		//90,91	Save Last Sector
 IL:		axs	#$00		//92,93	Calculate Next Sector using inverted interleave
@@ -1248,7 +1251,7 @@ MaxSct1:	cpx	#$00		//94,95	Reached Max?
 		bcc	SkipSub		//96,97	Has not reached Max yet, so skip adjustments
 MaxSct2:	axs	#$00		//98,99	Reached Max, so subtract Max
 		beq	SkipSub		//9a,9b
-		nop	#$00		//9c,9d	Skip $029d = #$2a
+		nop	#$00		//9c,9d	SKIPPING $029d
 SubSct:		axs	#$01		//9e,9f	Decrease if sector > 0
 SkipSub:	dey			//a0	Any more blocks to be put in chain?
 		bne	ChainLoop	//a1,a2
@@ -1288,7 +1291,7 @@ ZPCode:
 //----------------------------------------------------------------------------------------------
 //
 //	 		125-cycle GCR read+decode+verify loop on ZP
-//		     loads reliably with rotation speeds of 282-312 rpm
+//		     works reliably with rotation speeds of 282-312 rpm
 //		     		across all four disk zones
 //
 //----------------------------------------------------------------------------------------------
@@ -1395,8 +1398,8 @@ GCREntry:	bne	GCRLoop		//			56/55	56/55	64/63	64/63
 .pseudopc	$0600	{
 ZPTab:
 //	 x0  x1  x2  x3  x4  x5  x6  x7  x8  x9  xa  xb  xc  xd  xe  xf
-.byte	$12,$00,$04,$01,$70,$e0,$30,$a0,$01,$c0,$00,$80,$60,$40,$20,$00	//0x	WantedCtr = #$01
-.byte	XXX,XXX,$2e,$1e,$ae,$1f,$be,$17,$00,CSV,$6e,$1a,$ee,$1b,$fe,$13	//1x	$1c=#$07 for Tab3 and GCR loop mod
+.byte	$12,$00,$04,$01,$70,$e0,$30,$a0,$01,$c0,$00,$80,$60,$40,$20,$00	//0x
+.byte	XXX,XXX,$2e,$1e,$ae,$1f,$be,$17,$00,CSV,$6e,$1a,$ee,$1b,$fe,$13	//1x
 Mod2Lo:
 .byte	<Mod2c,<Mod2b,<Mod2a
 .byte		    $00,$8e,$1d,$9e,$15,$01,$00,$5e,$10,$ce,$19,$de,$11	//2x
@@ -1404,6 +1407,6 @@ Mod2Lo:
 .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$ff,$00	//4x	(0) unfetched, (+) fetched, (-) wanted
 .byte	$00,$00,$00,$0e,$12,$0f,$c5,$07,$ff,$01,$01,$0a,XXX,$0b,$00,$03	//5x 
 .byte	$01,$00,$14,$00,XXX,$0d,$1e,$05,$00,XXX,XXX,$00,XXX,$09,$00,$01	//6x	$60-$64 - ILTab
-.byte	XXX,XXX,XXX,$06,$02,$0c,$00,$04,$00,XXX,XXX,$02,$f8,$08,$00,$fd	//7x	$7c=#$f8 for GCR loop mod 
+.byte	XXX,XXX,XXX,$06,$02,$0c,$00,$04,$00,XXX,XXX,$02,XXX,$08,$00,$fd	//7x 
 .byte	$fd,$fd,$04,$fc,XXX,XXX						//8x	LastT, LastS, SCtr, BPtr
 }
