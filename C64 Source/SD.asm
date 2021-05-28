@@ -129,7 +129,7 @@
 //		  zone 3 remains 282-312 at 0 wobble in VICE
 //		- checking trailing 0s after fetching data block to improve reliability 
 //		  idea borrowed from Bitbreaker's Bitfire
-//		- bits of high nibble of fetched data are no longer shuffled, only EOR'd with #$ff
+//		- bits of high nibble of fetched data are no longer shuffled, only EOR'd with #$f
 //		  they only get shuffled during transfer using an updated H2STab
 //		  BitShufTab is now reduced to 4 bytes only -> moved to $0220
 //		  more free memory
@@ -254,8 +254,8 @@
 .const	ZP01ff		=$58	//$58/$59 = $01ff
 .const	ZP0101		=$59	//$59/$5a = $0101
 
-.const	SF		=$0129	//$0127
-.const	SH		=$012e	//$012c
+.const	SF		=$0129	//SS drive code fetch vector
+.const	SH		=$012e	//SS drive code header vector
 
 .const	OPC_JMP		=$4c
 .const	OPC_BNE		=$d0
@@ -276,7 +276,10 @@
 .const	Tab7		=Tab300
 .const	Tab8		=Tab200+1
 
-.const	XXX		=$ff
+.const	XX1		=$c3
+.const	XX2		=$9d
+.const	XX3		=$e5
+.const	XX4		=$67
 
 //Other Tabs:
 .const	H2STab		=Tab200+$0d	//HiNibble-to-Serial Conversion Tab ($10 bytes total, $10 bytes apart)
@@ -290,13 +293,13 @@ BitShufTab:
 .pseudopc $0300	{
 Tab300:
 //	 00  01  02  03  04  05  06  07  08  09  0a  0b  0c  0d  0e  0f
-.byte	$af,$a6,$04,$00,XXX,$0a,$0c,$08,$a6,$af,$9e,$9f,$97,XXX,$9a,$9b	//0x	Template for Tab2 and Tab8
-.byte	$93,XXX,XXX,$9d,$95,XXX,$90,$99,$91,XXX,$96,$9c,$94,XXX,$92,$98	//1x
+.byte	$af,$a6,$04,$00,XX1,$0a,$0c,$08,$a6,$af,$be,$bf,$b7,XX2,$ba,$bb	//0x	Template for Tab2 and Tab8
+.byte	$b3,XX3,XX4,$bd,$b5,XX1,$b0,$b9,$b1,XX2,$b6,$bc,$b4,XX3,$b2,$b8	//1x
 .byte	$60
 //0321-24
 NoFlipTab:
 .byte	    $fe,$fd,$fc,$fb
-.byte		            $20,$00,$80,XXX,$20,$00,$80,XXX,$20,$00,$80	//2x
+.byte		            $00,$20,$a0,XX4,$00,$20,$a0,XX1,$00,$20,$a0	//2x
 
 //--------------------------------------
 //		HERE STARTS THE FUN
@@ -320,7 +323,7 @@ ContCode:	sty	WantedCtr	//3e 3f	Y=#$01 here
 		sec			//42
 		sbc	cT		//43 44	Calculate Stepper Direction and number of Steps
 		beq	Fetch		//45 46	We are staying on the same Track, skip track change
-		nop	$2a50		//47-49	SKIPPING $50,$2a
+		nop	$2a50		//47-49	SKIPPING $50,$2a GCR table values
 		bcs	SkipStepDn	//4a 4b
 		eor	#$ff		//4c 4d
 		bcc	SkipTabs1	//4e 4f
@@ -330,7 +333,7 @@ ContCode:	sty	WantedCtr	//3e 3f	Y=#$01 here
 FetchJmp:
 .byte		<FT,>FT
 //0354
-HeaderJmp:						
+HeaderJmp:
 .byte			<HD,>HD
 //0356
 DataJmp:
@@ -348,7 +351,7 @@ Mod2:		//jmp	Mod2		//			--	79	87	87
 Mod2c:		pha			//5e			--	--	--	90
 		pla			//5f			--	--	--	94
 		nop			//60			--	--	--	96	
-Mod2b:		
+Mod2b:
 Mod2a:		nop			//61			--	81	89	98
 		arr	#$f0		//62 63			78	83	91	100
 		tay			//64			80	85	93	102
@@ -416,7 +419,7 @@ FetchHeader:
 //03b8
 .byte					$5f,$da
 //03ba
-FetchData:	ldx	#$00		//ba bb	256 bytes to stack	
+FetchData:	ldx	#$00		//ba bb	256 bytes to stack
 		ldy	#<DataJmp	//bc bd	Checksum verification after GCR loop will jump to Data Code
 		lda	#$55		//be bf	First byte of Data
 
@@ -445,12 +448,12 @@ Sync:		bit	$1c00		//d2-d4		Wait for SYNC
 //03e8
 .byte					$5c,$7a
 //03ea
-JmpFData:	jmp	FetchData
+JmpFData:	jmp	FetchData	//BEQ FetchData would also work 
 //03ed
 ProductID:						
 .byte							    $ab,$cd,$ef	//ex
 //03f0
-.byte	$56,$4a					
+.byte	$56,$4a
 //03f2
 SkipTabs3:	sty.z	CSum+1		//f2 f3|13	Y=#$ff, we are working with inverted GCR Tabs, checksum must be inverted
 		iny			//f4	15	Y=#$00
@@ -481,20 +484,20 @@ Header:		jsr	ShufToRaw	//JSR OK here
 		lda	$0102
 		jsr	ShufToRaw
 		cmp	cT		//A=fetched track
-ToFHeader:	bne	FetchHeader	//check current track 
+ToFHeader:	bne	FetchHeader	//check current track
 		ldx	WList,y
 		bpl	FetchHeader	//check current sector
 
-		sty	cS
+		sty	cS		//Store current sector
 
-		cpy	LastS
-ToFData:	bne	FetchData
+		cpy	LastS		//Is this also the last sector of a bundle?
+ToFData:	bne	FetchData	//Not the last one -> fetch data
 
-		lda	cT
+		lda	cT		//Check expected track of last sector of bundle
 		cmp	LastT
-		bne	ToFData		//A<>00, not the last sector, store sector in cS and fetch data
+		bne	ToFData		//Not the expected track of the last sector -> fetch data
 
-		lax	WantedCtr	//Last sector fetched -> check how many sectors are left to load
+		lax	WantedCtr	//Last sector of a bundle fetched -> check how many sectors are left to load
 		dex
 		bne	ToFHeader	//More than one sector left on Wanted List, skip last sector, fetch next
 
@@ -1268,7 +1271,7 @@ CS:
 
 .pseudopc $0305	{
 CStart:
-.byte			    $b0,$80,$a0,XXX,$b0,$80,$a0,XXX,$b0,$80,$a0	//0x	00-0a
+.byte			    $90,$a0,$80,XX2,$90,$a0,$80,XX3,$90,$a0,$80	//0x	00-0a
 //0310
 ToggleLED:	lda	#$08		//0b 0c
 		eor	$1c00		//0d-0f
@@ -1399,14 +1402,14 @@ GCREntry:	bne	GCRLoop		//			56/55	56/55	64/63	64/63
 ZPTab:
 //	 x0  x1  x2  x3  x4  x5  x6  x7  x8  x9  xa  xb  xc  xd  xe  xf
 .byte	$12,$00,$04,$01,$70,$e0,$30,$a0,$01,$c0,$00,$80,$60,$40,$20,$00	//0x
-.byte	XXX,XXX,$2e,$1e,$ae,$1f,$be,$17,$00,CSV,$6e,$1a,$ee,$1b,$fe,$13	//1x
+.byte	XX1,XX2,$2e,$1e,$ae,$1f,$be,$17,$00,CSV,$6e,$1a,$ee,$1b,$fe,$13	//1x
 Mod2Lo:
 .byte	<Mod2c,<Mod2b,<Mod2a
 .byte		    $00,$8e,$1d,$9e,$15,$01,$00,$5e,$10,$ce,$19,$de,$11	//2x
-.byte	XXX,XXX,$3e,$16,$0e,$1c,$1e,$14,XXX,XXX,$7e,$12,$4e,$18,$00,$00	//3x	Wanted List $3e-$52 (Sector 15 = #$ff)
+.byte	XX3,XX4,$3e,$16,$0e,$1c,$1e,$14,XX1,XX2,$7e,$12,$4e,$18,$00,$00	//3x	Wanted List $3e-$52 (Sector 15 = #$ff)
 .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$ff,$00	//4x	(0) unfetched, (+) fetched, (-) wanted
-.byte	$00,$00,$00,$0e,$12,$0f,$c5,$07,$ff,$01,$01,$0a,XXX,$0b,$00,$03	//5x 
-.byte	$01,$00,$14,$00,XXX,$0d,$1e,$05,$00,XXX,XXX,$00,XXX,$09,$00,$01	//6x	$60-$64 - ILTab
-.byte	XXX,XXX,XXX,$06,$02,$0c,$00,$04,$00,XXX,XXX,$02,XXX,$08,$00,$fd	//7x 
-.byte	$fd,$fd,$04,$fc,XXX,XXX						//8x	LastT, LastS, SCtr, BPtr
+.byte	$00,$00,$00,$0e,$12,$0f,$c5,$07,$ff,$01,$01,$0a,XX3,$0b,$00,$03	//5x 
+.byte	$01,$00,$14,$00,XX4,$0d,$1e,$05,$00,XX1,XX2,$00,XX4,$09,$00,$01	//6x	$60-$64 - ILTab
+.byte	XX4,XX1,XX2,$06,$02,$0c,$00,$04,$00,XX3,XX4,$02,XX1,$08,$00,$fd	//7x 
+.byte	$fd,$fd,$04,$fc,XX2,XX3						//8x	LastT, LastS, SCtr, BPtr
 }
