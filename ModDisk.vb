@@ -644,9 +644,9 @@ Err:
 
 	Select Case (Input And &H9)
 	    Case 0, 9
-		Return EORtransform Xor &HFF
+		Return EORtransform Xor &H7F
 	    Case 1, 8
-		Return EORtransform Xor &HF6
+		Return EORtransform Xor &H76
 	End Select
 
 	'Select Case (Input And &H99)
@@ -1018,7 +1018,7 @@ Err:
 	ReDim Buffer(255)
 
 	Buffer(0) = &H81                                        'Bit stream
-	Buffer(1) = &HFF                                        'New block count = 0 (eor transformed)
+	Buffer(1) = EORtransform(0)                             'New block count = 0 (eor transformed)
 	Buffer(255) = HSStartAdd Mod 256                        'Last byte's address (Lo)
 	If SaverSupportsIO Then
 	    Buffer(254) = 0                                         'I/O flag
@@ -2967,7 +2967,7 @@ Err:
 
     End Sub
     Public Sub CalcILTab()
-	' On Error GoTo Err
+	On Error GoTo Err
 
 	Dim SMax, IL As Integer
 	Dim Disk(682 + 85) As Byte

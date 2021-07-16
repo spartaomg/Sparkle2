@@ -136,8 +136,8 @@ LitLoop:
 //----------------------------------------
 
 		lda	HdrCtr+1	//#$07 vs #$05
-		cmp	#<BHdrLong-BlockHdr-1	//#$05? - this is needed - in the case of the first block, addition's result is #$fe
-		bne	SkipZeros
+		cmp	#<BHdrLong-BlockHdr-1
+		bne	SkipZeros	//#$05? - this is needed - in the case of the first block, addition's result is #$fe
 		sec			//+1
 		adc	LitCnt		//=LitCnt-1
 		eor	#$ff
@@ -419,7 +419,7 @@ EncodeLoop:	lda	$0700		//256 data bytes
 
 		lda	ChkSum		//Checksum
 		jsr	GCREncode
-		jsr	GCREncode	//Two tail 00s, A=00 here
+		jsr	GCREncode	//Two trailing zeros, A=00 here
 
 //--------------------------------------
 
@@ -432,7 +432,7 @@ GCREncode:	pha
 		pla			//Then low nibble next
 		and	#$0f
 GCRize:		tay
-		lda	$f77f,y
+		lda	$f77f,y		//GCR codes in the drive's ROM
 		asl
 		asl
 		asl			//move 5 GCR bits to the left side of byte

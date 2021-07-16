@@ -583,7 +583,7 @@ NextBit:	lda	Buffer,x	//C=1, Z=1, Bits=#$00, token bit in C, update Bits
 		sta	Bits
 LongLit:
 		dex			//Saves 1 byte and adds 2 cycles per LongLit sequence, C=0 for LongLit
-		bcs	MidLitSeq	//C=1, we have more than 1 literals, LongLit (C=0) falls through
+		bcs	MidLitSeq	//C=1, we have more than 1 literal, LongLit (C=0) falls through
 
 ShortLit:	tya			//Y=00, C=0
 MidLit:		iny			//Y+Lit-1, C=0
