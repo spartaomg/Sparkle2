@@ -202,8 +202,9 @@
 //
 //----------------------------------------------------------------------------------------
 
-.const	Skew		=$02^$ff
-.const	Skew13		=<((Skew*2)-3)	//=(((Skew^$ff) *2)+4)^$ff
+.const	SkewBase	=$02
+.const	Skew		=SkewBase^$ff		//$02^$ff
+.const	Skew13		=((SkewBase*2)+4)^$ff	//<((Skew*2)-3)	//=(((Skew^$ff) *2)+4)^$ff
 
 .const	BAM_DiskID	=$0101
 .const	BAM_NextID	=$0102
@@ -691,9 +692,11 @@ ChkDir:		cpx	#$12		//next track = Track 18?, if yes, we need to skip it
 		bne	Seek		//0.5-track seek, skip setting timer
 
 		inx			//Skip track 18
-		//inc	nS		//Skipping Dir Track will rotate disk a little bit more than a sector...
-		//inc	nS		//...(12800 cycles to skip a track, 10526 cycles/sector on track 18)...
+.if (SkewBase == $00)	{
+		inc	nS		//Skipping Dir Track will rotate disk a little bit more than a sector...
+		inc	nS		//...(12800 cycles to skip a track, 10526 cycles/sector on track 18)...
 					//...so start sector of track 19 is increased by 2
+}
 		ldy	#$83		//1.5-track seek, set timer at start
 
 //--------------------------------------
@@ -807,6 +810,8 @@ SkipPatch:	lsr	StepTmrRet
 //		Sector Skew Adjustment
 //--------------------------------------
 
+.if (SkewBase != $00)	{
+
 		lda	#Skew		//Skew= -2-4
 		ldx	cT
 		cpx	#$13		//Track 19?
@@ -817,6 +822,7 @@ SkipPatch:	lsr	StepTmrRet
 		bcs	*+5
 		adc	MaxSct1+1	//if nS,0 then nS+=MaxSct
 		sta	nS
+}
 
 //--------------------------------------
 

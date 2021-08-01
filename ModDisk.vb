@@ -29,15 +29,15 @@
     Public FileUnderIO As Boolean = False
     Public IOBit As Byte
 
-    Public ReadOnly SectorSkew As Integer = 2
+    Public ReadOnly SectorSkew As Integer = 2       'Skew if disk is formatted using Format II by TLR
 
     Public ReadOnly StdSectorsPerDisk As Integer = 664          'Standard disk
     Public ReadOnly StdTracksPerDisk As Integer = 35
     Public ReadOnly StdBytesPerDisk As Integer = 174848
 
-    Public ReadOnly ExtSectorsPerDisk As Integer = 664 + 85     'Exnteded disk
+    Public ReadOnly ExtSectorsPerDisk As Integer = StdSectorsPerDisk + 85     'Exnteded disk
     Public ReadOnly ExtTracksPerDisk As Integer = 40
-    Public ReadOnly ExtBytesPerDisk As Integer = 174848 + (85 * 256)
+    Public ReadOnly ExtBytesPerDisk As Integer = StdBytesPerDisk + (85 * 256)
 
     Public SectorsPerDisk As Integer = StdSectorsPerDisk
     Public TracksPerDisk As Integer = StdTracksPerDisk
@@ -1760,6 +1760,8 @@ Err:
 	BytesSaved += Int(BitsSaved / 8)
 	BitsSaved = BitsSaved Mod 8
 
+	UpdateBlocksFree
+
 	If SaveIt = True Then
 	    If SaveDisk() = False Then GoTo NoDisk
 	End If
@@ -2968,6 +2970,7 @@ Err:
 	MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
 
     End Sub
+
     Public Sub CalcILTab()
 	On Error GoTo Err
 
@@ -3020,13 +3023,19 @@ Err:
 
 	    IL = IL Mod SMax
 
-	    If T = 19 Then
-		S = LastS - ((2 * SectorSkew) + 4)      'Extra sector skew for skipping track 18
-	    ElseIf T <> 1 Then
-		S = LastS - SectorSkew          'Sector Skew
-	    End If
-	    If S < 0 Then
-		S += SMax
+	    If SectorSkew <> 0 Then
+		If T = 19 Then
+		    S = LastS - ((2 * SectorSkew) + 4)      'Extra sector skew for skipping track 18
+		ElseIf T <> 1 Then
+		    S = LastS - SectorSkew          'Sector Skew
+		End If
+		If S < 0 Then
+		    S += SMax
+		End If
+	    Else
+		If T = 18 Then
+		    S += 2
+		End If
 	    End If
 
 	    GoTo NextStart
@@ -3061,8 +3070,8 @@ NextStart:
 	    End If
 	Next
 
-	IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabT.bin", TabT)
-	IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabS.bin", TabS)
+	'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabT.bin", TabT)
+	'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabS.bin", TabS)
 	'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabStartS.bin", TabStartS)
 	'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabSCnt.bin", TabSCnt)
 
@@ -3085,6 +3094,15 @@ Err:
 Err:
 	ErrCode = Err.Number
 	MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+    End Sub
+
+    Private Sub UpdateBlocksFree()
+
+	If TracksPerDisk = ExtTracksPerDisk Then
+	    Dim ExtBlocksFree As Byte = If(BlocksFree > ExtSectorsPerDisk - StdSectorsPerDisk, ExtSectorsPerDisk - StdSectorsPerDisk, BlocksFree)
+	    Disk(Track(18) + 4) += ExtBlocksFree
+	End If
 
     End Sub
 

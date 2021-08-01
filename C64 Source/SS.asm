@@ -51,14 +51,14 @@
 }
 
 .const	EoB		=$f8		//End of Bundle flag
-.const	NextBCt		=$ff		//Next block count - $00 EOR-transformed
+.const	NextBCt		=$7f		//Next block count - $00 EOR-transformed
 
 *=$2900	"C64 Save Code"
 
 .pseudopc $0300 {
 
 ByteCnt:
-.byte	$00,$f7				//First 2 bytes of block - 00 and block count, will be overwritten by Byte counter
+.byte	$00,$77				//First 2 bytes of block - 00 and block count, will be overwritten by Byte counter
 
 SLSaveStart:
 //----------------------------------------
@@ -162,7 +162,7 @@ SkipZeros:	lda	#BHdrLong-BlockHdr-1
 		lda	LitCnt
 		cmp	#<FirstLit	//First block? (sending #$f8 literals)
 		bne	SkipBCnt
-BlockCnt:	lda	#$f7		//=#$01 EOR-tranformed, minimum block count
+BlockCnt:	lda	#$77		//=#$01 EOR-tranformed, minimum block count
 		jsr	Send
 		lda	#<NextLit	//update LitCnt
 		sta	LitCnt
@@ -192,7 +192,7 @@ Send:		sta	Bits
 		jmp	SS_Send
 
 ByteConv:
-.byte $ff,$f7,$fd,$f5,$fb,$f3,$f9,$f1,$fe,$f6,$fc,$f4,$fa,$f2,$f8,$f0
+.byte $7f,$77,$7d,$75,$7b,$73,$79,$71,$7e,$76,$7c,$74,$7a,$72,$78,$70
 BlockHdr:
 LitCnt:
 .byte	FirstLit,$00
@@ -378,8 +378,8 @@ RcvCheck:	jsr	NewByte		//More blocks to write?
 		stx	DirSector	//Resetting DirSector to ensure next index-based load reloads the directory
 RestoreLoop:
 		lda	$023b,x
-		bmi	*+4		//Tab8 values >#$7f, H2STab values <#$80 
-		ora	#$04		//Restore H2STab
+		//bmi	*+4		//Tab8 values >#$7f, H2STab values <#$80 
+		//ora	#$04		//Restore H2STab
 		and	#$bf		//Restore Tab8
 		sta	$02bb,x
 		dex
