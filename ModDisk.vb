@@ -29,6 +29,8 @@
     Public FileUnderIO As Boolean = False
     Public IOBit As Byte
 
+    Public ReadOnly SectorSkew As Integer = 2
+
     Public ReadOnly StdSectorsPerDisk As Integer = 664          'Standard disk
     Public ReadOnly StdTracksPerDisk As Integer = 35
     Public ReadOnly StdBytesPerDisk As Integer = 174848
@@ -2975,6 +2977,7 @@ Err:
 	Dim SCnt As Integer
 	Dim Tr(40) As Integer
 	Dim S As Integer = 0
+	Dim LastS As Integer = 0
 
 	Tr(1) = 0
 	For T = 1 To TracksPerDisk - 1 '34
@@ -2995,8 +2998,9 @@ Err:
 	    If T = 18 Then
 		T += 1
 		TabStartS(T) = 255
-		S += 2
+		'S += 2
 	    End If
+
 	    SCnt = 0
 
 	    Select Case T
@@ -3016,6 +3020,15 @@ Err:
 
 	    IL = IL Mod SMax
 
+	    If T = 19 Then
+		S = LastS - ((2 * SectorSkew) + 4)      'Extra sector skew for skipping track 18
+	    ElseIf T <> 1 Then
+		S = LastS - SectorSkew          'Sector Skew
+	    End If
+	    If S < 0 Then
+		S += SMax
+	    End If
+
 	    GoTo NextStart
 
 NextSector:
@@ -3023,6 +3036,7 @@ NextSector:
 		Disk(Tr(T) + S) = 1
 		TabT(I) = T
 		TabS(I) = S
+		LastS = S
 		TabSCnt(I) = SMax - SCnt
 		I += 1
 		SCnt += 1
@@ -3047,8 +3061,8 @@ NextStart:
 	    End If
 	Next
 
-	'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabT.bin", TabT)
-	'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabS.bin", TabS)
+	IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabT.bin", TabT)
+	IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabS.bin", TabS)
 	'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabStartS.bin", TabStartS)
 	'IO.File.WriteAllBytes(UserFolder + "\OneDrive\C64\Coding\TabSCnt.bin", TabSCnt)
 

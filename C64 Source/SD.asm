@@ -1,6 +1,7 @@
+//TAB=8
 //----------------------------------------------------------------------------------------
 //	SPARKLE 2
-//	Inspired by Lft's Spindle and Krill's Loader
+//	Inspired by Lft's Spindle, Bitbreaker's Bitfire, and Krill's Loader
 //	Drive Code
 //	Tested on 1541-II, 1571, 1541 Ultimate-II+, Oceanic, and THCM's SX-64
 //----------------------------------------------------------------------------------------
@@ -129,10 +130,11 @@
 //		  zone 3 remains 282-312 at 0 wobble in VICE
 //		- checking trailing 0s after fetching data block to improve reliability 
 //		  idea borrowed from Bitbreaker's Bitfire
-//		- bits of high nibble of fetched data are no longer shuffled, only EOR'd with #$f
+//		- bits of high nibble of fetched data are no longer shuffled, only EOR'd with #$7
 //		  they only get shuffled during transfer using an updated H2STab
 //		  BitShufTab is now reduced to 4 bytes only -> moved to $0220
 //		- more free memory
+//		- ATNA-based transfer loop eliminating H2STab
 //
 //----------------------------------------------------------------------------------------
 //	Memory Layout
@@ -199,6 +201,9 @@
 //	03	Byte Pointer (will be copied to last byte of first block, used by depacker to find start of stream)
 //
 //----------------------------------------------------------------------------------------
+
+.const	Skew		=$02^$ff
+.const	Skew13		=<((Skew*2)-3)	//=(((Skew^$ff) *2)+4)^$ff
 
 .const	BAM_DiskID	=$0101
 .const	BAM_NextID	=$0102
@@ -323,7 +328,7 @@ ContCode:	sty	WantedCtr	//3e 3f	Y=#$01 here
 		sec			//42
 		sbc	cT		//43 44	Calculate Stepper Direction and number of Steps
 		beq	Fetch		//45 46	We are staying on the same Track, skip track change
-		nop	$2ad0		//47-49	SKIPPING $50,$2a GCR table values
+		nop	$2ad0		//47-49	SKIPPING $d0,$2a GCR table values
 		bcs	SkipStepDn	//4a 4b
 		eor	#$ff		//4c 4d
 		bcc	SkipTabs1	//4e 4f
@@ -430,12 +435,12 @@ Presync:	sty	ModJmp+1	//c0-c2		Update Jump Address
 //03c8
 .byte					$d8,$3a
 //03ca
-		bit	$1c00		//ca-cc		We happen to be in a SYNC mark right now, skip it
+Sync:		bit	$1c00		//ca-cc		We happen to be in a SYNC mark right now, skip it
 		bpl	*-3		//cd ce
-		nop	$0ad2		//cf-d1		SKIPPING $52,$0a
-Sync:		bit	$1c00		//d2-d4		Wait for SYNC
+		nop	$0ad2		//cf-d1		SKIPPING $d2,$0a
+		bit	$1c00		//d2-d4		Wait for SYNC
 		bmi	*-3		//d5 d6
-		nop	$1ada		//d7-d9		SKIPPING $5a,$1a
+		nop	$1ada		//d7-d9		SKIPPING $da,$1a
 		nop	$1c01		//da-dc		Sync byte - MUST be read (VICE bug #582), not necessarily #$ff
 		clv			//dd
 
@@ -686,8 +691,8 @@ ChkDir:		cpx	#$12		//next track = Track 18?, if yes, we need to skip it
 		bne	Seek		//0.5-track seek, skip setting timer
 
 		inx			//Skip track 18
-		inc	nS		//Skipping Dir Track will rotate disk a little bit more than a sector...
-		inc	nS		//...(12800 cycles to skip a track, 10526 cycles/sector on track 18)...
+		//inc	nS		//Skipping Dir Track will rotate disk a little bit more than a sector...
+		//inc	nS		//...(12800 cycles to skip a track, 10526 cycles/sector on track 18)...
 					//...so start sector of track 19 is increased by 2
 		ldy	#$83		//1.5-track seek, set timer at start
 
@@ -798,6 +803,23 @@ SkipPatch:	lsr	StepTmrRet
 		bcc	*+3
 		rts
 
+//--------------------------------------
+//		Sector Skew Adjustment
+//--------------------------------------
+
+		lda	#Skew		//Skew= -2-4
+		ldx	cT
+		cpx	#$13		//Track 19?
+		bne	*+4
+		lda	#Skew13		//Skew= -8-4
+		sec
+		adc	LastS		//nS=LastS-Skew
+		bcs	*+5
+		adc	MaxSct1+1	//if nS,0 then nS+=MaxSct
+		sta	nS
+
+//--------------------------------------
+
 		lsr	TrackChg	//Are we changing track after CATN?
 		bcc	CheckATN	//No, goto CATN
 		jmp	StartTr		//Yes, jump to transfer
@@ -806,20 +828,6 @@ SkipPatch:	lsr	StepTmrRet
 
 Reset:		jmp	($fffc)
 
-/*
-//--------------------------------------
-//		Shuffle bits
-//--------------------------------------
-
-		eor	#$ff
-		ldx	#$09
-		axs	#$00
-		beq	SkipShuf
-		cpx	#$09
-		beq	SkipShuf
-		eor	#$09
-SkipShuf:	rts
-*/		
 //--------------------------------------
 //		Wait for C64
 //--------------------------------------
@@ -962,11 +970,11 @@ StartTr:	ldy	#$00		//transfer loop counter
 //--------------------------------------
 //		Transfer loop
 //--------------------------------------
-					//			Spartan Loop:
-Loop:		lda	$0100,y		//03-06			19-22
-		bit	$1800		//07-10			23-26
-		bmi	*-3		//11 12			27 28
-W1:		sax	$1800		//13-16			29-32
+					//			Spartan Loop:		Entry:
+Loop:		lda	$0100,y		//03-06			19-22			00-03
+		bit	$1800		//07-10			23-26			04-07
+		bmi	*-3		//11 12			27 28			08 09
+W1:		sax	$1800		//13-16			29-32			10-13
 					//(17 cycles)	 	(33 cycles)
 
 		dey			//00 01
