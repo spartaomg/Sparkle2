@@ -8,7 +8,7 @@
 //	- 2-bit + ATN protocol, combined fixed-order and out-of-order loading
 //	- 125-cycle on-the-fly GCR read-decode-verify loop with 1 BVC instruction
 //	- tolerates disk rotation speeds between 282-312 rpm in VICE in all 4 disk zones
-//	- 72 bycles/block transfer (67-cycle drive transfer loop)
+//	- 72 bycles/block transfer
 //	- Spartan Stepping (TM) for uninterrupted loading across neighboring tracks
 //	- LZ blockwise back-to-back compression
 //----------------------------------------------------------------------------------------
@@ -129,12 +129,12 @@
 //		  better speed tolerance in zones 0-2
 //		  zone 3 remains 282-312 at 0 wobble in VICE
 //		- checking trailing 0s after fetching data block to improve reliability 
-//		  idea borrowed from Bitbreaker's Bitfire
-//		- bits of high nibble of fetched data are no longer shuffled, only EOR'd with #$7
-//		  they only get shuffled during transfer using an updated H2STab
-//		  BitShufTab is now reduced to 4 bytes only -> moved to $0220
+//		- bits of high nibble of fetched data are no longer shuffled, only EOR'd
+//		  BitShufTab is now reduced to 4 bytes only
 //		- more free memory
 //		- ATNA-based transfer loop eliminating H2STab
+//		- implementing sector skew after track change
+//		  improves speed on real drives
 //
 //----------------------------------------------------------------------------------------
 //	Memory Layout
@@ -811,7 +811,6 @@ SkipPatch:	lsr	StepTmrRet
 //--------------------------------------
 
 .if (SkewBase != $00)	{
-
 		lda	#Skew		//Skew= -2-4
 		ldx	cT
 		cpx	#$13		//Track 19?
@@ -853,7 +852,7 @@ DelayIn:	lda	$1c05
 		//beq	ChkLines	//No, continue waiting for C64
 		lda	#$73		//Timer finished, turn motor off
 		sax	$1c00
-		lda	#<CSV		//Reset Verification Counter
+		lda	#<CSV		//Reset Checksum Verification Counter
 		sta	VerifCtr	//I.e. when motor restarts, first we verify proper read
 
 ChkLines:	lda	$1800		
@@ -885,7 +884,7 @@ GetByte:	lda	#$80		//$dd00=#$9b, $1800=#$94
 
 		asl
 		bcs	NewDiskID	//A=#$80-#$fe, Y=#$00 - flip disk
-		beq	CheckDir	//A=#$00, skip Random flag
+		beq	CheckDir	//A=#$00, skip Random flag (first bundle on disk)
 		inc	Random
 CheckDir:	ldx	#$11		//A=#$00-#$7f, X=#$11 (dir sector 17) - DO NOT CHANGE TO INX, IT IS ALSO A JUMP TARGET!!!
 		asl

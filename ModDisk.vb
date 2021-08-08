@@ -2669,7 +2669,7 @@ Err:
 
 	If BlocksFree < BufferCnt Then
 	    MsgBox(D64Name + " cannot be built because it would require " + BufferCnt.ToString + " blocks." + vbNewLine + vbNewLine +
-		   "A standard disk has 664 blocks.", vbOKOnly + vbCritical, "Not enough free space on disk")
+		   "This disk only has " + SectorsPerDisk.ToString + " blocks.", vbOKOnly + vbCritical, "Not enough free space on disk")
 	    GoTo NoDisk
 	End If
 
@@ -2687,7 +2687,7 @@ Err:
 	    DeleteBit(CT, CS, True)
 	Next
 
-	If BufferCnt < 664 Then
+	If BufferCnt < SectorsPerDisk Then
 	    NextTrack = TabT(BufferCnt)
 	    NextSector = TabS(BufferCnt)
 	Else

@@ -854,11 +854,32 @@ Err:
 
 	BitsNeededForNextBundle += If(MLen = 0, 0, 1)   'If last sequence was a Match, we also need a Match Bit
 
+	'If the next block is the first one on a new track, no need to recalculate the sequence
+	'As all previous blocks will be loaded from the previous track before this block gets loaded
+	Dim NewTrack As Boolean = False
+	If BufferCnt < (17 * 21) Then
+
+	    If BufferCnt Mod 21 = 0 Then NewTrack = True
+
+	ElseIf BufferCnt < ((17 * 21) + (6 * 19)) Then
+
+	    If (BufferCnt - (17 * 21)) Mod 19 = 0 Then NewTrack = True
+
+	ElseIf BufferCnt < ((17 * 21) + (6 * 19) + (6 * 18)) Then
+
+	    If (BufferCnt - (17 * 21) - (6 * 19)) Mod 18 = 0 Then NewTrack = True
+
+	Else
+
+	    If (BufferCnt - (17 * 21) - (6 * 19) - (6 * 18)) Mod 17 = 0 Then NewTrack = True
+
+	End If
+
 	'If NewCalc = False Then
 	'BitsLeftFree = Seq(SI).TotalBits
 	'End If
-	If (BlockCnt = 1) Or ((BitsLeftFree + BitsNeededForNextBundle <= ((LastByte - 1) * 8) + BitPos) And (LastFileOfBundle = True) And (NewBlock = False)) Then
-
+	If (BlockCnt = 1) Or (NewTrack = True) Or ((BitsLeftFree + BitsNeededForNextBundle <= ((LastByte - 1) * 8) + BitPos) And (LastFileOfBundle = True) And (NewBlock = False)) Then
+	    'MsgBox(NewTrack.ToString)
 	    'Seq(SI+1).Bytes/Nibbles/Bits = to calculate remaining bits in file
 	    'BitsNeededForNextBundle (5-6 bytes + 1/2 bits)
 	    '+5/6 bytes +1/2 bits
@@ -872,7 +893,7 @@ Err:
 	    'Seg(SI).bit includes both the byte stream in bits and the bit stream (total bits needed to compress the remainder of the bundle)
 	    '+Close Tag: 8 bits
 	    '+BitsNeeded: 5-6 bytes for next bundle's info + 1 lit bit +/- 1 match bit (may or may not be needed, but we wouldn't know until the end)
-	    'For the 2nd and last block, only recalculate the first byte's sequence
+	    'For the 2nd and last blocks of a bundle and the first blocks on a new track only recalculate the first byte's sequence
 	    'If BlockCnt <> 1 Then MsgBox((BitsLeftFree + BitsNeededForNextBundle).ToString + vbNewLine + (Seq(SI + 1).TotalBits + BitsNeededForNextBundle).ToString + vbNewLine + ((LastByte - 1) * 8 + BitPos).ToString)
 	    CalcBestSequence(If(SI > 1, SI, 1), If(SI > 1, SI, 1))
 	    If BlockCnt <> 1 Then

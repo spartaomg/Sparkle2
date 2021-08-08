@@ -1,3 +1,4 @@
+//TAB=8
 //----------------------------
 //	Sparkle 2
 //	Hi-Score File Saver
@@ -17,6 +18,8 @@
 //		  relying on Sparkle_SendCmd
 //
 //	v1.3	- adjusting drive code to new Tab8 layout and trailing 0 check 
+//
+//	v1.4	- adjusting code to ATNA-based transfer
 //
 //----------------------------
 //	BLOCK STRUCTURE
@@ -378,8 +381,6 @@ RcvCheck:	jsr	NewByte		//More blocks to write?
 		stx	DirSector	//Resetting DirSector to ensure next index-based load reloads the directory
 RestoreLoop:
 		lda	$023b,x
-		//bmi	*+4		//Tab8 values >#$7f, H2STab values <#$80 
-		//ora	#$04		//Restore H2STab
 		and	#$bf		//Restore Tab8
 		sta	$02bb,x
 		dex

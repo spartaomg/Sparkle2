@@ -1,6 +1,7 @@
+//TAB=8
 //----------------------------------------------------------------------
 //	SPARKLE
-//	Inspired by Lft's Spindle and Krill's Loader
+//	Inspired by Lft's Spindle, Bitbreaker's Bitfire, and Krill's Loader
 //	C64 Code
 //	Tested on 1541-II, 1571, 1541 Ultimate-II+, Oceanic, and THCM's SX-64
 //----------------------------------------------------------------------
@@ -450,7 +451,7 @@ SpComp:		cpx	#Sp		//2	14	Will be changed to #$ff in Spartan Step Delay
 Read3:		ora	$dd00		//4		W3-W4 = 17 cycles	|
 		sty	$dd00		//4	8	Y=#$08 -> ATN=1		|
 		lsr			//2	10				|
-		lsr			//2	12	ALR #$fe to clear C	| C=1 here
+		lsr			//2	12				| C=1 here
 		sta	LastBits+1	//4	16				|
 		lda	#$c0		//2	(18)				|
 					//					|
@@ -458,7 +459,7 @@ Read4:		and	$dd00		//4		W4-W1 = 16 cycles	|
 		sta	$dd00		//4	8	A=#$X0 -> ATN=0		|
 LastBits:	ora	#$00		//2	10				|
 		sta	Buffer,x	//5	15				|
-JmpRcv:		bvc	RcvLoop	//3	(18)	BCC RcvLoop			|
+JmpRcv:		bvc	RcvLoop		//3	(18)				|
 					//					|
 //----------------------------							|
 					//					|
