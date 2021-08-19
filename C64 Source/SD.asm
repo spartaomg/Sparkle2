@@ -968,7 +968,7 @@ SeqLoad:	tay			//A=#$00 here -> Y=#$00
 		jmp	CheckSCtr	//Needs Y=#$00, JSR cannot be used
 		
 StartTr:	ldy	#$00		//transfer loop counter
-		ldx	#$0a		//bit mask for SAX
+		ldx	#$ef		//bit mask for SAX
 		lda	#ready		//A=#$08, ATN=0, AA not needed
 		sta	$1800
 
@@ -1083,7 +1083,7 @@ ChkWCtr:	dec	WantedCtr	//If we just updated BlockCtr then WantedCtr will be 0
 		ldx	cT		//If SCtr>=BlockCtr then the Bundle will end on this track...
 NewWCtr:	sty	WantedCtr	//Store new Wanted Counter (SCtr vs BlockCtr whichever is smaller)
 		stx	LastT		//...so save current track to LastT, otherwise put #$ef to corrupt EOR result in check
-		
+
 		ldx	nS		//Preload Next Sector in chain
 		jsr	Build		//Build new wanted list (buffer transfer complete, JSR is safe)
 ToFetch:	jmp	Fetch		//then fetch

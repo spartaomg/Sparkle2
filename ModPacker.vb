@@ -72,7 +72,7 @@
 	ReDim SL(PrgLen - 1), SO(PrgLen - 1), LL(PrgLen - 1), LO(PrgLen - 1)
 	ReDim Seq(PrgLen)       'This is actually one element more in the array, to have starter element with 0 values
 
-	With Seq(1)             'Initialize first element of sequence
+	With Seq(0)             'Initialize first element of sequence - WAS Seq(1)!!!
 	    '.Len = 0           '1 Literal byte, Len is 0 based
 	    '.Off = 0           'Offset=0 -> literal sequence, Off is 1 based
 	    .TotalBits = 10     'LitLen bit + 8 bits, DO NOT CHANGE IT TO 9!!!
@@ -142,8 +142,8 @@ Err:
 	'CALCULATE MAX MATCH LENGTHS AND OFFSETS FOR EACH POSITION
 	'----------------------------------------------------------------------------------------------------------
 
-	'Pos = Max to Min>0 value
-	For Pos As Integer = SeqStart To SeqEnd Step -1  'Pos cannot be 0, Prg(0) is always literal as it is always 1 byte left
+	'Pos = Min>0 to Max value, direction of execution is arbitrary (could be Max to Min>0 Step -1)
+	For Pos As Integer = SeqEnd To SeqStart         'Pos cannot be 0, Prg(0) is always literal as it is always 1 byte left
 	    SO(Pos) = 0
 	    SL(Pos) = 0
 	    LO(Pos) = 0

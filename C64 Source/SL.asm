@@ -147,7 +147,7 @@
 .const	DriveCt		=$fc
 
 .const	Sp		=<$ff+$52	//#$51 - Spartan Stepping constant
-.const	InvSp		=Sp^$ff	//#$ae
+.const	InvSp		=Sp^$ff		//#$ae
 
 .const	ZP		=$02		//$02/$03
 .const	Bits		=$04
