@@ -466,61 +466,61 @@ Err:
 
     End Sub
 
-    Private Sub CalcMatchBitSeq(Length As Integer, Offset As Integer) 'Match Length is 1 based
-	On Error GoTo Err
+    'Private Sub CalcMatchBitSeq(Length As Integer, Offset As Integer) 'Match Length is 1 based
+    'On Error GoTo Err
+    '
+    'If (Length <= MaxShortLen) And (Offset <= ShortOffset) Then
+    'MatchBytes = 1
+    'ElseIf Length <= MaxMidLen Then
+    'MatchBytes = 2
+    'Else
+    'MatchBytes = 3
+    'End If
+    '
+    'MatchBits = (MatchBytes * 8) + 1        'Add type selector bit here for best sequence calcs
 
-	If (Length <= MaxShortLen) And (Offset <= ShortOffset) Then
-	    MatchBytes = 1
-	ElseIf Length <= MaxMidLen Then
-	    MatchBytes = 2
-	Else
-	    MatchBytes = 3
-	End If
+    'Exit Sub
+    'Err:
+    'ErrCode = Err.Number
+    'MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
 
-	MatchBits = (MatchBytes * 8) + 1        'Add type selector bit here for best sequence calcs
+    'End Sub
 
-	Exit Sub
-Err:
-	ErrCode = Err.Number
-	MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+    'Private Function CalcLitBitSeq(Lits As Integer) As Integer     'LitCnt is 0 based
+    'On Error GoTo Err
 
-    End Sub
-
-    Private Function CalcLitBitSeq(Lits As Integer) As Integer     'LitCnt is 0 based
-	On Error GoTo Err
-
-	'Type selector bit is NOT added here as it is NOT needed AFTER a literal sequence
-	CalcLitBitSeq = Int(Lits / MaxLitPerBlock) * 13
-	Select Case Lits Mod MaxLitPerBlock
-	    Case 0
-		CalcLitBitSeq += 1              'Lits = 0	1 literal, 1 bit
-	    Case 1 To MaxLitLen
-		CalcLitBitSeq += 5              'Lits = 1-15	2-16 literals, 5 bits
-	    Case Else
-		CalcLitBitSeq += 13             'Lits = 16-250	17-251 literals, 13 bits
-	End Select
+    ''Type selector bit is NOT added here as it is NOT needed AFTER a literal sequence
+    'CalcLitBitSeq = Int(Lits / MaxLitPerBlock) * 13
+    'Select Case Lits Mod MaxLitPerBlock
+    'Case 0
+    'CalcLitBitSeq += 1              'Lits = 0	1 literal, 1 bit
+    'Case 1 To MaxLitLen
+    'CalcLitBitSeq += 5              'Lits = 1-15	2-16 literals, 5 bits
+    'Case Else
+    'CalcLitBitSeq += 13             'Lits = 16-250	17-251 literals, 13 bits
+    'End Select
 
 
-	'If Lits = -1 Then                       'Function is called with LitCnt+1, can never be -1
-	'CalcLitBitSeq = 0                       'Lits = -1		no literals, 0 bit
-	'ElseIf Lits = 0 Then
-	'CalcLitBitSeq = 1                       'Lits = 0		one literal, 1 bit
-	'ElseIf Lits < MaxLitLen Then                'MaxLitLen=15, Lits are 0 based
-	'CalcLitBitSeq = 5                       'Lits = 1-15	2-16 literals, 5 bits
-	'Else
-	'CalcLitBitSeq = 13                      'Lits = 16-250	17-251 literals, 13 bits
-	'End If
+    ''If Lits = -1 Then                       'Function is called with LitCnt+1, can never be -1
+    ''CalcLitBitSeq = 0                       'Lits = -1		no literals, 0 bit
+    ''ElseIf Lits = 0 Then
+    ''CalcLitBitSeq = 1                       'Lits = 0		one literal, 1 bit
+    ''ElseIf Lits < MaxLitLen Then                'MaxLitLen=15, Lits are 0 based
+    ''CalcLitBitSeq = 5                       'Lits = 1-15	2-16 literals, 5 bits
+    ''Else
+    ''CalcLitBitSeq = 13                      'Lits = 16-250	17-251 literals, 13 bits
+    ''End If
 
-	'IN THIS VERSION, LITERALS ARE ALWAYS FOLLOWED BY MATCHES, SO TYPE SELECTOR BIT IS NOT NEEDED AFTER LITERALS AT ALL
+    'IN THIS VERSION, LITERALS ARE ALWAYS FOLLOWED BY MATCHES, SO TYPE SELECTOR BIT IS NOT NEEDED AFTER LITERALS AT ALL
 
-	LitBits = CalcLitBitSeq
+    'LitBits = CalcLitBitSeq
 
-	Exit Function
-Err:
-	ErrCode = Err.Number
-	MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+    'Exit Function
+    'Err:
+    'ErrCode = Err.Number
+    'MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
 
-    End Function
+    'End Function
 
     Private Function CalcLitBits(Lits As Integer) As Integer     'LitCnt is 0 based
 	On Error GoTo Err
