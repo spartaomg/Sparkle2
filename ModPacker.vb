@@ -134,7 +134,7 @@ Err:
     Private Sub CalcBestSequence(SeqStart As Integer, SeqEnd As Integer)
 	On Error GoTo Err
 
-	Dim MaxO, MaxL As Integer
+	Dim MaxO, MaxL, MaxLL, MaxSL As Integer
 	Dim SeqLen, SeqOff As Integer
 	Dim TotBits As Integer
 
@@ -148,6 +148,10 @@ Err:
 	    SL(Pos) = 0
 	    LO(Pos) = 0
 	    LL(Pos) = 0
+
+	    MaxLL = If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)
+	    MaxSL = If(Pos >= MaxShortLen - 1, MaxShortLen, Pos + 1)
+
 	    'Offset goes from 1 to max offset (cannot be 0)
 	    MaxO = If(Pos + MaxOffset < SeqStart, MaxOffset, SeqStart - Pos)    'MaxO=256 or less
 	    'Match length goes from 1 to max length
@@ -182,19 +186,18 @@ Match:                          If O <= ShortOffset Then
 			End If
 		    Next
 		    'If both short and long matches maxed out, we can leave the loop and go to the next Prg position
-		    If (LL(Pos) = If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)) And
-			(SL(Pos) = If(Pos >= MaxShortLen - 1, MaxShortLen, Pos + 1)) Then
+		    If (LL(Pos) = MaxLL) And (SL(Pos) = MaxSL) Then
 			Exit For
 		    End If
 		End If
 	    Next
-	Next
+	    'Next
 
-	'----------------------------------------------------------------------------------------------------------
-	'FIND BEST SEQUENCE FOR EACH POSITION
-	'----------------------------------------------------------------------------------------------------------
+	    '----------------------------------------------------------------------------------------------------------
+	    'FIND BEST SEQUENCE FOR EACH POSITION
+	    '----------------------------------------------------------------------------------------------------------
 
-	For Pos As Integer = SeqEnd To SeqStart     'Start with second element, first has been initialized  above
+	    'For Pos As Integer = SeqEnd To SeqStart     'Start with second element, first has been initialized  above
 
 	    Seq(Pos + 1).TotalBits = &HFFFFFF       'Max block size=100 = $10000 bytes = $80000 bits, make default larger than this
 
@@ -221,7 +224,9 @@ Match:                          If O <= ShortOffset Then
 		'End If
 
 		'Calculate MatchBits
-		CalcMatchBitSeq(L, SeqOff)
+		'CalcMatchBitSeq(L, SeqOff)
+
+		MatchBits = If((L <= MaxShortLen) And (SeqOff <= ShortOffset), 8 + 1, If(L <= MaxMidLen, 16 + 1, 24 + 1))
 
 		'If NewCalc Then
 		'Calculate total bit count, independently of nibble status
@@ -257,7 +262,18 @@ Literals:
 	    LitCnt = If(Seq(Pos).Off = 0, Seq(Pos).Len, -1)
 
 	    'Calculate literal bits for a presumtive LitCnt+1 value
-	    CalcLitBitSeq(LitCnt + 1)       'This updates LitBits
+	    'CalcLitBitSeq(LitCnt + 1)       'This updates LitBits
+	    LitBits = Int((LitCnt + 1) / MaxLitPerBlock) * 13
+	    Select Case (LitCnt + 1) Mod MaxLitPerBlock
+		Case 0
+		    LitBits += 1                       'Lits = 0	1 literal, 1 bit
+		Case 1 To MaxLitLen
+		    LitBits += 5                       'Lits = 1-15	2-16 literals, 5 bits
+		Case Else
+		    LitBits += 13                      'Lits = 16-250	17-251 literals, 13 bits
+	    End Select
+
+	    'IN THIS VERSION, LITERALS ARE ALWAYS FOLLOWED BY MATCHES, SO TYPE SELECTOR BIT IS NOT NEEDED AFTER LITERALS AT ALL
 
 	    'If NewCalc Then
 	    TotBits = Seq(Pos - LitCnt - 1).TotalBits + LitBits + ((LitCnt + 2) * 8)
@@ -474,16 +490,26 @@ Err:
 	On Error GoTo Err
 
 	'Type selector bit is NOT added here as it is NOT needed AFTER a literal sequence
+	CalcLitBitSeq = Int(Lits / MaxLitPerBlock) * 13
+	Select Case Lits Mod MaxLitPerBlock
+	    Case 0
+		CalcLitBitSeq += 1              'Lits = 0	1 literal, 1 bit
+	    Case 1 To MaxLitLen
+		CalcLitBitSeq += 5              'Lits = 1-15	2-16 literals, 5 bits
+	    Case Else
+		CalcLitBitSeq += 13             'Lits = 16-250	17-251 literals, 13 bits
+	End Select
 
-	If Lits = -1 Then
-	    CalcLitBitSeq = 0                       'Lits = -1		no literals, 0 bit
-	ElseIf Lits = 0 Then
-	    CalcLitBitSeq = 1                       'Lits = 0		one literal, 1 bit
-	ElseIf Lits < MaxLitLen Then                'MaxLitLen=15, Lits are 0 based
-	    CalcLitBitSeq = 5                       'Lits = 1-14	2-15 literals, 5 bits
-	Else
-	    CalcLitBitSeq = 13                      'Lits = 15-250	16-251 literals, 13 bits
-	End If
+
+	'If Lits = -1 Then                       'Function is called with LitCnt+1, can never be -1
+	'CalcLitBitSeq = 0                       'Lits = -1		no literals, 0 bit
+	'ElseIf Lits = 0 Then
+	'CalcLitBitSeq = 1                       'Lits = 0		one literal, 1 bit
+	'ElseIf Lits < MaxLitLen Then                'MaxLitLen=15, Lits are 0 based
+	'CalcLitBitSeq = 5                       'Lits = 1-15	2-16 literals, 5 bits
+	'Else
+	'CalcLitBitSeq = 13                      'Lits = 16-250	17-251 literals, 13 bits
+	'End If
 
 	'IN THIS VERSION, LITERALS ARE ALWAYS FOLLOWED BY MATCHES, SO TYPE SELECTOR BIT IS NOT NEEDED AFTER LITERALS AT ALL
 
@@ -502,11 +528,11 @@ Err:
 	If Lits = -1 Then
 	    CalcLitBits = 0                       'Lits = -1		no literals, 0 bit
 	ElseIf Lits = 0 Then
-	    CalcLitBits = 2                       'Lits = 0			one literal, 1 bit
+	    CalcLitBits = 2                       'Lits = 0		one literal, 1 bit
 	ElseIf Lits < MaxLitLen Then
-	    CalcLitBits = 6                       'Lits = 1-14		2-15 literals, 5 bits
+	    CalcLitBits = 6                       'Lits = 1-15		2-16 literals, 5 bits
 	Else
-	    CalcLitBits = 14                      'Lits = 15-250	16-251 literals, 13 bits
+	    CalcLitBits = 14                      'Lits = 15-250	17-251 literals, 13 bits
 	End If
 
 	LitBits = CalcLitBits
