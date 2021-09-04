@@ -335,13 +335,14 @@ Restart:
 		LitSI = SI
 		MLen = 0                                'Reset MLen - this is needed for accurate bit counting in sequencefits
 
-		'The max number of literals that fit in a single buffer is 245 bytes
+		'The max number of literals that fit in a single buffer is 249 bytes
 		'This bypasses longer literal sequences and improves compression speed
 		BufferFull = False
 
-		If LitCnt > MaxLitPerBlock Then
+		'Shortcut to bypass long literal sequences that wouldn't fit in the buffer anyway
+		If LitCnt > BytePtr Then    'MaxLitPerBlock Then
 		    BufferFull = True
-		    LitCnt = MaxLitPerBlock
+		    LitCnt = BytePtr        'MaxLitPerBlock
 		End If
 
 		Do While LitCnt > -1
