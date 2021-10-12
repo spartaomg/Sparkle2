@@ -1620,10 +1620,18 @@ NoDisk:
         End If
 
         'Find relative path of subscript
-        For I As Integer = Len(SPath) - 1 To 0 Step -1
-            If Right(SPath, 1) <> "\" Then
-                SPath = Left(SPath, Len(SPath) - 1)
-            Else
+        'For I As Integer = Len(SPath) - 1 To 0 Step -1
+        'If Right(SPath, 1) <> "\" Then
+        'SPath = Left(SPath, Len(SPath) - 1)
+        'Else
+        'Exit For
+        'End If
+        'Next
+
+        'Find relative path of subscript
+        For I As Integer = Len(SPath) To 1 Step -1
+            If Mid(SPath, I, 1) = "\" Then
+                SPath = Strings.Left(SPath, I)            'Path
                 Exit For
             End If
         Next
@@ -1633,37 +1641,90 @@ NoDisk:
         Dim S As String = ""
         For I As Integer = 0 To Lines.Count - 1
             Lines(I) = Lines(I).TrimEnd(Chr(13))    'Trim vbCR from end of lines if vbCrLf was used
+
+            If InStr(Lines(I), vbTab) = 0 Then
+                ScriptEntryType = Lines(I)
+                ScriptEntry = ""
+            Else
+                ScriptEntryType = Strings.Left(Lines(I), InStr(Lines(I), vbTab) - 1)
+                ScriptEntry = Strings.Right(Lines(I), Len(Lines(I)) - InStr(Lines(I), vbTab)).TrimStart(vbTab)
+            End If
+
+            SplitEntry()
+
             'Skip Script Header
             If Lines(I) <> ScriptHeader Then
                 If S <> "" Then
                     S += vbNewLine
                 End If
                 'Add relative path of subscript to relative path of subscript entries
-                If Left(LCase(Lines(I)), 5) = "file:" Then
-                    If (InStr(Right(Lines(I), Len(Lines(I)) - 5), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 5), SPath) = 0) Then
-                        Lines(I) = "File:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 5).TrimStart(vbTab)    'Trim any extra leading TABs
-                    End If
-                ElseIf Left(LCase(Lines(I)), 7) = "script:" Then
-                    If (InStr(Right(Lines(I), Len(Lines(I)) - 7), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 7), SPath) = 0) Then
-                        Lines(I) = "Script:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 7).TrimStart(vbTab)
-                    End If
-                ElseIf Left(LCase(Lines(I)), 5) = "list:" Then
-                    If (InStr(Right(Lines(I), Len(Lines(I)) - 5), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 5), SPath) = 0) Then
-                        Lines(I) = "Script:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 5).TrimStart(vbTab)
-                    End If
-                ElseIf Left(LCase(Lines(I)), 5) = "path:" Then
-                    If (InStr(Right(Lines(I), Len(Lines(I)) - 5), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 5), SPath) = 0) Then
-                        Lines(I) = "Path:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 5).TrimStart(vbTab)
-                    End If
-                ElseIf Left(LCase(Lines(I)), 7) = "dirart:" Then
-                    If (InStr(Right(Lines(I), Len(Lines(I)) - 7), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 7), SPath) = 0) Then
-                        Lines(I) = "DirArt:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 7).TrimStart(vbTab)
-                    End If
-                ElseIf Left(LCase(Lines(I)), 7) = "hsfile:" Then
-                    If (InStr(Right(Lines(I), Len(Lines(I)) - 7), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 7), SPath) = 0) Then
-                        Lines(I) = "HSFile:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 7).TrimStart(vbTab)
-                    End If
-                End If
+                Select Case LCase(ScriptEntryType)
+                    Case "file:"
+                        If ScriptEntryArray(0) IsNot Nothing Then
+                            If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = SPath + ScriptEntryArray(0)
+                        End If
+                        Lines(I) = "File:" + vbTab + ScriptEntryArray(0)
+                        For J As Integer = 1 To ScriptEntryArray.Length - 1
+                            If ScriptEntryArray(J) IsNot Nothing Then
+                                Lines(I) += vbTab + ScriptEntryArray(J)
+                            End If
+                        Next
+                    Case "script:", "list:"
+                        If ScriptEntryArray(0) IsNot Nothing Then
+                            If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = SPath + ScriptEntryArray(0)
+                        End If
+                        Lines(I) = "Script:" + vbTab + ScriptEntryArray(0)
+                    Case "path:"
+                        If ScriptEntryArray(0) IsNot Nothing Then
+                            If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = SPath + ScriptEntryArray(0)
+                        End If
+                        Lines(I) = "Path:" + vbTab + ScriptEntryArray(0)
+                    Case "dirart:"
+                        If ScriptEntryArray(0) IsNot Nothing Then
+                            If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = SPath + ScriptEntryArray(0)
+                        End If
+                        Lines(I) = "DirArt:" + vbTab + ScriptEntryArray(0)
+                    Case "hsfile:"
+                        If ScriptEntryArray(0) IsNot Nothing Then
+                            If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = SPath + ScriptEntryArray(0)
+                        End If
+                        Lines(I) = "HSFile:" + vbTab + ScriptEntryArray(0)
+                        For J As Integer = 1 To ScriptEntryArray.Length - 1
+                            If ScriptEntryArray(J) IsNot Nothing Then
+                                Lines(I) += vbTab + ScriptEntryArray(J)
+                            End If
+                        Next
+                End Select
+                'If Strings.Right(Lines(I), 1) <> vbLf Then
+                'Lines(I) += vbLf
+                'End If
+
+
+                'If Left(LCase(Lines(I)), 5) = "file:" Then
+                'If (InStr(Right(Lines(I), Len(Lines(I)) - 5), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 5), SPath) = 0) Then
+                'Lines(I) = "File:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 5).TrimStart(vbTab)    'Trim any extra leading TABs
+                'End If
+                'ElseIf Left(LCase(Lines(I)), 7) = "script:" Then
+                'If (InStr(Right(Lines(I), Len(Lines(I)) - 7), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 7), SPath) = 0) Then
+                'Lines(I) = "Script:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 7).TrimStart(vbTab)
+                'End If
+                'ElseIf Left(LCase(Lines(I)), 5) = "list:" Then
+                'If (InStr(Right(Lines(I), Len(Lines(I)) - 5), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 5), SPath) = 0) Then
+                'Lines(I) = "Script:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 5).TrimStart(vbTab)
+                'End If
+                'ElseIf Left(LCase(Lines(I)), 5) = "path:" Then
+                'If (InStr(Right(Lines(I), Len(Lines(I)) - 5), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 5), SPath) = 0) Then
+                'Lines(I) = "Path:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 5).TrimStart(vbTab)
+                'End If
+                'ElseIf Left(LCase(Lines(I)), 7) = "dirart:" Then
+                'If (InStr(Right(Lines(I), Len(Lines(I)) - 7), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 7), SPath) = 0) Then
+                'Lines(I) = "DirArt:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 7).TrimStart(vbTab)
+                'End If
+                'ElseIf Left(LCase(Lines(I)), 7) = "hsfile:" Then
+                'If (InStr(Right(Lines(I), Len(Lines(I)) - 7), ":") = 0) And (InStr(Right(Lines(I), Len(Lines(I)) - 7), SPath) = 0) Then
+                'Lines(I) = "HSFile:" + vbTab + SPath + Right(Lines(I), Len(Lines(I)) - 7).TrimStart(vbTab)
+                'End If
+                'End If
                 S += Lines(I)
             End If
         Next
