@@ -773,7 +773,7 @@ RateDone:	//sta	Spartan+1
 		rts	
 
 //StoreTr:	sta	cT		//Store new track number - SKIP IF JSR FROM RANDOM
-StoreBR:	sta	Spartan+1
+StoreBR:	sta	Spartan+1	//Store bitrate for Spartan step
 		lda	Random
 		bne	*+4
 		sty	SCtr		//Reset Sector Counter

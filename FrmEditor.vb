@@ -5197,7 +5197,7 @@ Done:
 
                     For J As Integer = 0 To DiskNode.Nodes.Count - 1
                         If InStr(DiskNode.Nodes(J).Name, sHSFile) <> 0 Then
-                            If DiskNode.Nodes(J).Nodes.Count = 4 Then
+                            If DiskNode.Nodes(J).Nodes.Count >= 3 Then
                                 Dim HSFileSize As Integer = (Convert.ToInt32(Strings.Right(DiskNode.Nodes(J).Nodes(2).Text, 4), 16) / &H100) + 1 + 2
 
                                 If DiskSizeA(CurrentDisk) + HSFileSize > DiskSectorsA(CurrentDisk) Then
