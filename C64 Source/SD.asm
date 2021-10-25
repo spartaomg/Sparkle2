@@ -288,12 +288,12 @@
 .const	XX4		=$67
 
 //Other Tabs:
-.const	H2STab		=Tab200+$0d	//HiNibble-to-Serial Conversion Tab ($10 bytes total, $10 bytes apart)
+//.const	H2STab		=Tab200+$0d	//HiNibble-to-Serial Conversion Tab ($10 bytes total, $10 bytes apart)
 
 //--------------------------------------
 
 *=$2300	"Drive Code"
-.pseudopc $0220	{
+.pseudopc $0260	{
 BitShufTab:
 }
 .pseudopc $0300	{
@@ -755,7 +755,7 @@ BR20:		ora	#$20		//Bitrate=%11
 RateDone:	//sta	Spartan+1
 		//txa			//A=new track number
 
-		sty	MaxSct1+1	//Update Max No. of Sectors in this Track
+		//sty	MaxSct1+1	//Update Max No. of Sectors in this Track
 		sty	MaxSct2+1	//Three extra bytes here but faster loop later
 
 		ldx	ILTab-$11,y	//Inverted Custom Interleave Tab
@@ -822,7 +822,7 @@ SkipPatch:	lsr	StepTmrRet
 		sec
 		adc	LastS		//nS=LastS-Skew
 		bcs	*+5
-		adc	MaxSct1+1	//if nS,0 then nS+=MaxSct
+		adc	MaxSct2+1	//if nS,0 then nS+=MaxSct
 		sta	nS
 }
 
@@ -1208,16 +1208,16 @@ CDLoop:		pla			//00	=LDA $0100,y
 		sta	$0700,y		//02-04
 		bne	CDLoop		//05 06
 		jmp	ReadDir		//07-09
-ClrJmp:		jmp	NextTrack	//0a-0c
 //--------------------------------------
-ClearList:	clc			//0e
-JmpClrList:	ldx	#$14		//0f 10
-ClrWList:	sty	WList,x		//11 12	Y=00, clear Wanted Block List
-		dex			//13
-		bpl	ClrWList	//14 15
-		bcs	ClrJmp		//16 17
-		rts			//18
+ClearList:	clc			//0a
+JmpClrList:	ldx	#$14		//0b 0c
+ClrWList:	sty	WList,x		//0d 0e	Y=00, clear Wanted Block List
+		dex			//0f
+		bpl	ClrWList	//10 11
+		bcs	ClrJmp		//12 13
+		rts			//14
 //--------------------------------------
+ClrJmp:		jmp	NextTrack	//15-17
 CDEnd:
 }
 
@@ -1237,18 +1237,18 @@ ChainLoop:	lda	WList,x		//86,87	Check if sector is unfetched (=00)
 		bne	NxtSct		//88,89	If sector is not unfetched (it is either fetched or wanted), go to next sector
 
 		lda	#$ff		//8a,8b
-MarkSct:	sta	WList,x		//8e,8f	Mark Sector as wanted (or used in the case of random bundle, STA <=> STY)
-		stx	LastS		//90,91	Save Last Sector
-IL:		axs	#$00		//92,93	Calculate Next Sector using inverted interleave
-MaxSct1:	cpx	#$00		//94,95	Reached Max?
-		bcc	SkipSub		//96,97	Has not reached Max yet, so skip adjustments
-MaxSct2:	axs	#$00		//98,99	Reached Max, so subtract Max
-		beq	SkipSub		//9a,9b
-SubSct:		axs	#$01		//9e,9f	Decrease if sector > 0
-SkipSub:	dey			//a0	Any more blocks to be put in chain?
-		bne	ChainLoop	//a1,a2
-		stx	nS		//a3,a4
-		rts			//a5	A=#$ff, X=next sector, Y=#$00 here
+MarkSct:	sta	WList,x		//8c,8d	Mark Sector as wanted (or used in the case of random bundle, STA <=> STY)
+		stx	LastS		//8e,8f	Save Last Sector
+IL:		axs	#$00		//90,91	Calculate Next Sector using inverted interleave
+MaxSct1:	cpx	MaxSct2+1	//92-94	Reached Max?
+		bcc	SkipSub		//95,96	Has not reached Max yet, so skip adjustments
+MaxSct2:	axs	#$00		//97,98	Reached Max, so subtract Max
+		beq	SkipSub		//99,9a
+SubSct:		axs	#$01		//9b,9c	Decrease if sector > 0
+SkipSub:	dey			//9d	Any more blocks to be put in chain?
+		bne	ChainLoop	//9e,9f
+		stx	nS		//a0,a1
+		rts			//a2	A=#$ff, X=next sector, Y=#$00 here
 BLEnd:
 }
 
