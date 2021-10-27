@@ -143,7 +143,7 @@
 //	0086	00ff	GCR Loop
 //	0100	01ff	Data Buffer on Stack
 //	0200	03f1	GCR Tabs with code interleaved
-//	0330	06c4	Drive Code ($3b bytes free)
+//	0330	069f	Drive Code ($60 bytes free)
 //	0700	07ff	Directory (4 bytes per entry, 64 entries per dir block, 2 dir blocks on disk)
 //
 //	Layout at Start
@@ -233,7 +233,7 @@
 .const	VerifCtr	=$19	//Checksum Verification Counter
 .const	NewBundle	=$23	//#$00->#$01, stop motor if #$01
 .const	StepDir		=$28	//Stepping  Direction
-.const	LastBlock	=$29	//#$01 if last block of a Bundle is fetched, otherwise $00
+//.const	LastBlock	=$29	//#$01 if last block of a Bundle is fetched, otherwise $00 - replaced by BlockCtr=#$01
 .const	WList		=$3e	//Wanted Sector list ($3e-$52) (00=unfetched, [-]=wanted, [+]=fetched)
 .const	DirSector	=$56	//Initial value=#$c5 (<>#$10 or #$11)
 .const	EoD		=$5e	//End of Disk flag, only used with sequential loading
@@ -461,7 +461,7 @@ ProductID:
 //03f0
 .byte	$d6,$4a
 //03f2
-SkipTabs3:	sty.z	CSum+1		//f2 f3|13	Y=#$ff, we are working with inverted GCR Tabs, checksum must be inverted
+SkipTabs3:	sty.z	CSum+1		//f2 f3|13	Y=#$7f, we are working with inverted GCR Tabs, checksum must be inverted
 		ldy	#$00		//f4	15	Y=#$00
 		lda	cT		//f5 f6|18
 		cmp	#$19		//f7 f8|20	Track number >=25?
@@ -469,16 +469,16 @@ SkipTabs3:	sty.z	CSum+1		//f2 f3|13	Y=#$ff, we are working with inverted GCR Tab
 		pha			//fb	--/26	8 cycles delay for zones 0-1
 		pla			//fc	--/29
 		nop			//fd	--/31
-SkipDelay:	sta	$0102,y		//fe-00|28/36	Any value will do in A as long as $0102 and $0103 are the same
-		sta	(GCRLoop+4),y	//01 02|34/42	$0102 and $0103 will actually contain the current track number
-		ldx	#$3e		//03 04|36/44			   [26-51  28-55  30-59  32-63]
-		lda	$1c01		//05-07|40/48	*Read2 = 22333334 @ 40/-11 40/+12 48/-11 48/-15
-		sax.z	t3+1		//08 09|43/51	t3+1 = 00333330	
-		lsr			//0a	45/53	C=4 - needed for GCR loop
-		lax	ZP00		//0b 0c|48/56	Clear A, X - both needed for first 2 EORs after BNE in GCR loop
+SkipDelay:	sta	(GCRLoop+1),y	//fe-ff|29/37	Any value will do in A as long as $0102 and $0103 are the same
+		sta	(GCRLoop+4),y	//00 01|35/43	$0102 and $0103 will actually contain the current track number
+		ldx	#$3e		//02 03|37/45			   [26-51  28-55  30-59  32-63]
+		lda	$1c01		//04-06|41/49	*Read2 = 22333334 @ 41/-10 41/+13 49/-10 49/-14
+		sax.z	t3+1		//07 08|44/52	t3+1 = 00333330	
+		lsr			//09	46/54	C=4 - needed for GCR loop
+		lax	#$00		//0a 0b|48/56	Clear A, X - both needed for first 2 EORs after BNE in GCR loop
 					//		LAX #$00 would work but we need ZP for timing
-		iny			//0d	50/58	Y=#$01 (<>#$00 for BNE to work after jump in GCR loop)
-		jmp	GCREntry	//0e-10|53/61	Same number of cycles before BNE as in GCR loop
+		iny			//0c	50/58	Y=#$01 (<>#$00 for BNE to work after jump in GCR loop)
+		jmp	GCREntry	//0d-0f|53/61	Same number of cycles before BNE as in GCR loop
 
 //--------------------------------------
 //		Got Header
@@ -507,7 +507,7 @@ ToFData:	bne	FetchData	//Not the last one -> fetch data
 		dex
 		bne	ToFHeader	//More than one sector left on Wanted List, skip last sector, fetch next
 
-		sta	LastBlock	//-> #$01, we have the last block of the bundle
+		//sta	LastBlock	//-> #$01, we have the last block of the bundle
 		beq	JmpFData	//ALWAYS
 
 //--------------------------------------
@@ -638,8 +638,10 @@ Data:		lda	$1c01		//A=77788888			44/-7	44/-11	44/+14	44/+12
 //		Check Last Block	//Y=#$00 here
 //--------------------------------------
 
-		lsr	LastBlock
-		bcc	ChkNewBndl	//C=0 - not the last block
+		//lsr	LastBlock
+		//bcc	ChkNewBndl	//C=0 - not the last block
+		dec	BlockCtr
+		bne	ChkNewBndl
 
 		lda	(ZP01ff),y	//Save new block count for later use
 		sta	NBC
@@ -936,7 +938,7 @@ DirLoop:	lda	$0700,x
 
 SkipUsed:	iny			//Mark the first sector of the new bundle as WANTED
 		jsr	Build		//A=#$ff, X=Next Sector, Y=#$00 after this call
-		sty	LastBlock	//Reset LastBlock (LSR would also work but STY is faster)
+		//sty	LastBlock	//Reset LastBlock (LSR would also work but STY is faster)
 
 		lax	LastT
 		jmp	GotoTrack	//X=desired Track, Y=#$00
@@ -1058,7 +1060,7 @@ ChkPt:		bpl	Loop		//16-18
 //		Update Block Counter
 //--------------------------------------
 
-		dec	BlockCtr	//Decrease Block Counter
+		lda	BlockCtr	//Decrease Block Counter
 		bne	ChkWCtr
 
 UpdateBCtr:	inc	NewBundle	//#$00 -> #$01, next block will be first of next Bundle
@@ -1085,7 +1087,7 @@ ChkWCtr:	dec	WantedCtr	//If we just updated BlockCtr then WantedCtr will be 0
 		ldy	BlockCtr
 		ldx	cT		//If SCtr>=BlockCtr then the Bundle will end on this track...
 NewWCtr:	sty	WantedCtr	//Store new Wanted Counter (SCtr vs BlockCtr whichever is smaller)
-		stx	LastT		//...so save current track to LastT, otherwise put #$ef to corrupt EOR result in check
+		stx	LastT		//...so save current track to LastT, otherwise put #$ef to corrupt result in check
 
 		ldx	nS		//Preload Next Sector in chain
 		jsr	Build		//Build new wanted list (buffer transfer complete, JSR is safe)
