@@ -181,10 +181,10 @@
 //	18:00:$fa	$0106	IL0		(will be copied to $63, used to update nS)
 //	18:00:$f9	$0107	IL0R		(will be copied to $64)
 //
-//	18:00:$f8	$0108	LastT		(will be copied to NoFlipTab)
-//	18:00:$f7	$0109	LastS		(will be copied to NoFlipTab)
-//	18:00:$f6	$010a	SCtr		(will be copied to NoFlipTab)
-//	18:00:$f5	$010b	BPtr		(will be copied to NoFlipTab)
+//	18:00:$f8	$0108	LastT		(will be copied to NoFlipTab) -> to be be eliminated
+//	18:00:$f7	$0109	LastS		(will be copied to NoFlipTab) -> to be be eliminated
+//	18:00:$f6	$010a	SCtr		(will be copied to NoFlipTab) -> to be be eliminated
+//	18:00:$f5	$010b	BPtr		(will be copied to NoFlipTab) -> to be be eliminated
 //
 //	18:00:$f4	$010c	IncSaver	(will be copied to IncSaver)
 //
@@ -267,7 +267,7 @@
 .const	OPC_BNE		=$d0
 
 //Free ZP addresses:
-//10,11,30,31,38,39,54,5c,64,69,6a,6c,70,71,72,79,7a,$7c,84,85
+//10,11,29,30,31,38,39,54,5c,64,69,6a,6c,70,71,72,79,7a,$7c,84,85
 
 .const	TabZP		=$00
 .const	Tab200		=$0200
@@ -688,17 +688,21 @@ NextTrack:	ldx	cT		//All blocks fetched in this track, so let's change track
 		lda	NBC		//Very last sector?
 		beq	ToCATN		//Yes, skip stepping, finish transfer
 
+		lda	#$00
+		sta	nS		//Reset nS for each track
+
 		inx			//Go to next track
 
 ChkDir:		cpx	#$12		//next track = Track 18?, if yes, we need to skip it
 		bne	Seek		//0.5-track seek, skip setting timer
 
 		inx			//Skip track 18
-.if (SkewBase == $00)	{
-		inc	nS		//Skipping Dir Track will rotate disk a little bit more than a sector...
-		inc	nS		//...(12800 cycles to skip a track, 10526 cycles/sector on track 18)...
-					//...so start sector of track 19 is increased by 2
-}
+
+//.if (SkewBase == $00)	{
+//		inc	nS		//Skipping Dir Track will rotate disk a little bit more than a sector...
+//		inc	nS		//...(12800 cycles to skip a track, 10526 cycles/sector on track 18)...
+//					//...so start sector of track 19 is increased by 2
+//}
 		ldy	#$83		//1.5-track seek, set timer at start
 
 //--------------------------------------
@@ -815,18 +819,18 @@ SkipPatch:	lsr	StepTmrRet
 //		Sector Skew Adjustment
 //--------------------------------------
 
-.if (SkewBase != $00)	{
-		lda	#Skew		//Skew= -2-4
-		ldx	cT
-		cpx	#$13		//Track 19?
-		bne	*+4
-		lda	#Skew13		//Skew= -8-4
-		sec
-		adc	LastS		//nS=LastS-Skew
-		bcs	*+5
-		adc	MaxSct2+1	//if nS,0 then nS+=MaxSct
-		sta	nS
-}
+//.if (SkewBase != $00)	{
+//		lda	#Skew		//Skew= -2-4
+//		ldx	cT
+//		cpx	#$13		//Track 19?
+//		bne	*+4
+//		lda	#Skew13		//Skew= -8-4
+//		sec
+//		adc	LastS		//nS=LastS-Skew
+//		bcs	*+5
+//		adc	MaxSct2+1	//if nS,0 then nS+=MaxSct
+//		sta	nS
+//}
 
 //--------------------------------------
 

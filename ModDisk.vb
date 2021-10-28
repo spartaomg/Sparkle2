@@ -3119,20 +3119,22 @@ Err:
 
             IL = IL Mod SMax
 
-            If SectorSkew <> 0 Then
-                If T = 19 Then
-                    S = LastS - ((2 * SectorSkew) + 4)      'Extra sector skew for skipping track 18
-                ElseIf T <> 1 Then
-                    S = LastS - SectorSkew          'Sector Skew
-                End If
-                If S < 0 Then
-                    S += SMax
-                End If
-            Else
-                If T = 18 Then
-                    S += 2
-                End If
-            End If
+            'If SectorSkew <> 0 Then
+            'If T = 19 Then
+            'S = LastS - ((2 * SectorSkew) + 4)      'Extra sector skew for skipping track 18
+            'ElseIf T <> 1 Then
+            'S = LastS - SectorSkew          'Sector Skew
+            'End If
+            'If S < 0 Then
+            'S += SMax
+            'End If
+            'Else
+            'If T = 18 Then
+            'S += 2
+            'End If
+            'End If
+
+            S = 0                                   'Reset first sector for each track
 
             GoTo NextStart
 
