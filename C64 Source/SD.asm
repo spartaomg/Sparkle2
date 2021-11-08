@@ -143,7 +143,7 @@
 //	0086	00ff	GCR Loop
 //	0100	01ff	Data Buffer on Stack
 //	0200	03f1	GCR Tabs with code interleaved
-//	0330	069f	Drive Code ($60 bytes free)
+//	0330	068f	Drive Code ($70 bytes free)
 //	0700	07ff	Directory (4 bytes per entry, 64 entries per dir block, 2 dir blocks on disk)
 //
 //	Layout at Start
@@ -151,14 +151,14 @@
 //	0300	03f1	GCR Tabs			block 0
 //	0330	05ff	Code				blocks 1-2
 //	0600	06ff	ZP GCR Tabs and GCR loop	block 3
-//	0700	07f4	Init Code			block 4
+//	0700	07d5	Installer			block 4
 //
 //	Layout in PRG
 //
 //	2300	23f1	GCR Tabs			block 0
-//	2330	26c4	Drive Code			blockS 1-3 3 -> block 5	
+//	2330	268f	Drive Code			blockS 1-3 3 -> block 5	
 //	2700	27ff	ZP GCR tabs and GCR loop	block 4	-> block 3
-//	2800	28f4	Init code			block 5	-> block 4
+//	2800	28d5	Installer			block 5	-> block 4
 //
 //----------------------------------------------------------------------------------------
 //	Track 18
@@ -233,10 +233,12 @@
 .const	VerifCtr	=$19	//Checksum Verification Counter
 .const	NewBundle	=$23	//#$00->#$01, stop motor if #$01
 .const	StepDir		=$28	//Stepping  Direction
+//.const	BundleIndex	=$29	//Current Bundle's index
 //.const	LastBlock	=$29	//#$01 if last block of a Bundle is fetched, otherwise $00 - replaced by BlockCtr=#$01
 .const	WList		=$3e	//Wanted Sector list ($3e-$52) (00=unfetched, [-]=wanted, [+]=fetched)
+//.const	SctPerTr	=$54	//Sectors per track to calculate random bundle's track and sector	
 .const	DirSector	=$56	//Initial value=#$c5 (<>#$10 or #$11)
-.const	EoD		=$5e	//End of Disk flag, only used with sequential loading
+//.const	EoD		=$5e	//End of Disk flag, only used with sequential loading
 
 .const	LastT		=$60	//Track number of last block of a Bundle, initial value=#$01
 .const	LastS		=$61	//Sector number of last block of a Bundle, initial value=#$00
@@ -267,7 +269,7 @@
 .const	OPC_BNE		=$d0
 
 //Free ZP addresses:
-//10,11,29,30,31,38,39,54,5c,64,69,6a,6c,70,71,72,79,7a,$7c,84,85
+//10,11,30,31,38,39,5c,64,69,6a,6c,70,71,72,79,7a,$7c,84,85
 
 .const	TabZP		=$00
 .const	Tab200		=$0200
@@ -286,6 +288,9 @@
 .const	XX2		=$9d
 .const	XX3		=$e5
 .const	XX4		=$67
+
+.const	DirBlockCt	=$0700
+.const	DirBitPtr	=$0780
 
 //Other Tabs:
 //.const	H2STab		=Tab200+$0d	//HiNibble-to-Serial Conversion Tab ($10 bytes total, $10 bytes apart)
@@ -317,7 +322,7 @@ FetchDir:	jsr	ClearList	//32-34	#$14 is also used as a GCR Tab1 value
 		ldx	LastS		//35 36
 		dec	WList,x		//37 38	Mark sector as wanted
 		lax	ZP12		//39 3a	Both FetchBAM and FetchDir need track 18
-		sta	LastT		//3b 3c	A=X=#$12
+		sta	LastT		//3b 3c	A=X=#$12 (X=#$12 needed for bitrate calc)
 
 //--------------------------------------
 //		Fetching any T:S	//A=X=wanted track, Y=#$00
@@ -528,7 +533,8 @@ ToCD:		jmp	CopyCode	//Sector 15 (Block 3) - copy it from the Buffer to its place
 					//Will be changed to JMP CopyDir after Block 3 copied
 
 CheckID:	lax	NextID		//Side is done, check if there is a next side
-//		bpl	Flip		//Disk ID = #$00 - #$7f, if NextID > #$7f - no more disks
+		bpl	Flip		//Disk ID = #$00 - #$7f, if NextID > #$7f - no more disks
+		jmp	Reset
 
 //--------------------------------------
 //		No more disks, so return with a "dummy" load
@@ -610,15 +616,6 @@ Data:		lda	$1c01		//A=77788888			44/-7	44/-11	44/+14	44/+12
 		cmp	#$12		//If this is Track 18 then we are fetching Block 3 or a Dir Block or checking Flip Info
 		beq	Track18		//We are on Track 18
 
-//.print "Header: $0" + toHexString(Header)
-//.print "Data:   $0" + toHexString(Data)
-
-//.if ([>Header] != [>Data])	{
-//.error "ERROR!!! Header & Data NOT on the same page!!!"
-//} else	{
-//.print "Header & Data on the same page :)"
-//}
-
 //--------------------------------------
 //		Update Wanted List
 //--------------------------------------
@@ -647,7 +644,7 @@ Data:		lda	$1c01		//A=77788888			44/-7	44/-11	44/+14	44/+12
 		sta	NBC
 		lda	#$7f		//And delete it from the block
 		sta	(ZP01ff),y	//So that it does not confuse the depacker...
-
+		
 		lsr	Random		//Check if this is also the first block of a randomly accessed bundle
 		bcc	ChkNewBndl
 
@@ -673,6 +670,9 @@ ChkNewBndl:	lda	NewBundle
 CheckSCtr:	lda	SCtr		//Any more sectors? A=#$00 here
 		bne	ToCATN
 
+		lda	NBC		//Very last sector?
+		beq	ToCATN		//Yes, skip stepping, finish transfer
+
 //--------------------------------------
 //		Prepare seeking
 //--------------------------------------
@@ -684,9 +684,6 @@ CheckSCtr:	lda	SCtr		//Any more sectors? A=#$00 here
 
 NextTrack:	ldx	cT		//All blocks fetched in this track, so let's change track
 		ldy	#$81		//Prepare Y for 0.5-track seek
-
-		lda	NBC		//Very last sector?
-		beq	ToCATN		//Yes, skip stepping, finish transfer
 
 		lda	#$00
 		sta	nS		//Reset nS for each track
@@ -776,7 +773,7 @@ RateDone:	//sta	Spartan+1
 
 		lsr	BitRateRet	
 		bcc	StoreBR		//StoreTr	
-		rts	
+OPC_RTS:	rts	
 
 //StoreTr:	sta	cT		//Store new track number - SKIP IF JSR FROM RANDOM
 StoreBR:	sta	Spartan+1	//Store bitrate for Spartan step
@@ -812,8 +809,9 @@ MLoop:		lda.z	Mod1,x
 		sta.z	LoopMod1+1
 
 SkipPatch:	lsr	StepTmrRet
-		bcc	*+3
-		rts
+		bcs	OPC_RTS
+		//bcc	*+3
+		//rts
 
 //--------------------------------------
 //		Sector Skew Adjustment
@@ -888,7 +886,7 @@ GetByte:	lda	#$80		//$dd00=#$9b, $1800=#$94
 		beq	Reset		//C64 requests drive reset
 
 		ldy	#$00		//Needed later (for FetchBAM if this is a flip request, and FetchDir too)
-		sty	EoD		//EoD needs to be cleared here
+		//sty	EoD		//EoD needs to be cleared here
 		sty	NewBundle	//So does NewBundle
 
 		asl
@@ -906,29 +904,25 @@ CheckDir:	ldx	#$11		//A=#$00-#$7f, X=#$11 (dir sector 17) - DO NOT CHANGE TO INX
 		sta	SaverCode
 
 CompareDir:	cpx	DirSector	//Dir Sector, initial value=#$c5		
-		beq	ReadDir		//Is the needed Dir Sector fetched?
+		beq	DirFetchReturn	//Is the needed Dir Sector fetched?
 
 		stx	DirSector	//No, store new Dir Segment index and fetch directory sector
 		stx	LastS		//Also store it in LastS to be fetched
 		jmp	FetchDir	//ALWAYS, fetch directory, Y=#$00 here (needed)
 
-ReadDir:	ldx	#$03
+DirFetchReturn:	ldx	#$03
 DirLoop:	lda	$0700,x
 		sta	LastT,x
 		dex
 		bpl	DirLoop
 
-//RandomNoFlip:
 		jsr	ClearList	//Clear Wanted List, Y=00 here
 
 		inc	BitRateRet
 
 		tax			//X=A=LastT
-		//lda	Spartan+1
-		//pha
 		jsr	BitRate		//Update Build loop, Y=MaxSct after this
-		//pla			//Also find interleave and sector count for requested track
-		//sta	Spartan+1
+					//Also find interleave and sector count for requested track
 
 		ldx	LastS		//This is actually the first sector on the track here
 		tya			//A=MaxSct
@@ -942,10 +936,9 @@ DirLoop:	lda	$0700,x
 
 SkipUsed:	iny			//Mark the first sector of the new bundle as WANTED
 		jsr	Build		//A=#$ff, X=Next Sector, Y=#$00 after this call
-		//sty	LastBlock	//Reset LastBlock (LSR would also work but STY is faster)
 
 		lax	LastT
-		jmp	GotoTrack	//X=desired Track, Y=#$00
+		jmp	GotoTrack	//A=X=desired Track, Y=#$00
 
 //--------------------------------------
 
@@ -961,8 +954,8 @@ ToFetchBAM:	jmp	FetchBAM	//Go to Track 18 to fetch Sector 0 (BAM) for Next Side 
 //--------------------------------------
 
 SeqLoad:	tay			//A=#$00 here -> Y=#$00
-		lsr	EoD		//End of Disk?
-		bcs	ToFetchBAM	//If Yes, load BAM, otherwise start transfer
+		//lsr	EoD		//End of Disk?
+		//bcs	ToFetchBAM	//If Yes, load BAM, otherwise start transfer
 
 //--------------------------------------
 //
@@ -972,6 +965,8 @@ SeqLoad:	tay			//A=#$00 here -> Y=#$00
 
 		lsr	NewBundle
 		bcc	StartTr
+		lda	NBC
+		beq	ToFetchBAM
 		
 		inc	TrackChg
 		jmp	CheckSCtr	//Needs Y=#$00, JSR cannot be used
@@ -1072,7 +1067,7 @@ UpdateBCtr:	inc	NewBundle	//#$00 -> #$01, next block will be first of next Bundl
 		sta	BlockCtr
 		bne	ChkWCtr		//A = Block Count
 
-		inc	EoD		//New BCtr=#$00 - this is the end of the disk
+		//inc	EoD		//New BCtr=#$00 - this is the end of the disk
 		jmp	CheckATN	//No more blocks to fetch in sequence, wait for next loader call
 					//If next loader call is sequential -> will go to BAM for flip check/reset
 					//If next loader call is random -> will load requested file
@@ -1174,7 +1169,7 @@ SkipT2:		dex
 */					
 					//Turn motor and LED on
 		lda	#$d6		//1    1    0    1    0*   1*   1    0	We always start on Track 18, this is the default value
-		sta	$1c00		//SYNC BITR BITR WRTP LED  MOTR STEP STEP	Turn motor and LED on
+		sta	$1c00		//SYNC BITR BITR WRTP LED  MOTR STEP STEP	Turn motor on and LED off
 
 		jmp	Fetch		//Fetching block 3 (track 18, sector 16) WList+$10=#$ff, WantedCtr=1
 					//A,X,Y can be anything here
@@ -1213,7 +1208,7 @@ CDLoop:		pla			//00	=LDA $0100,y
 		iny			//01
 		sta	$0700,y		//02-04
 		bne	CDLoop		//05 06
-		jmp	ReadDir		//07-09
+		jmp	DirFetchReturn	//07-09
 //--------------------------------------
 ClearList:	clc			//0a
 JmpClrList:	ldx	#$14		//0b 0c
