@@ -84,7 +84,7 @@
         'CALCULATE BEST SEQUENCE
         '----------------------------------------------------------------------------------------------------------
 
-        CalcBestSequence(PrgLen - 1, 1)     'SeqEnd is 1 because Prg(0) is always 1 literal on its own, we need at lease 2 bytes for a match
+        CalcBestSequence(PrgLen - 1, 1, True)     'SeqEnd is 1 because Prg(0) is always 1 literal on its own, we need at lease 2 bytes for a match
 
         '----------------------------------------------------------------------------------------------------------
         'DETECT BUFFER STATUS AND INITIALIZE COMPRESSION
@@ -133,7 +133,7 @@ Err:
 
     End Sub
 
-    Private Sub CalcBestSequence(SeqStart As Integer, SeqEnd As Integer)
+    Private Sub CalcBestSequence(SeqStart As Integer, SeqEnd As Integer, Optional FirstRun As Boolean = False)
         On Error GoTo Err
 
         Dim MaxO, MaxL, MaxFL, MaxLL, MaxSL As Integer
@@ -164,55 +164,94 @@ Err:
                 MaxL = If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)  'MaxL=255 or less
             End If
 
-            SO(Pos) = 0
-            SL(Pos) = 0
-            LO(Pos) = 0
-            LL(Pos) = 0
-            'FO(Pos) = 0
-            'FL(Pos) = 0
+            If (FirstRun) Or (SL(Pos) > 0) Or (LL(Pos) > 0) Then
+                SO(Pos) = 0
+                SL(Pos) = 0
+                LO(Pos) = 0
+                LL(Pos) = 0
+                'FO(Pos) = 0
+                'FL(Pos) = 0
 
-            For O As Integer = 1 To MaxO                                    'O=1 to 255 or less
-                'Check if first byte matches at offset, if not go to next offset
-                If Prg(Pos) = Prg(Pos + O) Then
-                    For L As Integer = 1 To MaxL                            'L=1 to 254 or less
-                        If L = MaxL Then
-                            GoTo Match
-                        ElseIf Prg(Pos - L) <> Prg(Pos + O - L) Then
-                            'Find the first position where there is NO match -> this will give us the absolute length of the match
-                            'L=MatchLength + 1 here
-                            If L >= 2 Then
-Match:                          If O <= MaxShortOffset Then
-                                    If (SL(Pos) < MaxShortLen) And (SL(Pos) < L) Then
-                                        SL(Pos) = If(L > MaxShortLen, MaxShortLen, L)   'Short matches cannot be longer than 4 bytes
-                                        SO(Pos) = O       'Keep Offset 1-based
-                                    End If
-                                    If LL(Pos) < L Then
-                                        LL(Pos) = L
-                                        LO(Pos) = O
-                                    End If
-                                    'ElseIf O <= MaxMidOffset Then
-                                Else
-                                    If (LL(Pos) < L) And (L > 2) Then 'Skip short (2-byte) Mid Matches
-                                        LL(Pos) = L
-                                        LO(Pos) = O
-                                    End If
-                                    'Else
-                                    'If (FL(Pos) < L) And (L > 3) Then 'Skip short (2-byte) Mid Matches
-                                    'FL(Pos) = L
-                                    'FO(Pos) = O
-                                    'End If
+                Dim O As Integer = 1
+
+                While (O <= MaxO) And (LL(Pos) < MaxLL) And (SL(Pos) < MaxSL)
+                    'Check if first byte matches at offset, if not go to next offset
+                    If Prg(Pos) = Prg(Pos + O) Then
+                        Dim L As Integer = 1
+                        While (Prg(Pos - L) = Prg(Pos + O - L))
+                            L += 1
+                            If L = MaxL Then Exit While
+                        End While
+                        If L >= 2 Then
+                            If O <= MaxShortOffset Then
+                                If (SL(Pos) < MaxShortLen) And (SL(Pos) < L) Then
+                                    SL(Pos) = If(L > MaxShortLen, MaxShortLen, L)   'Short matches cannot be longer than 4 bytes
+                                    SO(Pos) = O       'Keep Offset 1-based
                                 End If
+                                If LL(Pos) < L Then
+                                    LL(Pos) = L
+                                    LO(Pos) = O
+                                End If
+                                'ElseIf O <= MaxMidOffset Then
+                            Else
+                                If (LL(Pos) < L) And (L > 2) Then 'Skip short (2-byte) Mid Matches
+                                    LL(Pos) = L
+                                    LO(Pos) = O
+                                End If
+                                'Else
+                                'If (FL(Pos) < L) And (L > 3) Then 'Skip short (2-byte) Mid Matches
+                                'FL(Pos) = L
+                                'FO(Pos) = O
+                                'End If
                             End If
-                            Exit For
                         End If
-                    Next
-                    'If both short and long matches maxed out, we can leave the loop and go to the next Prg position
-                    If (LL(Pos) = MaxLL) And (SL(Pos) = MaxSL) Then 'And (FL(Pos) = MaxFL) Then
-                        Exit For
                     End If
-                End If
-            Next
+                    O += 1
+                End While
+            End If
+
+            'For O As Integer = 1 To MaxO                                    'O=1 to 255 or less
+            ''Check if first byte matches at offset, if not go to next offset
+            'If Prg(Pos) = Prg(Pos + O) Then
+            'For L As Integer = 1 To MaxL                            'L=1 to 254 or less
+            'If L = MaxL Then
+            'GoTo Match
+            'ElseIf Prg(Pos - L) <> Prg(Pos + O - L) Then
+            ''Find the first position where there is NO match -> this will give us the absolute length of the match
+            ''L=MatchLength + 1 here
+            'If L >= 2 Then
+            'Match:                          If O <= MaxShortOffset Then
+            'If (SL(Pos) < MaxShortLen) And (SL(Pos) < L) Then
+            'SL(Pos) = If(L > MaxShortLen, MaxShortLen, L)   'Short matches cannot be longer than 4 bytes
+            'SO(Pos) = O       'Keep Offset 1-based
+            'End If
+            'If LL(Pos) < L Then
+            'LL(Pos) = L
+            'LO(Pos) = O
+            'End If
+            ''ElseIf O <= MaxMidOffset Then
+            'Else
+            'If (LL(Pos) < L) And (L > 2) Then 'Skip short (2-byte) Mid Matches
+            'LL(Pos) = L
+            'LO(Pos) = O
+            'End If
+            ''Else
+            ''If (FL(Pos) < L) And (L > 3) Then 'Skip short (2-byte) Mid Matches
+            ''FL(Pos) = L
+            ''FO(Pos) = O
+            ''End If
+            'End If
+            'End If
+            'Exit For
+            'End If
             'Next
+            ''If both short and long matches maxed out, we can leave the loop and go to the next Prg position
+            'If (LL(Pos) = MaxLL) And (SL(Pos) = MaxSL) Then 'And (FL(Pos) = MaxFL) Then
+            'Exit For
+            'End If
+            'End If
+            'Next
+            ''Next
 
             '----------------------------------------------------------------------------------------------------------
             'FIND BEST SEQUENCE FOR EACH POSITION
