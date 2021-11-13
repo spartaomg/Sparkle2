@@ -238,7 +238,7 @@
 .const	WList		=$3e	//Wanted Sector list ($3e-$52) (00=unfetched, [-]=wanted, [+]=fetched)
 //.const	SctPerTr	=$54	//Sectors per track to calculate random bundle's track and sector	
 .const	DirSector	=$56	//Initial value=#$c5 (<>#$10 or #$11)
-//.const	EoD		=$5e	//End of Disk flag, only used with sequential loading
+.const	EoD		=$5e	//End of Disk flag, only used with sequential loading
 
 .const	LastT		=$60	//Track number of last block of a Bundle, initial value=#$01
 .const	LastS		=$61	//Sector number of last block of a Bundle, initial value=#$00
@@ -886,7 +886,7 @@ GetByte:	lda	#$80		//$dd00=#$9b, $1800=#$94
 		beq	Reset		//C64 requests drive reset
 
 		ldy	#$00		//Needed later (for FetchBAM if this is a flip request, and FetchDir too)
-		//sty	EoD		//EoD needs to be cleared here
+		sty	EoD		//EoD needs to be cleared here
 		sty	NewBundle	//So does NewBundle
 
 		asl
@@ -954,8 +954,8 @@ ToFetchBAM:	jmp	FetchBAM	//Go to Track 18 to fetch Sector 0 (BAM) for Next Side 
 //--------------------------------------
 
 SeqLoad:	tay			//A=#$00 here -> Y=#$00
-		//lsr	EoD		//End of Disk?
-		//bcs	ToFetchBAM	//If Yes, load BAM, otherwise start transfer
+		lsr	EoD		//End of Disk?
+		bcs	ToFetchBAM	//If Yes, load BAM, otherwise start transfer
 
 //--------------------------------------
 //
@@ -965,8 +965,8 @@ SeqLoad:	tay			//A=#$00 here -> Y=#$00
 
 		lsr	NewBundle
 		bcc	StartTr
-		lda	NBC
-		beq	ToFetchBAM
+		//lda	NBC
+		//beq	ToFetchBAM
 		
 		inc	TrackChg
 		jmp	CheckSCtr	//Needs Y=#$00, JSR cannot be used
@@ -1067,7 +1067,7 @@ UpdateBCtr:	inc	NewBundle	//#$00 -> #$01, next block will be first of next Bundl
 		sta	BlockCtr
 		bne	ChkWCtr		//A = Block Count
 
-		//inc	EoD		//New BCtr=#$00 - this is the end of the disk
+		inc	EoD		//New BCtr=#$00 - this is the end of the disk
 		jmp	CheckATN	//No more blocks to fetch in sequence, wait for next loader call
 					//If next loader call is sequential -> will go to BAM for flip check/reset
 					//If next loader call is random -> will load requested file

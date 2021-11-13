@@ -30,11 +30,13 @@
     Private AdLoPos As Byte, AdHiPos As Byte
 
     'Match offset and length are 1 based
-    Private ReadOnly MaxOffset As Integer = 255 + 1 'Offset will be decreased by 1 when saved
-    Private ReadOnly ShortOffset As Integer = 63 + 1
+    Private ReadOnly MaxLongOffset As Integer = &H7FFF + 1
+    Private ReadOnly MaxMidOffset As Integer = 255 + 1 'Offset will be decreased by 1 when saved
+    Private ReadOnly MaxShortOffset As Integer = 63 + 1
 
     Private ReadOnly MaxLongLen As Byte = 254 + 1   'Cannot be 255, there is an INY in the decompression ASM code, and that would make YR=#$00
-    Private ReadOnly MaxMidLen As Byte = 61 + 1     'Cannot be more than 61 because 62=LongMatchTag, 63=NextFileTage
+    Private ReadOnly MaxMidLen As Byte = &H3F - 2 + 1     'Cannot be more than 29 because 30=LongMatchTag, 31=NextFileTage
+    'Private ReadOnly MaxMidLen As Byte = 61 + 1     'Cannot be more than 61 because 62=LongMatchTag, 63=NextFileTage
     Private ReadOnly MaxShortLen As Byte = 3 + 1    '1-3, cannot be 0 because it is preserved for EndTag
 
     Private ReadOnly MaxLitLen As Integer = 16
@@ -50,7 +52,7 @@
     '256 - (AdLo, AdHi , 1 Bit, 1 Nibble, Number of Lits)
 
     Private Seq() As Sequence           'Sequence array, to find the best sequence
-    Private SL(), SO(), LL(), LO() As Integer
+    Private SL(), SO(), LL(), LO() As Integer ', FL(), FO() As Integer
     Private SI As Integer               'Sequence array index
     Private LitSI As Integer            'Sequence array index of last literal sequence
     Private StartPtr As Integer
@@ -69,7 +71,7 @@
         PrgAdd = Convert.ToInt32(FA, 16)
         PrgLen = Prg.Length
 
-        ReDim SL(PrgLen - 1), SO(PrgLen - 1), LL(PrgLen - 1), LO(PrgLen - 1)
+        ReDim SL(PrgLen - 1), SO(PrgLen - 1), LL(PrgLen - 1), LO(PrgLen - 1) ', FL(PrgLen - 1), FO(PrgLen - 1)
         ReDim Seq(PrgLen)       'This is actually one element more in the array, to have starter element with 0 values
 
         With Seq(0)             'Initialize first element of sequence - WAS Seq(1)!!!
@@ -134,7 +136,7 @@ Err:
     Private Sub CalcBestSequence(SeqStart As Integer, SeqEnd As Integer)
         On Error GoTo Err
 
-        Dim MaxO, MaxL, MaxLL, MaxSL As Integer
+        Dim MaxO, MaxL, MaxFL, MaxLL, MaxSL As Integer
         Dim SeqLen, SeqOff As Integer
         Dim TotBits As Integer
 
@@ -144,18 +146,31 @@ Err:
 
         'Pos = Min>0 to Max value, direction of execution is arbitrary (could be Max to Min>0 Step -1)
         For Pos As Integer = SeqEnd To SeqStart         'Pos cannot be 0, Prg(0) is always literal as it is always 1 byte left
-            SO(Pos) = 0
-            SL(Pos) = 0
-            LO(Pos) = 0
-            LL(Pos) = 0
 
+            MaxFL = If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)
             MaxLL = If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)
             MaxSL = If(Pos >= MaxShortLen - 1, MaxShortLen, Pos + 1)
 
             'Offset goes from 1 to max offset (cannot be 0)
-            MaxO = If(Pos + MaxOffset < SeqStart, MaxOffset, SeqStart - Pos)    'MaxO=256 or less
+            MaxO = If(Pos + MaxMidOffset < SeqStart, MaxMidOffset, SeqStart - Pos)    'MaxO=256 or less
+            'MaxO = SeqStart - Pos
+            'If MaxO > 1024 Then
+            'MaxO = 1024
+            'End If
             'Match length goes from 1 to max length
-            MaxL = If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)  'MaxL=255 or less
+            If (SL(Pos) > 0) And (SL(Pos) >= LL(Pos)) Then
+                MaxL = If(Pos >= MaxShortLen - 1, MaxShortLen, Pos + 1)  'MaxL=255 or less
+            Else
+                MaxL = If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)  'MaxL=255 or less
+            End If
+
+            SO(Pos) = 0
+            SL(Pos) = 0
+            LO(Pos) = 0
+            LL(Pos) = 0
+            'FO(Pos) = 0
+            'FL(Pos) = 0
+
             For O As Integer = 1 To MaxO                                    'O=1 to 255 or less
                 'Check if first byte matches at offset, if not go to next offset
                 If Prg(Pos) = Prg(Pos + O) Then
@@ -166,7 +181,7 @@ Err:
                             'Find the first position where there is NO match -> this will give us the absolute length of the match
                             'L=MatchLength + 1 here
                             If L >= 2 Then
-Match:                          If O <= ShortOffset Then
+Match:                          If O <= MaxShortOffset Then
                                     If (SL(Pos) < MaxShortLen) And (SL(Pos) < L) Then
                                         SL(Pos) = If(L > MaxShortLen, MaxShortLen, L)   'Short matches cannot be longer than 4 bytes
                                         SO(Pos) = O       'Keep Offset 1-based
@@ -175,18 +190,24 @@ Match:                          If O <= ShortOffset Then
                                         LL(Pos) = L
                                         LO(Pos) = O
                                     End If
+                                    'ElseIf O <= MaxMidOffset Then
                                 Else
                                     If (LL(Pos) < L) And (L > 2) Then 'Skip short (2-byte) Mid Matches
                                         LL(Pos) = L
                                         LO(Pos) = O
                                     End If
+                                    'Else
+                                    'If (FL(Pos) < L) And (L > 3) Then 'Skip short (2-byte) Mid Matches
+                                    'FL(Pos) = L
+                                    'FO(Pos) = O
+                                    'End If
                                 End If
                             End If
                             Exit For
                         End If
                     Next
                     'If both short and long matches maxed out, we can leave the loop and go to the next Prg position
-                    If (LL(Pos) = MaxLL) And (SL(Pos) = MaxSL) Then
+                    If (LL(Pos) = MaxLL) And (SL(Pos) = MaxSL) Then 'And (FL(Pos) = MaxFL) Then
                         Exit For
                     End If
                 End If
@@ -216,7 +237,7 @@ Match:                          If O <= ShortOffset Then
                 SeqOff = If(L <= SL(Pos), SO(Pos), LO(Pos))
 
                 ''THIS DOES NOT SEEM TO MAKE ANY DIFFERENCE. INSTEAD, WE ARE SIMPLY EXCLUDING ANY 2-BYTE MID MATCHES
-                'If (L = 2) And (SeqOff > ShortOffset) Then
+                'If (L = 2) And (SeqOff > MaxShortOffset) Then
                 'If LO(Pos - 2) = 0 And LO(Pos + 1) = 0 And SO(Pos - 2) = 0 And SO(Pos + 1) = 0 Then
                 ''Filter out short mid matches surrounded by literals
                 'GoTo Literals
@@ -226,7 +247,7 @@ Match:                          If O <= ShortOffset Then
                 'Calculate MatchBits
                 'CalcMatchBitSeq(L, SeqOff)
 
-                MatchBits = If((L <= MaxShortLen) And (SeqOff <= ShortOffset), 8 + 1, If(L <= MaxMidLen, 16 + 1, 24 + 1))
+                MatchBits = If((L <= MaxShortLen) And (SeqOff <= MaxShortOffset), 8 + 1, If(L <= MaxMidLen, 16 + 1, 24 + 1))
 
                 'If NewCalc Then
                 'Calculate total bit count, independently of nibble status
@@ -450,7 +471,7 @@ Err:
     Private Sub CalcMatchBytesAndBits(Length As Integer, Offset As Integer) 'Match Length is 1 based
         On Error GoTo Err
 
-        If (Length <= MaxShortLen) And (Offset <= ShortOffset) Then
+        If (Length <= MaxShortLen) And (Offset <= MaxShortOffset) Then
             MatchBytes = 1
         ElseIf Length <= MaxMidLen Then
             MatchBytes = 2
@@ -470,7 +491,7 @@ Err:
     'Private Sub CalcMatchBitSeq(Length As Integer, Offset As Integer) 'Match Length is 1 based
     'On Error GoTo Err
     '
-    'If (Length <= MaxShortLen) And (Offset <= ShortOffset) Then
+    'If (Length <= MaxShortLen) And (Offset <= MaxShortOffset) Then
     'MatchBytes = 1
     'ElseIf Length <= MaxMidLen Then
     'MatchBytes = 2
@@ -922,6 +943,7 @@ Err:
             '+BitsNeeded: 5-6 bytes for next bundle's info + 1 lit bit +/- 1 match bit (may or may not be needed, but we wouldn't know until the end)
             'For the 2nd and last blocks of a bundle and the first blocks on a new track only recalculate the first byte's sequence
             'If BlockCnt <> 1 Then MsgBox((BitsLeftFree + BitsNeededForNextBundle).ToString + vbNewLine + (Seq(SI + 1).TotalBits + BitsNeededForNextBundle).ToString + vbNewLine + ((LastByte - 1) * 8 + BitPos).ToString)
+            'Only recalculate the very first byte's sequence
             CalcBestSequence(If(SI > 1, SI, 1), If(SI > 1, SI, 1))
             If BlockCnt <> 1 Then
                 BitsLeftFree = Seq(SI + 1).TotalBits + ((Seq(SI + 1).Nibbles Mod 2) * 4)
@@ -931,7 +953,7 @@ Err:
         Else
             'For all other blocks recalculate the first 256 bytes' sequence (max offset=256)
 CalcAll:
-            CalcBestSequence(If(SI > 1, SI, 1), If(SI - MaxOffset > 1, SI - MaxOffset, 1))
+            CalcBestSequence(If(SI > 1, SI, 1), If(SI - MaxMidOffset > 1, SI - MaxMidOffset, 1))
         End If
 
         StartPtr = SI

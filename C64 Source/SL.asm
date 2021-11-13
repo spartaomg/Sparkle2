@@ -143,6 +143,8 @@
 //
 //--------------------------------------------------------------
 
+.const	FARMATCH = 0
+
 .const	DriveNo		=$fb
 .const	DriveCt		=$fc
 
@@ -557,17 +559,29 @@ SkipIO:		sta	ZP+1		//Hi Byte of Dest Address
 //----------------------------
 
 MidMatch:	lda	Buffer,x	//C=0
+.if (FARMATCH == 1)	{
+		bmi	SkipFarMatch	//FarMatch before NextBlock
+		beq	NextBlock	//Match byte=#$00 -> end of block, load next block
+		dex		
+		ldy	Buffer,x		
+		sty	MatchHi+1		
+
+SkipFarMatch:	alr	#$7c
+		cmp	#$3c		//Long Match Tag/2		
+		bcs	LongMatch	//Long Match/EOF (C=1) vs. Mid Match (C=0)
+		lsr		
+} else	{
 		beq	NextBlock	//Match byte=#$00 -> end of block, load next block
 		cmp	#$f8		//Long Match Tag		
 		bcs	LongMatch	//Long Match/EOF (C=1) vs. Mid Match (C=0)
 		lsr
 		alr	#$fe		//Faster for Long Matches, same for Mid Matches
+}
 
-MidConv:	tay			//Match Length=#$01-#$3d (mid) vs. #$3e-#$fe (long)
+MidConv:	tay			//Match Length=#$01-#$1d (mid) vs. #$1e-#$fe (long)
 		eor	#$ff
 		adc	ZP		//C=0 here
 		sta	ZP
-
 		dex
 		lda	Buffer,x	//Match Offset=$00-$ff+(C=1)=$01-$100
 
@@ -626,14 +640,17 @@ ShortConv:	sec
 		adc	ZP
 		sta	MatchCopy+1	//MatchCopy+1=ZP+(Buffer)+(C=1)
 		lda	ZP+1
-		adc	#$00
+MatchHi:	adc	#$00
 		sta	MatchCopy+2	//C=0 after this
 		dex			//DEX needs to be after ShortConv
 		iny			//Y+=1 for bne to work (cannot be #$ff and #$00)
-MatchCopy:	lda	$10ad,y		//Y=#$02-#$04 (short) vs #$02-#$3e (mid) vs #$3f-#$ff (long) after INY (cannot be #$00 and #$01)
+MatchCopy:	lda	$10ad,y		//Y=#$02-#$04 (short) vs #$03-#$3e (mid) vs #$3f-#$ff (long) after INY (cannot be #$00 and #$01)
 		sta	(ZP),y		//Y=#$00 is never used here - it is used as the End of Stream flag 
 		dey
 		bne	MatchCopy
+.if (FARMATCH == 1) { 
+		sty	MatchHi+1
+}
 
 //----------------------------
 //		BITCHECK		//Y=#$00 here
@@ -681,8 +698,12 @@ SkipML:		arr	#$1e		//0000xxxx vs 1000xxxx	C=0, N=0 vs N=1 here depending on the 
 //----------------------------
 
 		ldy	Buffer,x	//Literal lengths 17-251 (Bits: 11|0000|xxxxxxxx)
+.if (FARMATCH == 0) {
 		bcc	LongLit		//ALWAYS, C=0, we have 17-251 literals
-
+} else {
+		dex
+		jmp	ShortLit	//Saves 2 cycles per Long Literal sequence...
+}
 //----------------------------
 //		IRQ INSTALLER
 //		Call:	jsr $02d1
@@ -691,16 +712,19 @@ SkipML:		arr	#$1e		//0000xxxx vs 1000xxxx	C=0, N=0 vs N=1 here depending on the 
 //----------------------------
 
 Sparkle_InstallIRQ:	
+.if (FARMATCH == 0) {
 		sty	Sparkle_IRQ_JSR+1	//Installs a subroutine vector
 		stx	Sparkle_IRQ_JSR+2
+}
 Sparkle_RestoreIRQ:	
+.if (FARMATCH == 0) {
 		sta	$d012			//Sets raster for IRQ
 		lda	#<Sparkle_IRQ		//Installs Fallback IRQ vector
 		sta	$fffe
 		lda	#>Sparkle_IRQ
 		sta	$ffff
 		rts
-
+}
 //----------------------------
 //		FALLBACK IRQ
 //		Address: $02e5
@@ -761,8 +785,10 @@ EndLoader:
 .eval myFile.writeln("					//Requests a new disk & loads first bundle (A=#$80-#$fe [#$80 + disk index])")
 .eval myFile.writeln(".label Sparkle_LoadFetched	=$" + toHexString(Sparkle_LoadFetched) + "	//Loads prefetched bundle, use only after Sparkle_SendCmd (A=bundle index)")
 .eval myFile.writeln(".label Sparkle_LoadNext		=$" + toHexString(Sparkle_LoadNext) + "	//Sequential loader call, parameterless, loads next bundle in sequence")
+.if (FARMATCH == 0) {
 .eval myFile.writeln(".label Sparkle_InstallIRQ	=$" + toHexString(Sparkle_InstallIRQ) + "	//Installs fallback IRQ (A=raster line, X/Y=subroutine/music player vector high/low bytes)") 
 .eval myFile.writeln(".label Sparkle_RestoreIRQ	=$" + toHexString(Sparkle_RestoreIRQ) + "	//Restores fallback IRQ without changing subroutine vector (A=raster line)")
+}
 .eval myFile.writeln(".label Sparkle_IRQ		=$" + toHexString(Sparkle_IRQ) + "	//Fallback IRQ vector")
 .eval myFile.writeln(".label Sparkle_IRQ_JSR		=$" + toHexString(Sparkle_IRQ_JSR) + "	//Fallback IRQ subroutine/music player JSR instruction")
 .eval myFile.writeln(".label Sparkle_IRQ_RTI		=$" + toHexString(Sparkle_IRQ_RTI) + "	//Fallback IRQ RTI instruction, used as NMI vector")
@@ -772,8 +798,10 @@ EndLoader:
 .print "Sparkle_LoadA:	" + toHexString(Sparkle_LoadA)
 .print "Sparkle_LoadFetched:	" + toHexString(Sparkle_LoadFetched)
 .print "Sparkle_LoadNext:	" + toHexString(Sparkle_LoadNext)
+.if (FARMATCH == 0) {
 .print "Sparkle_InstallIRQ:	" + toHexString(Sparkle_InstallIRQ)
 .print "Sparkle_RestoreIRQ:	" + toHexString(Sparkle_RestoreIRQ)
+}
 .print "Sparkle_IRQ:		" + toHexString(Sparkle_IRQ)
 .print "Sparkle_IRQ_JSR:	" + toHexString(Sparkle_IRQ_JSR)
 .print "Sparkle_IRQ_RTI:	" + toHexString(Sparkle_IRQ_RTI)

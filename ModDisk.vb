@@ -516,7 +516,7 @@ Err:
 
     End Function
 
-    Public Sub DeleteBit(T As Byte, S As Byte, Optional UpdateBlocksFree As Boolean = True)
+    Public Sub DeleteBit(T As Byte, S As Byte, Optional UpdateFreeBlocks As Boolean = True)
         On Error GoTo Err
 
         'Ignore tracks > 35
@@ -533,7 +533,7 @@ Err:
         BP = Track(18) + (T * 4) + If(T > 35, 7 * 4, 0)
         Disk(BP) -= 1
 
-        If UpdateBlocksFree = True Then BlocksFree -= 1
+        If UpdateFreeBlocks = True Then BlocksFree -= 1
 
         Exit Sub
 Err:
@@ -757,11 +757,11 @@ Err:
         '   NoFlipTab
         '-------------------
         'Save last, "dummy" bundle info, needs REVERSED EOR Transform as it is used in the drive code (add 2 to address for PRG header)
-        Dim NFT As Integer = &H21
-        Drive(NFT + 0 + 2) = TabT(LastBufferCnt)
-        Drive(NFT + 1 + 2) = TabStartS(TabT(LastBufferCnt))
-        Drive(NFT + 2 + 2) = TabSCnt(LastBufferCnt)
-        Drive(NFT + 3 + 2) = EORtransform(LastBitPtr)
+        'Dim NFT As Integer = &H21
+        'Drive(NFT + 0 + 2) = TabT(LastBufferCnt)
+        'Drive(NFT + 1 + 2) = TabStartS(TabT(LastBufferCnt))
+        'Drive(NFT + 2 + 2) = TabSCnt(LastBufferCnt)
+        'Drive(NFT + 3 + 2) = EORtransform(LastBitPtr)
 
         'Resort blocks in drive code:
         For I = 0 To 255
@@ -1112,7 +1112,7 @@ Err:
                     Disk(Track(CT) + (CS * 256) + 2 + Cnt) = Loader((I * 254) + Cnt)
                 End If
             Next
-            DeleteBit(CT, CS, True)
+            DeleteBit(CT, CS, False)
 
             AddInterleave(IL)   'Go to next free sector with Interleave IL
             If I < L - 1 Then
@@ -1900,7 +1900,7 @@ TryAgain:
     End Function
 
     Public Function CompressBundle(Optional FromEditor = False) As Boolean
-        On Error GoTo Err
+        'On Error GoTo Err
 
         CompressBundleFromEditor = FromEditor
 
