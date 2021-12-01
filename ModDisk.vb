@@ -1900,7 +1900,7 @@ TryAgain:
     End Function
 
     Public Function CompressBundle(Optional FromEditor = False) As Boolean
-        'On Error GoTo Err
+        On Error GoTo Err
 
         CompressBundleFromEditor = FromEditor
 
@@ -1955,7 +1955,7 @@ TryAgain:
             'Mark the last file in a bundle for better compression
             If I = Prgs.Count - 1 Then LastFileOfBundle = True
             'The only two parameters that are needed are FA and FUIO... FileLenA(i) is not used
-            NewPackFile(Prgs(I).ToArray, FileAddrA(I), FileIOA(I))
+            PackFile(Prgs(I).ToArray, FileAddrA(I), FileIOA(I))
             If I < Prgs.Count - 1 Then
                 'WE NEED TO USE THE NEXT FILE'S ADDRES, LENGTH AND I/O STATUS HERE
                 'FOR I/O BYTE CALCULATION FOR THE NEXT PART - BUG reported by Raistlin/G*P

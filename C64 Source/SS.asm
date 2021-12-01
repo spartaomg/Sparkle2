@@ -391,13 +391,13 @@ RestoreLoop:
 //		Receive a byte
 //--------------------------------------
 
-NewByte:	ldx	#$94		//Make sure C64 is ready to send
+NewByte:	ldx	#$94		//Make sure C64 is ready to send (%10010100)
 		jsr	CheckPort
 		lda	#$80		//$dd00=#$9b, $1800=#$94
 		ldx	#busy		//=#$10 (AA=1, CO=0, DO=0)
 		jsr	RcvByte		//OK to use stack here
 
-		ldx	#$95		//Wait for C64 to signal transfer complete
+		ldx	#$95		//Wait for C64 to signal transfer complete (%10010101)
 CheckPort:	cpx	$1800
 		bne	*-3
 		rts

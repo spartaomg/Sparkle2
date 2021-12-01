@@ -52,14 +52,14 @@
     '256 - (AdLo, AdHi , 1 Bit, 1 Nibble, Number of Lits)
 
     Private Seq() As Sequence           'Sequence array, to find the best sequence
-    Private SL(), SO(), LL(), LO() As Integer ', FL(), FO() As Integer
+    Private SL(), SO(), LL(), LO() As Integer
     Private SI As Integer               'Sequence array index
     Private LitSI As Integer            'Sequence array index of last literal sequence
     Private StartPtr As Integer
 
     'Private Cycles As Integer
     'Private BitStreamBytes As Integer
-    Public Sub NewPackFile(PN As Byte(), Optional FA As String = "", Optional FUIO As Boolean = False)
+    Public Sub PackFile(PN As Byte(), Optional FA As String = "", Optional FUIO As Boolean = False)
         On Error GoTo Err
 
         '----------------------------------------------------------------------------------------------------------
@@ -71,7 +71,7 @@
         PrgAdd = Convert.ToInt32(FA, 16)
         PrgLen = Prg.Length
 
-        ReDim SL(PrgLen - 1), SO(PrgLen - 1), LL(PrgLen - 1), LO(PrgLen - 1) ', FL(PrgLen - 1), FO(PrgLen - 1)
+        ReDim SL(PrgLen - 1), SO(PrgLen - 1), LL(PrgLen - 1), LO(PrgLen - 1)
         ReDim Seq(PrgLen)       'This is actually one element more in the array, to have starter element with 0 values
 
         With Seq(0)             'Initialize first element of sequence - WAS Seq(1)!!!
@@ -84,13 +84,13 @@
         'CALCULATE BEST SEQUENCE
         '----------------------------------------------------------------------------------------------------------
 
-        CalcBestSequence(PrgLen - 1, 1, True)     'SeqEnd is 1 because Prg(0) is always 1 literal on its own, we need at lease 2 bytes for a match
+        CalcBestSequence(PrgLen - 1, 1, True)     'SeqLowestIndex is 1 because Prg(0) is always 1 literal on its own, we need at lease 2 bytes for a match
 
         '----------------------------------------------------------------------------------------------------------
         'DETECT BUFFER STATUS AND INITIALIZE COMPRESSION
         '----------------------------------------------------------------------------------------------------------
 
-        FirstLitOfBlock = True                                 'First block of next file in same buffer, Lit Selector Bit NOT NEEEDED
+        FirstLitOfBlock = True                                      'First block of next file in same buffer, Lit Selector Bit NOT NEEEDED
 
         If BytePtr = 255 Then
             NextFileInBuffer = False                                'This is the first file that is being added to an empty buffer
@@ -133,27 +133,26 @@ Err:
 
     End Sub
 
-    Private Sub CalcBestSequence(SeqStart As Integer, SeqEnd As Integer, Optional FirstRun As Boolean = False)
+    Private Sub CalcBestSequence(SeqHighestIndex As Integer, SeqLowestIndex As Integer, Optional FirstRun As Boolean = False)
         On Error GoTo Err
 
         Dim MaxO, MaxL, MaxFL, MaxLL, MaxSL As Integer
         Dim SeqLen, SeqOff As Integer
-        Dim TotBits As Integer
 
         '----------------------------------------------------------------------------------------------------------
         'CALCULATE MAX MATCH LENGTHS AND OFFSETS FOR EACH POSITION
         '----------------------------------------------------------------------------------------------------------
 
         'Pos = Min>0 to Max value, direction of execution is arbitrary (could be Max to Min>0 Step -1)
-        For Pos As Integer = SeqEnd To SeqStart         'Pos cannot be 0, Prg(0) is always literal as it is always 1 byte left
+        For Pos As Integer = SeqLowestIndex To SeqHighestIndex         'Pos cannot be 0, Prg(0) is always literal as it is always 1 byte left
 
             MaxFL = If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)
             MaxLL = If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)
             MaxSL = If(Pos >= MaxShortLen - 1, MaxShortLen, Pos + 1)
 
             'Offset goes from 1 to max offset (cannot be 0)
-            MaxO = If(Pos + MaxMidOffset < SeqStart, MaxMidOffset, SeqStart - Pos)    'MaxO=256 or less
-            'MaxO = SeqStart - Pos
+            MaxO = If(Pos + MaxMidOffset < SeqHighestIndex, MaxMidOffset, SeqHighestIndex - Pos)    'MaxO=256 or less
+            'MaxO = SeqHighestIndex - Pos
             'If MaxO > 1024 Then
             'MaxO = 1024
             'End If
@@ -169,9 +168,6 @@ Err:
                 SL(Pos) = 0
                 LO(Pos) = 0
                 LL(Pos) = 0
-                'FO(Pos) = 0
-                'FL(Pos) = 0
-
                 Dim O As Integer = 1
 
                 While (O <= MaxO) And (LL(Pos) < MaxLL) And (SL(Pos) < MaxSL)
@@ -192,17 +188,11 @@ Err:
                                     LL(Pos) = L
                                     LO(Pos) = O
                                 End If
-                                'ElseIf O <= MaxMidOffset Then
                             Else
                                 If (LL(Pos) < L) And (L > 2) Then 'Skip short (2-byte) Mid Matches
                                     LL(Pos) = L
                                     LO(Pos) = O
                                 End If
-                                'Else
-                                'If (FL(Pos) < L) And (L > 3) Then 'Skip short (2-byte) Mid Matches
-                                'FL(Pos) = L
-                                'FO(Pos) = O
-                                'End If
                             End If
                         End If
                     End If
@@ -229,24 +219,18 @@ Err:
             'LL(Pos) = L
             'LO(Pos) = O
             'End If
-            ''ElseIf O <= MaxMidOffset Then
             'Else
             'If (LL(Pos) < L) And (L > 2) Then 'Skip short (2-byte) Mid Matches
             'LL(Pos) = L
             'LO(Pos) = O
             'End If
-            ''Else
-            ''If (FL(Pos) < L) And (L > 3) Then 'Skip short (2-byte) Mid Matches
-            ''FL(Pos) = L
-            ''FO(Pos) = O
-            ''End If
             'End If
             'End If
             'Exit For
             'End If
             'Next
             ''If both short and long matches maxed out, we can leave the loop and go to the next Prg position
-            'If (LL(Pos) = MaxLL) And (SL(Pos) = MaxSL) Then 'And (FL(Pos) = MaxFL) Then
+            'If (LL(Pos) = MaxLL) And (SL(Pos) = MaxSL) ThenThen
             'Exit For
             'End If
             'End If
@@ -257,112 +241,96 @@ Err:
             'FIND BEST SEQUENCE FOR EACH POSITION
             '----------------------------------------------------------------------------------------------------------
 
-            'For Pos As Integer = SeqEnd To SeqStart     'Start with second element, first has been initialized  above
+            'For Pos As Integer = SeqLowestIndex To SeqHighestIndex     'Start with second element, first has been initialized  above
 
             Seq(Pos + 1).TotalBits = &HFFFFFF       'Max block size=100 = $10000 bytes = $80000 bits, make default larger than this
 
             If LL(Pos) <> 0 Then                    'TODO: check if there is a more optimal way...
-                SeqLen = LL(Pos)
-            ElseIf SL(Pos) <> 0 Then
-                SeqLen = SL(Pos)
-            Else
-                'Both LL(Pos) and SL(Pos) are 0, so this is a literal byte
-                GoTo Literals
+                CheckMatchSeq(LL(Pos), LO(Pos), Pos)
+            End If
+            If SL(Pos) <> 0 Then
+                CheckMatchSeq(SL(Pos), SO(Pos), Pos)
+            End If
+            'Both LL(Pos) and SL(Pos) are 0, so this is a literal byte
+            If (LL(Pos) = 0) And (SL(Pos) = 0) Then
+                CheckLitSeq(Pos)
             End If
 
-            'Check all possible lengths
-            For L As Integer = SeqLen To 2 Step -1
-                'Get offset, use short match if possible
-                SeqOff = If(L <= SL(Pos), SO(Pos), LO(Pos))
+        Next
 
-                ''THIS DOES NOT SEEM TO MAKE ANY DIFFERENCE. INSTEAD, WE ARE SIMPLY EXCLUDING ANY 2-BYTE MID MATCHES
-                'If (L = 2) And (SeqOff > MaxShortOffset) Then
-                'If LO(Pos - 2) = 0 And LO(Pos + 1) = 0 And SO(Pos - 2) = 0 And SO(Pos + 1) = 0 Then
-                ''Filter out short mid matches surrounded by literals
-                'GoTo Literals
-                'End If
-                'End If
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
 
-                'Calculate MatchBits
-                'CalcMatchBitSeq(L, SeqOff)
+    End Sub
 
-                MatchBits = If((L <= MaxShortLen) And (SeqOff <= MaxShortOffset), 8 + 1, If(L <= MaxMidLen, 16 + 1, 24 + 1))
+    Private Sub CheckMatchSeq(SeqLen As Integer, SeqOff As Integer, Pos As Integer)
+        On Error GoTo Err
+        Dim TotBits As Integer
 
-                'If NewCalc Then
-                'Calculate total bit count, independently of nibble status
-                TotBits = Seq(Pos + 1 - L).TotalBits + MatchBits
+        'Check all possible lengths
+        For L As Integer = SeqLen To 2 Step -1
+            'Calculate MatchBits
+            MatchBits = If((L <= MaxShortLen) And (SeqOff <= MaxShortOffset), 8 + 1, If(L <= MaxMidLen, 16 + 1, 24 + 1))
 
-                With Seq(Pos + 1)
-                    'See if total bit count is better than best version
-                    If TotBits < .TotalBits Then
-                        'If better, update best version
-                        .Len = L            'MatchLen is 1 based
-                        .Off = SeqOff       'Off is 1 based
-                        .Nibbles = Seq(Pos + 1 - L).Nibbles
-                        .TotalBits = TotBits
-                    End If
-                End With
-                'Else
-                ''See if total bit count is better than best version
-                'If Seq(Pos + 1 - L).TotalBits + MatchBits < LeastBits Then
-                ''If better, update best version
-                'LeastBits = Seq(Pos + 1 - L).TotalBits + MatchBits
-                ''and save it to sequence at Pos+1 (position is 1 based)
-                'With Seq(Pos + 1)
-                '.Len = L            'MatchLen is 1 based
-                '.Off = SeqOff       'Off is 1 based
-                '.TotalBits = LeastBits
-                'End With
-                'End If
-                'End If
-            Next
-
-Literals:
-            'Continue previous Lit sequence or start new sequence
-            LitCnt = If(Seq(Pos).Off = 0, Seq(Pos).Len, -1)
-
-            'Calculate literal bits for a presumtive LitCnt+1 value
-            'CalcLitBitSeq(LitCnt + 1)       'This updates LitBits
-            LitBits = Int((LitCnt + 1) / MaxLitPerBlock) * 13
-            Select Case (LitCnt + 1) Mod MaxLitPerBlock
-                Case 0
-                    LitBits += 1                       'Lits = 0	1 literal, 1 bit
-                Case 1 To MaxLitLen
-                    LitBits += 5                       'Lits = 1-15	2-16 literals, 5 bits
-                Case Else
-                    LitBits += 13                      'Lits = 16-250	17-251 literals, 13 bits
-            End Select
-
-            'IN THIS VERSION, LITERALS ARE ALWAYS FOLLOWED BY MATCHES, SO TYPE SELECTOR BIT IS NOT NEEDED AFTER LITERALS AT ALL
-
-            'If NewCalc Then
-            TotBits = Seq(Pos - LitCnt - 1).TotalBits + LitBits + ((LitCnt + 2) * 8)
+            'Calculate total bit count, independently of nibble status
+            TotBits = Seq(Pos + 1 - L).TotalBits + MatchBits
 
             With Seq(Pos + 1)
-                'See if total bit count is less than best version
+                'See if total bit count is better than best version
                 If TotBits < .TotalBits Then
-                    'and save it to sequence at Pos+1 (position is 1 based)
-                    .Len = LitCnt + 1       'LitCnt is 0 based, LitLen is 0 based
-                    .Off = 0                'An offset of 0 marks a literal sequence, match offset is 1 based
-                    .Nibbles = Seq(Pos - (LitCnt + 1)).Nibbles + If(LitBits > 1, 1, 0)
+                    'If better, update best version
+                    .Len = L            'MatchLen is 1 based
+                    .Off = SeqOff       'Off is 1 based
+                    .Nibbles = Seq(Pos + 1 - L).Nibbles
                     .TotalBits = TotBits
                 End If
             End With
-            'Else
-            'LitBits += (LitCnt + 2) * 8         'Lit Bits + Lit Bytes
-            ''See if total bit count is less than best version
-            'If Seq(Pos - LitCnt - 1).TotalBits + LitBits < LeastBits Then  '=Seq(Pos - (LitCnt + 1)) simplified
-            ''If better, update best version
-            'LeastBits = Seq(Pos - LitCnt - 1).TotalBits + LitBits  '=Seq(Pos - (LitCnt + 1)) simplified
-            ''and save it to sequence at Pos+1 (position is 1 based)
-            'With Seq(Pos + 1)
-            '.Len = LitCnt + 1       'LitCnt is 0 based, LitLen is 0 based
-            '.Off = 0                'An offset of 0 marks a literal sequence, match offset is 1 based
-            '.TotalBits = LeastBits
-            'End With
-            'End If
-            'End If
         Next
+
+        CheckLitSeq(Pos)
+
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+    End Sub
+
+    Private Sub CheckLitSeq(Pos As Integer)
+        On Error GoTo Err
+
+        Dim TotBits As Integer
+
+        'Continue previous Lit sequence or start new sequence
+        LitCnt = If(Seq(Pos).Off = 0, Seq(Pos).Len, -1)
+
+        'Calculate literal bits for a presumtive LitCnt+1 value
+        LitBits = Int((LitCnt + 1) / MaxLitPerBlock) * 13
+        Select Case (LitCnt + 1) Mod MaxLitPerBlock
+            Case 0
+                LitBits += 1                       'Lits = 0	1 literal, 1 bit
+            Case 1 To MaxLitLen
+                LitBits += 5                       'Lits = 1-15	2-16 literals, 5 bits
+            Case Else
+                LitBits += 13                      'Lits = 16-250	17-251 literals, 13 bits
+        End Select
+
+        'LITERALS ARE ALWAYS FOLLOWED BY MATCHES, SO TYPE SELECTOR BIT IS NOT NEEDED AFTER LITERALS AT ALL
+
+        TotBits = Seq(Pos - LitCnt - 1).TotalBits + LitBits + ((LitCnt + 2) * 8)
+
+        With Seq(Pos + 1)
+            'See if total bit count is less than best version
+            If TotBits < .TotalBits Then
+                'and save it to sequence at Pos+1 (position is 1 based)
+                .Len = LitCnt + 1       'LitCnt is 0 based, LitLen is 0 based
+                .Off = 0                'An offset of 0 marks a literal sequence, match offset is 1 based
+                .Nibbles = Seq(Pos - (LitCnt + 1)).Nibbles + If(LitBits > 1, 1, 0)
+                .TotalBits = TotBits
+            End If
+        End With
 
         Exit Sub
 Err:
@@ -527,62 +495,6 @@ Err:
 
     End Sub
 
-    'Private Sub CalcMatchBitSeq(Length As Integer, Offset As Integer) 'Match Length is 1 based
-    'On Error GoTo Err
-    '
-    'If (Length <= MaxShortLen) And (Offset <= MaxShortOffset) Then
-    'MatchBytes = 1
-    'ElseIf Length <= MaxMidLen Then
-    'MatchBytes = 2
-    'Else
-    'MatchBytes = 3
-    'End If
-    '
-    'MatchBits = (MatchBytes * 8) + 1        'Add type selector bit here for best sequence calcs
-
-    'Exit Sub
-    'Err:
-    'ErrCode = Err.Number
-    'MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
-
-    'End Sub
-
-    'Private Function CalcLitBitSeq(Lits As Integer) As Integer     'LitCnt is 0 based
-    'On Error GoTo Err
-
-    ''Type selector bit is NOT added here as it is NOT needed AFTER a literal sequence
-    'CalcLitBitSeq = Int(Lits / MaxLitPerBlock) * 13
-    'Select Case Lits Mod MaxLitPerBlock
-    'Case 0
-    'CalcLitBitSeq += 1              'Lits = 0	1 literal, 1 bit
-    'Case 1 To MaxLitLen
-    'CalcLitBitSeq += 5              'Lits = 1-15	2-16 literals, 5 bits
-    'Case Else
-    'CalcLitBitSeq += 13             'Lits = 16-250	17-251 literals, 13 bits
-    'End Select
-
-
-    ''If Lits = -1 Then                       'Function is called with LitCnt+1, can never be -1
-    ''CalcLitBitSeq = 0                       'Lits = -1		no literals, 0 bit
-    ''ElseIf Lits = 0 Then
-    ''CalcLitBitSeq = 1                       'Lits = 0		one literal, 1 bit
-    ''ElseIf Lits < MaxLitLen Then                'MaxLitLen=15, Lits are 0 based
-    ''CalcLitBitSeq = 5                       'Lits = 1-15	2-16 literals, 5 bits
-    ''Else
-    ''CalcLitBitSeq = 13                      'Lits = 16-250	17-251 literals, 13 bits
-    ''End If
-
-    'IN THIS VERSION, LITERALS ARE ALWAYS FOLLOWED BY MATCHES, SO TYPE SELECTOR BIT IS NOT NEEDED AFTER LITERALS AT ALL
-
-    'LitBits = CalcLitBitSeq
-
-    'Exit Function
-    'Err:
-    'ErrCode = Err.Number
-    'MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
-
-    'End Function
-
     Private Function CalcLitBits(Lits As Integer) As Integer     'LitCnt is 0 based
         On Error GoTo Err
 
@@ -595,6 +507,10 @@ Err:
         Else
             CalcLitBits = 14                      'Lits = 15-250	17-251 literals, 13 bits
         End If
+
+        'BUGFIX: The very first literal sequence of a file or block does not need a type selector bit
+        'As we always start with at least one literal byte
+        If (FirstLitOfBlock) And (CalcLitBits > 0) Then CalcLitBits -= 1
 
         LitBits = CalcLitBits
 
@@ -823,6 +739,7 @@ Err:
 
     End Sub
     Private Sub AddNibble(Bit As Integer)
+        On Error GoTo Err
 
         If NibblePtr = 0 Then
             NibblePtr = BytePtr
@@ -832,6 +749,11 @@ Err:
             Buffer(NibblePtr) += Bit * 16
             NibblePtr = 0
         End If
+
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
 
     End Sub
 
@@ -966,7 +888,6 @@ Err:
         'BitsLeftFree = Seq(SI).TotalBits
         'End If
         If (BlockCnt = 1) Or (NewTrack = True) Or ((BitsLeftFree + BitsNeededForNextBundle <= ((LastByte - 1) * 8) + BitPos) And (LastFileOfBundle = True) And (NewBlock = False)) Then
-            'MsgBox(NewTrack.ToString)
             'Seq(SI+1).Bytes/Nibbles/Bits = to calculate remaining bits in file
             'BitsNeededForNextBundle (5-6 bytes + 1/2 bits)
             '+5/6 bytes +1/2 bits

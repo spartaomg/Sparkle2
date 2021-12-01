@@ -562,17 +562,17 @@ MidMatch:	lda	Buffer,x	//C=0
 .if (FARMATCH == 1)	{
 		bmi	SkipFarMatch	//FarMatch before NextBlock
 		beq	NextBlock	//Match byte=#$00 -> end of block, load next block
-		dex		
-		ldy	Buffer,x		
-		sty	MatchHi+1		
+		dex
+		ldy	Buffer,x
+		sty	MatchHi+1
 
 SkipFarMatch:	alr	#$7c
-		cmp	#$3c		//Long Match Tag/2		
+		cmp	#$3c		//Long Match Tag/2
 		bcs	LongMatch	//Long Match/EOF (C=1) vs. Mid Match (C=0)
-		lsr		
+		lsr
 } else	{
 		beq	NextBlock	//Match byte=#$00 -> end of block, load next block
-		cmp	#$f8		//Long Match Tag		
+		cmp	#$f8		//Long Match Tag
 		bcs	LongMatch	//Long Match/EOF (C=1) vs. Mid Match (C=0)
 		lsr
 		alr	#$fe		//Faster for Long Matches, same for Mid Matches
