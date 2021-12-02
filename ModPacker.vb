@@ -543,7 +543,8 @@ Err:
         BytesToAdd += If((BlockUnderIO = 0) And (SequenceUnderIO = 1), 1, 0)
 
         'Check if we have literal sequences >1 which have bits stored in nibbles
-        If BitsToAdd >= 6 Then
+        'BUGFIX: first literal sequence of a block/file has one less bits than any other seuqences, so comparision must be made with 5 instead of 6
+        If BitsToAdd >= 5 Then
             If NibblePtr = 0 Then 'If NibblePtr Points at buffer(0) then we need to add 1 byte for a new NibblePtr position in the buffer
                 BytesFree -= 1
             End If
