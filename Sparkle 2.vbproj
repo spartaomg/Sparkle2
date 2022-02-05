@@ -30,8 +30,8 @@
     <PublisherName>Sparta of OMG 2019</PublisherName>
     <SuiteName>Sparkle</SuiteName>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>1202</ApplicationRevision>
-    <ApplicationVersion>2.1.21.1202</ApplicationVersion>
+    <ApplicationRevision>205</ApplicationRevision>
+    <ApplicationVersion>2.1.22.0205</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -57,6 +57,7 @@
     <OutputPath>bin\Release\</OutputPath>
     <DocumentationFile>Sparkle2.xml</DocumentationFile>
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>
@@ -178,6 +179,8 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="C64 Source\build.bat" />
+    <None Include="Manual\Sparkle 2 manual.pdf" />
     <None Include="My Project\app.manifest" />
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>
@@ -224,6 +227,10 @@
     <None Include="Resources\PETSCII BW.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Content Include="C64 Source\SD.asm" />
+    <Content Include="C64 Source\SL.asm" />
+    <Content Include="C64 Source\Sparkle.inc" />
+    <Content Include="C64 Source\SS.asm" />
     <Content Include="Sparkle RB 8bit.ico" />
   </ItemGroup>
   <ItemGroup>

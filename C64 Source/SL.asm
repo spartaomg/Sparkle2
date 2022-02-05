@@ -3,7 +3,7 @@
 //	SPARKLE
 //	Inspired by Lft's Spindle, Bitbreaker's Bitfire, and Krill's Loader
 //	C64 Code
-//	Tested on 1541-II, 1571, 1541 Ultimate-II+, Oceanic, and THCM's SX-64
+//	Tested on 1541, 1541-II, 1571, 1541 Ultimate-II+, and Oceanic drvies
 //----------------------------------------------------------------------
 //	Version history
 //
@@ -287,9 +287,9 @@ LCopyLoop:	lda	LoaderCode,x
 		inx
 		bne	LCopyLoop
 
-//----------------------------------		
+//----------------------------------
 //		NTSC fix
-//----------------------------------		
+//----------------------------------
 		
 NextLine:	lda	$d012		//Based on J0x's solution for NTSC detection from CodeBase64.org
 SameLine:	cmp	$d012
@@ -318,23 +318,23 @@ NTSCLoop:	sta	Read1,x
 		sta	Read4
 
 SkipNTSC:
-//----------------------------------		
+//----------------------------------
 
 		lda	#<Sparkle_IRQ_RTI	//Install NMI vector
 		sta	$fffa
 		lda	#>Sparkle_IRQ_RTI
 		sta	$fffb
 
-		lda	#busy		//=#$f8
-		bit	$dd00		//Wait for "drive busy" signal (DI=0 CI=1 dd00=#$4b)		
+		lda	#busy			//=#$f8
+		bit	$dd00			//Wait for "drive busy" signal (DI=0 CI=1 dd00=#$4b)
 		bmi	*-3
-		sta	$dd00		//lock bus
+		sta	$dd00			//lock bus
 
 		//First loader call, returns with I=1
 
-		lda	#>$10ad		//#>PrgStart-1	(Hi Byte)
+		lda	#>$10ad			//#>PrgStart-1	(Hi Byte)
 		pha
-		lda	#<$10ad		//#<PrgStart-1	(Lo Byte)
+		lda	#<$10ad			//#<PrgStart-1	(Lo Byte)
 		pha
 		jmp	Sparkle_LoadFetched	//Load first Bundle, it may overwrite installer, so we use an alternative approach here
 
@@ -399,7 +399,7 @@ SS_Send:	ldx	#sendbyte	//CO=1, AO=1 => C64 is ready to send a byte, X=#$18
 		bmi	*-3		//Wait for Drive response ($1800->00 => $dd00=#$1b, $1800=#$85)
 
 		anc	#$31		//Drive is ready to receive byte, A=#$31, C=0
-		
+
 					//Sending bits via AO, flipping CO to signal new bit
 BitSLoop:	adc	#$e7		//2	A=#$31+#$e7=#$18 and C=1 after addition in first pass, C=0 in all other passes
 		sax	$dd00		//4	subsequent passes: A&X=#$00/#$08/#$10/#$18 and C=0
@@ -414,9 +414,9 @@ BusLock:	lda	#busy		//2	(A=#$f8) worst case, last bit is read by the drive on th
 
 		rts			//6
 
-Sparkle_LoadA:	
+Sparkle_LoadA:
 		jsr	Sparkle_SendCmd
-Sparkle_LoadFetched:	
+Sparkle_LoadFetched:
 		jsr	Set01		//17
 		ldx	#$00		//2
 		ldy	#ready		//2	Y=#$08, X=#$00
@@ -474,8 +474,8 @@ ChgJmp:		ldy	#<SpSDelay-<ChgJmp	//2	19	<---------------|
 //----------------------------
 
 LongMatch:	clc			//C=0 NO LONGER NEEDED FOR NextFile!!! Can rearrange this snippet
-		bne	NextFile	//A=#$3f - Next Bundle (#$fc) in block - Also used as a trampoline for LastX jump (both need C=0)
-		dex			//A=#$3e - Long Match (#$f8), read next byte for Match Length (#$3e-#$fe)
+		bne	NextFile	//A=#$fc - Next File in Bundle
+		dex			//A=#$f8 - Long Match, read next byte for Match Length (#$3e-#$fe)
 		lda	Buffer,x	//If A=#$00 then this Bundle is done, rest of the block in buffer is the beginning of the next Bundle
 		bne	MidConv		//Otherwise, converge with mid match (A=#$3e-#$fe here if branch taken)
 
@@ -513,15 +513,15 @@ SpSDelay:	lda	#<RcvLoop-<ChgJmp	//2	20	Restore Receive loop
 //------------------------------------------------------------
 //		BLOCK STRUCTURE FOR DEPACKER
 //------------------------------------------------------------
-//		$00	  - First Bitstream byte -> will be changed to #$00 (end of block)
-//		$01	  - last data byte vs #$00 (block count on drive side)
-//		$ff	  - Dest Address Lo
-//		($fe	  - IO Flag)
-//		$fe/$fd - Dest Address Hi
-//		$fd/$fc - Bytestream backwards with Bitstream interleaved
+//		$00	- First Bitstream byte -> will be changed to #$00 (end of block)
+//		$01	- last data byte vs #$00 (block count on drive side)
+//		$ff	- Dest Address Lo
+//		($fe	- IO Flag)
+//		$fe/$fd	- Dest Address Hi
+//		$fd/$fc	- Bytestream backwards with Bitstream interleaved
 //------------------------------------------------------------
 
-Sparkle_LoadNext:	
+Sparkle_LoadNext:
 		ldx	#$ff		//Entry point for next bundle in block
 		stx	MidLitSeq+1
 		inx
@@ -656,7 +656,7 @@ MatchCopy:	lda	$10ad,y		//Y=#$02-#$04 (short) vs #$03-#$3e (mid) vs #$3f-#$ff (l
 //		BITCHECK		//Y=#$00 here
 //----------------------------
 
-BitCheck:	asl	Bits		//C=0 here	
+BitCheck:	asl	Bits		//C=0 here
 		bcc	LitCheck	//C=0, literals
 		bne	Match		//C=1, Z=0, this is a match (Bits: 1)
 
@@ -711,12 +711,12 @@ SkipML:		arr	#$1e		//0000xxxx vs 1000xxxx	C=0, N=0 vs N=1 here depending on the 
 //		A=Raster
 //----------------------------
 
-Sparkle_InstallIRQ:	
+Sparkle_InstallIRQ:
 .if (FARMATCH == 0) {
 		sty	Sparkle_IRQ_JSR+1	//Installs a subroutine vector
 		stx	Sparkle_IRQ_JSR+2
 }
-Sparkle_RestoreIRQ:	
+Sparkle_RestoreIRQ:
 .if (FARMATCH == 0) {
 		sta	$d012			//Sets raster for IRQ
 		lda	#<Sparkle_IRQ		//Installs Fallback IRQ vector
@@ -730,13 +730,13 @@ Sparkle_RestoreIRQ:
 //		Address: $02e5
 //----------------------------
 
-Sparkle_IRQ:	
+Sparkle_IRQ:
 		pha
 		txa
 		pha
 		tya
 		pha
-		
+
 		//lda	#$2e		//This version saves 4 bytes here and avoids problems with stacked IRQs
 		//sta	$00
 ///*

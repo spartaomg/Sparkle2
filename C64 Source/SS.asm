@@ -21,6 +21,8 @@
 //
 //	v1.4	- adjusting code to ATNA-based transfer
 //
+//	v1.5	- adapting drive code to Sparkle 2.1 drive code 
+//
 //----------------------------
 //	BLOCK STRUCTURE
 //
@@ -226,30 +228,16 @@ BHdrEnd:
 {
 #import "SD.sym"			//Import labels from SD.asm
 
-.const	DO		=$02
-.const	CO		=$08
-.const	AA		=$10
-.const 	busy		=AA		//DO=0,CO=0,AA=1	$1800=#$10	dd00=010010xx (#$4b)
-.const	ready		=CO		//DO=0,CO=1,AA=0	$1800=#$08	dd00=100000xx (#$83)
-
-.const	nS		=$02		//Next Sector
-.const	ZP07		=$57		//=#$07
-.const	WList		=$3e		//Wanted Sector list ($3e-$52) (00=unfetched, [-]=wanted, [+]=fetched)
-.const	DirSector	=$56		//Initial value=#$c5 (<>#$10 or #$11)
-.const	LastS		=$61		//Sector number of last block of a Bundle, initial value=#$00
 .const	ChkSum		=DirSector	//Temporary value on ZP for H2STab preparation and GCR loop timing
 					//DirSector can be overwritten here
-
-//.const	BitShufTab	=Tab300+1	//Bit Shuffle Tab (16 bytes total, insterspersed on page)
 
 *=$2a00	"Drive Save Code"
 
 .pseudopc $0100	{			//Stack pointer =#$00 at start
 
-Start:		lda	#<SFetchJmp	//Modify JMP address for Checksum Error on ZP - fetch again if checksum does not match
-		sta	FetchAgain+1	//First 5 bytes will be overwritten with Block Header and Stack
-
-		bne	RcvCheck	//Branch always, first let's check if we will receive anything...
+Start:		lda	#<SFetchJmp	//Update ReFetch vector, done once
+		sta	ReFetch+1	//First 5 bytes will be overwritten with Block Header and Stack
+		jmp	RcvCheck	//Let's check if we will receive anything...
 
 //--------------------------------------
 //		Find next sector in chain
@@ -295,30 +283,26 @@ ByteBfr:	sta	$0700		//And save it to buffer, overwriting internal directory
 //--------------------------------------
 
 SFetch:		ldy	#<SHeaderJmp
-		jmp	FetchHeader+2
+		jmp	FetchSHeader
 
 //--------------------------------------
+		//jmp	(SaveJmp)	//31
+SHeader:	cmp	$0103		//35	Header byte #10 (GGGHHHHH) = $55, skipped (cycles 32-63)
+		bne	SFetch		//37	We are on Track 35/40 here, so it is ALWAYS Speed Zone 0 (32 cycles per byte)
+		jsr	ShufToRaw	//57
+					//jsr	ShufToRaw	43
+					//ldx	#$99		45
+					//axs	#$00		47
+					//eor	BitShufTab,x	51
+					//rts			57
+		cmp	LastS		//60
+		bne	SFetch		//62
+		tax			//64	First gap byte = $55, skipped (cycles 64-95)
+		ldy	#$05		//66
+		sty.z	WList,x		//70	Mark off sector on Wanted List
+		clv			//72	Optimal CLV timing for all 4 speed zones for 275-312 rpm [70-74]
 
-SHeader:				//We are on Track 35/40 here, so it is ALWAYS Speed Zone 0 (32 cycles per byte)
-		//jmp (SHeader)		//40
-					//	Header byte #10 (77788888) = $55, skipped
-					//	A=$0103 here, no need to reload :)
-		jsr	ShufToRaw	//60
-
-					//jsr	ShufToRaw	46
-					//ldx	#$99		48
-					//axs	#$00		50
-					//eor	BitShufTab,x	54
-					//rts			60
-
-		cmp	LastS		//63	First gap byte = $55, skipped
-		bne	SFetch		//65
-		tax			//67
-		ldy	#$05		//69
-		clv			//71	Optimal CLV timing for all 4 speed zones [68-74]
-		sty	WList,x		//75	Mark off sector on Wanted List
-
-GapLoop:	bvc	*		//01	Skip 6 more more $55 bytes (Header Gap)
+GapLoop:	bvc	*		//01	Skip an additional six $55 bytes (Header Gap)
 		clv			//03	The 1541 ROM code also skips 7 gap bytes, NOT 9!!!
 		dey			//05
 		bpl	GapLoop		//07
@@ -367,24 +351,16 @@ BfrLoop1:	lda	$0200,y		//25	26
 
 RcvCheck:	jsr	NewByte		//More blocks to write?
 
-		tax
+		tay
 		bne	NextBlock
 
 //--------------------------------------
 //		Saving done, restore loader
 //--------------------------------------
 
-		lda	#<FetchJmp	//Disk writing is done
-		sta	FetchAgain+1
-
-		ldx	#$44
-		stx	DirSector	//Resetting DirSector to ensure next index-based load reloads the directory
-RestoreLoop:
-		lda	$023b,x
-		and	#$bf		//Restore Tab8
-		sta	$02bb,x
-		dex
-		bpl	RestoreLoop
+		stx	DirSector	//Reset DirSector to ensure next index-based load reloads the directory
+		lda	#<FetchJmp
+		sta	ReFetch+1	//Restore ReFetch vector
 		jmp	CheckATN
 
 //--------------------------------------

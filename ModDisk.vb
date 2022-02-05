@@ -743,12 +743,21 @@ Err:
             B -= 1
             If B < 0 Then B += 256
         Next
+        '-------------------
+        '   VersionInfo
+        '-------------------
+        'Add version info: YY MM DD VV
+        Dim VI As Integer = &H5B
+        Drive(VI + 0 + 2) = (Int(My.Application.Info.Version.Build / 10) * 16) + (My.Application.Info.Version.Build Mod 10)
+        Drive(VI + 1 + 2) = (Int(My.Application.Info.Version.Revision / 1000) * 16) + (Int(My.Application.Info.Version.Revision / 100) Mod 10)
+        Drive(VI + 2 + 2) = ((Int(My.Application.Info.Version.Revision / 10) Mod 10) * 16) + (My.Application.Info.Version.Revision Mod 10)
+        Drive(VI + 4 + 2) = (My.Application.Info.Version.Major * 16) + My.Application.Info.Version.Minor
 
         '-------------------
         '   ProductID
         '-------------------
         'Add Product ID (add 2 to address for PRG header)
-        Dim PID As Integer = &HED
+        Dim PID As Integer = &H1B
         Drive(PID + 0 + 2) = Int(ProductID / &H10000) And &HFF
         Drive(PID + 1 + 2) = Int(ProductID / &H100) And &HFF
         Drive(PID + 2 + 2) = ProductID And &HFF
@@ -784,43 +793,42 @@ Err:
 
         'Next Side Info on last 2 bytes of BAM!!! (Buffer address: $0101-$0102)
         Disk(Track(18) + (0 * 256) + 255) = EORtransform(idcDiskID)
-        Disk(Track(18) + (0 * 256) + 254) = EORtransform(idcNextID)
+        Disk(Track(18) + (0 * 256) + 251) = EORtransform(idcNextID)
 
         'Add Custom Interleave Info (Buffer address: $0103-$0107)
-        Disk(Track(18) + (0 * 256) + 253) = EORtransform(256 - IL3)
-        Disk(Track(18) + (0 * 256) + 252) = EORtransform(256 - IL2)
-        Disk(Track(18) + (0 * 256) + 251) = EORtransform(256 - IL1)
-        Disk(Track(18) + (0 * 256) + 250) = EORtransform(IL0)
-        Disk(Track(18) + (0 * 256) + 249) = EORtransform(256 - IL0)
+        Disk(Track(18) + (0 * 256) + 254) = EORtransform(256 - IL3)
+        Disk(Track(18) + (0 * 256) + 253) = EORtransform(256 - IL2)
+        Disk(Track(18) + (0 * 256) + 252) = EORtransform(256 - IL1)
+        'Disk(Track(18) + (0 * 256) + 250) = EORtransform(IL0)
+        Disk(Track(18) + (0 * 256) + 250) = EORtransform(256 - IL0)
 
         '"Dummy" bundle info EOR transformed - to be copied to NoFlipTab after disk flip (Buffer address: $0108-$010b)
-        Disk(Track(18) + (0 * 256) + 248) = EORtransform(TabT(LastBufferCnt))
-        Disk(Track(18) + (0 * 256) + 247) = EORtransform(TabStartS(TabT(LastBufferCnt)))
-        Disk(Track(18) + (0 * 256) + 246) = EORtransform(TabSCnt(LastBufferCnt))
-        Disk(Track(18) + (0 * 256) + 245) = LastBitPtr
+        'Disk(Track(18) + (0 * 256) + 248) = EORtransform(TabT(LastBufferCnt))
+        'Disk(Track(18) + (0 * 256) + 247) = EORtransform(TabStartS(TabT(LastBufferCnt)))
+        'Disk(Track(18) + (0 * 256) + 246) = EORtransform(TabSCnt(LastBufferCnt))
+        'Disk(Track(18) + (0 * 256) + 245) = LastBitPtr
 
         'Add IncludeSaveCode flag (Buffer address: $010c)
         If bSaverPlugin Then
-            Disk(Track(18) + (0 * 256) + 244) = EORtransform(2)
+            Disk(Track(18) + (0 * 256) + 249) = EORtransform(2)
             InjectSaverPlugin()
         Else
-            Disk(Track(18) + (0 * 256) + 244) = EORtransform(0)
+            Disk(Track(18) + (0 * 256) + 249) = EORtransform(0)
         End If
 
         'Also add Product ID to BAM, EOR-transformed (Buffer address: $010d-$010f)
-        Disk(Track(18) + (0 * 256) + 243) = EORtransform(Int(ProductID / &H10000) And &HFF)
-        Disk(Track(18) + (0 * 256) + 242) = EORtransform(Int(ProductID / &H100) And &HFF)
-        Disk(Track(18) + (0 * 256) + 241) = EORtransform(ProductID And &HFF)
+        Disk(Track(18) + (0 * 256) + 248) = EORtransform(Int(ProductID / &H10000) And &HFF)
+        Disk(Track(18) + (0 * 256) + 247) = EORtransform(Int(ProductID / &H100) And &HFF)
+        Disk(Track(18) + (0 * 256) + 246) = EORtransform(ProductID And &HFF)
 
         'Add NextID and IL0-IL3 to ZPTab (could be done before Drive code is injected)
-        Dim ZPNextIDLoc As Integer = &H7E
+        Dim ZPNextIDLoc As Integer = &H60
 
-        Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 0) = idcNextID
-        Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 1) = 256 - IL3
-        Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 2) = 256 - IL2
-        Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 3) = 256 - IL1
-        Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 4) = IL0
-        Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 5) = 256 - IL0
+        Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 0) = 256 - IL3
+        Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 1) = 256 - IL2
+        Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 2) = 256 - IL1
+        Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 3) = idcNextID
+        Disk(Track(18) + (14 * 256) + ZPNextIDLoc + 4) = 256 - IL0
 
         Exit Function
 Err:
@@ -867,16 +875,55 @@ Err:
             SaveCode = My.Resources.SS
         End If
 
-        SaveCode(2 + 3) = Int(HSLength / &H100) + 1     'Add 2 for PRG offset!
+        'UpdateZP BUG REPORTED BY Rico/Pretzel Logic
+        'WE ALSO NEED TO UPDATE ZP OFFSET IN THE SAVER CODE!!!
 
-        For I As Integer = 0 To SaveCode.Count - 3
-            'Find JSR $01e5 (JSR Set01 - expected to remain constant)
-            If SaveCode(I) = &H20 And SaveCode(I + 1) = &HE5 And SaveCode(I + 2) = &H1 Then
-                SaveCode(I - 11) = (HSAddress - 1) And &HFF
-                SaveCode(I - 4) = Int((HSAddress - 1) / &H100)
-                Exit For
-            End If
-        Next
+        'Convert LoaderZP to byte - it has already been validated in UpdateZP
+        Dim ZP As Byte = Convert.ToByte(LoaderZP, 16)
+
+        If ZP <> 2 Then
+            Dim OPC_STAZP As Byte = &H85    'ZP, ZP+1, Bits
+            Dim OPC_LDAZPY As Byte = &HB1   'ZP
+
+            Dim ZPBase As Byte = &H2
+
+            For I As Integer = 0 To 249
+                If (SaveCode(I) = OPC_STAZP) Or (SaveCode(I) = OPC_LDAZPY) Then
+                    If SaveCode(I + 1) = ZPBase Then
+                        SaveCode(I + 1) = ZP
+                        I += 1
+                    End If
+                End If
+            Next
+
+            For I As Integer = 0 To 249
+                If (SaveCode(I) = OPC_STAZP) And (SaveCode(I + 1) = ZPBase + 1) Then
+                    SaveCode(I + 1) = ZP + 1
+                    I += 1
+                End If
+            Next
+
+            For I As Integer = 0 To 249
+                If (SaveCode(I) = OPC_STAZP) And (SaveCode(I + 1) = ZPBase + 2) Then
+                    SaveCode(I + 1) = ZP + 2
+                    I += 1
+                End If
+            Next
+
+        End If
+
+        SaveCode(2 + &H3) = Int(HSLength / &H100) + 1     'Add 2 for PRG offset!
+        SaveCode(2 + &H13) = (HSAddress - 1) And &HFF
+        SaveCode(2 + &H1A) = Int((HSAddress - 1) / &H100)
+
+        'For I As Integer = 0 To SaveCode.Count - 3
+        ''Find JSR $01e5 (JSR Set01 - expected to remain constant)
+        'If SaveCode(I) = &H20 And SaveCode(I + 1) = &HE5 And SaveCode(I + 2) = &H1 Then
+        'SaveCode(I - 11) = (HSAddress - 1) And &HFF
+        'SaveCode(I - 4) = Int((HSAddress - 1) / &H100)
+        'Exit For
+        'End If
+        'Next
 
         'Calculate sector pointer on disk
         Dim SctPtr As Integer = SectorsPerDisk - 2 - (Int(HSLength / 256) + 1)
@@ -1182,7 +1229,6 @@ Err:
         InjectLoader = False
 
     End Function
-
     Private Sub UpdateZP()
         On Error GoTo Err
 
@@ -1211,40 +1257,94 @@ Err:
         'ZP=02 is the default, no need to update
         If ZP = 2 Then Exit Sub
 
-        'Find the STA $04 JSR $01dd sequence in the code - beginning of loader
-        Dim LoaderBase As Integer = 0
-        For I As Integer = 0 To Loader.Length - 1 - 3
-            If (Loader(I) = &H85) And (Loader(I + 1) = &H4) And (Loader(I + 2) = &H20) And (Loader(I + 3) = &HDD) And (Loader(I + 4) = &H1) Then
-                LoaderBase = I
+        'ZPUpdate BUG REPORTED BY Rico/Pretzel Logic
+
+        'Find the JMP $0700 sequence in the code to identify the beginning of loader
+        Dim LoaderBase As Integer = &HFFFF
+        For I As Integer = 0 To Loader.Length - 1 - 2
+            If (Loader(I) = &H4C) AndAlso (Loader(I + 1) = &H0) AndAlso (Loader(I + 2) = &H7) Then
+                LoaderBase = I + 3
                 Exit For
             End If
         Next
 
-        'ZP	                                 Instructions       Types
-        Loader(LoaderBase + &HAF) = ZP      'STA ZP             STA ZP
-        Loader(LoaderBase + &HD9) = ZP      'ADC ZP				ADC ZP
-        Loader(LoaderBase + &HDB) = ZP      'STA ZP             STA (ZP),Y
-        Loader(LoaderBase + &HEE) = ZP      'ADC ZP
-        Loader(LoaderBase + &HF0) = ZP      'STA ZP
-        Loader(LoaderBase + &HFF) = ZP      'STA (ZP),Y
-        Loader(LoaderBase + &H10E) = ZP     'ADC ZP
-        Loader(LoaderBase + &H110) = ZP     'STA ZP
-        Loader(LoaderBase + &H11C) = ZP     'ADC ZP
-        Loader(LoaderBase + &H12D) = ZP     'STA (ZP),Y
-        'ZP+1
-        Loader(LoaderBase + &HBE) = ZP + 1  'STA ZP+1           STA ZP+1
-        Loader(LoaderBase + &HE3) = ZP + 1  'DEC ZP+1           DEC ZP+1
-        Loader(LoaderBase + &HF4) = ZP + 1  'DEC ZP+1           LDA ZP+1
-        Loader(LoaderBase + &H114) = ZP + 1 'DEC ZP+1
-        Loader(LoaderBase + &H121) = ZP + 1 'LDA ZP+1
-        'Bits
-        Loader(LoaderBase + &H1) = ZP + 2   'STA Bits           STA Bits
-        Loader(LoaderBase + &H1C) = ZP + 2  'ROR Bits           ROR Bits
-        Loader(LoaderBase + &HA4) = ZP + 2  'STA Bits           ASL Bits
-        Loader(LoaderBase + &H132) = ZP + 2 'ASL Bits           ROL Bits
-        Loader(LoaderBase + &H13D) = ZP + 2 'STA Bits
-        Loader(LoaderBase + &H141) = ZP + 2 'ROL Bits
-        Loader(LoaderBase + &H14C) = ZP + 2 'STA Bits
+        If LoaderBase = &HFFFF Then
+            MsgBox("Zeropage offset could not updated. Sparkle will use the default zeropage offset value of $02.", vbInformation + vbOKOnly, "Error updating zeropage offset")
+            Exit Sub
+        End If
+
+        Dim OPC_STAZP As Byte = &H85
+        Dim OPC_ADCZP As Byte = &H65
+        Dim OPC_STAZPY As Byte = &H91
+        Dim OPC_DECZP As Byte = &HC6
+        Dim OPC_LDAZP As Byte = &HA5
+        Dim OPC_RORZP As Byte = &H66
+        Dim OPC_ASLZP As Byte = &H6
+        Dim OPC_LDAZPY As Byte = &HB1
+
+        Dim ZPBase As Byte = &H2
+
+        For I As Integer = LoaderBase To Loader.Length - 1 - 1
+            If (Loader(I) = OPC_STAZP) Or
+               (Loader(I) = OPC_ADCZP) Or
+               (Loader(I) = OPC_STAZPY) Then
+
+                If Loader(I + 1) = ZPBase Then
+                    Loader(I + 1) = ZP
+                    I += 1
+                End If
+            End If
+        Next
+
+        For I As Integer = LoaderBase To Loader.Length - 1 - 1
+            If (Loader(I) = OPC_STAZP) Or
+               (Loader(I) = OPC_DECZP) Or
+               (Loader(I) = OPC_LDAZP) Then
+
+                If Loader(I + 1) = ZPBase + 1 Then
+                    Loader(I + 1) = ZP + 1
+                    I += 1
+                End If
+            End If
+        Next
+
+        For I As Integer = LoaderBase To Loader.Length - 1 - 1
+            If (Loader(I) = OPC_STAZP) Or
+               (Loader(I) = OPC_RORZP) Or
+               (Loader(I) = OPC_ASLZP) Then
+
+                If Loader(I + 1) = ZPBase + 2 Then
+                    Loader(I + 1) = ZP + 2
+                    I += 1
+                End If
+            End If
+        Next
+
+        ''ZP	                                 Instructions       Types
+        'Loader(LoaderBase + &HAF) = ZP      'STA ZP             STA ZP
+        'Loader(LoaderBase + &HD9) = ZP      'ADC ZP				ADC ZP
+        'Loader(LoaderBase + &HDB) = ZP      'STA ZP             STA (ZP),Y
+        'Loader(LoaderBase + &HEE) = ZP      'ADC ZP
+        'Loader(LoaderBase + &HF0) = ZP      'STA ZP
+        'Loader(LoaderBase + &HFF) = ZP      'STA (ZP),Y
+        'Loader(LoaderBase + &H10E) = ZP     'ADC ZP
+        'Loader(LoaderBase + &H110) = ZP     'STA ZP
+        'Loader(LoaderBase + &H11C) = ZP     'ADC ZP
+        'Loader(LoaderBase + &H12D) = ZP     'STA (ZP),Y
+        ''ZP+1
+        'Loader(LoaderBase + &HBE) = ZP + 1  'STA ZP+1           STA ZP+1
+        'Loader(LoaderBase + &HE3) = ZP + 1  'DEC ZP+1           DEC ZP+1
+        'Loader(LoaderBase + &HF4) = ZP + 1  'DEC ZP+1           LDA ZP+1
+        'Loader(LoaderBase + &H114) = ZP + 1 'DEC ZP+1
+        'Loader(LoaderBase + &H121) = ZP + 1 'LDA ZP+1
+        ''Bits
+        'Loader(LoaderBase + &H1) = ZP + 2   'STA Bits           STA Bits
+        'Loader(LoaderBase + &H1C) = ZP + 2  'ROR Bits           ROR Bits
+        'Loader(LoaderBase + &HA4) = ZP + 2  'STA Bits           ASL Bits
+        'Loader(LoaderBase + &H132) = ZP + 2 'ASL Bits           ROL Bits
+        'Loader(LoaderBase + &H13D) = ZP + 2 'STA Bits
+        'Loader(LoaderBase + &H141) = ZP + 2 'ROL Bits
+        'Loader(LoaderBase + &H14C) = ZP + 2 'STA Bits
 
         Exit Sub
 Err:
@@ -1620,21 +1720,26 @@ NoDisk:
         End If
 
         'Find relative path of subscript
-        'For I As Integer = Len(SPath) - 1 To 0 Step -1
-        'If Right(SPath, 1) <> "\" Then
-        'SPath = Left(SPath, Len(SPath) - 1)
-        'Else
-        'Exit For
-        'End If
-        'Next
-
-        'Find relative path of subscript
-        For I As Integer = Len(SPath) To 1 Step -1
-            If Mid(SPath, I, 1) = "\" Then
-                SPath = Strings.Left(SPath, I)            'Path
+        For I As Integer = Len(SPath) - 1 To 0 Step -1
+            If Right(SPath, 1) <> "\" Then
+                SPath = Left(SPath, Len(SPath) - 1)
+            Else
                 Exit For
             End If
         Next
+
+        'Find relative path of subscript - THIS DOESN'T WORK IF THERE IS NO "\" IN THE SUBSCRIPTS PATH
+        'WOULD PROPABLY WORK WITH THE ADDITIONAL INSTR() CHECK BUT ANYWAY, LET'S USE THE OLD AND PROVEN CODE ABOVE...
+        'If InStr(SPath, "\") <> 0 Then
+        'For I As Integer = Len(SPath) To 1 Step -1
+        'If Mid(SPath, I, 1) = "\" Then
+        'SPath = Strings.Left(SPath, I)            'Path
+        'Exit For
+        'End If
+        'Next
+        'Else
+        'SPath = ""
+        'End If
 
         Dim Lines() As String = Split(IO.File.ReadAllText(SubScriptPath), vbLf)
 
@@ -2809,6 +2914,11 @@ NoDisk:
         If DirArtName Is Nothing Then DirArtName = ""
         If DirArt Is Nothing Then DirArt = ""
 
+        If IO.File.Exists(DirArtName) = False Then
+            MsgBox("The following DirArt file does not exist: " + vbNewLine + vbNewLine + DirArtName, vbOKOnly + vbExclamation, "DirArt file cannot be found")
+            GoTo NoDisk
+        End If
+
         Dim DAN() As String = DirArtName.Split(".")
 
         Dim DirArtType As String = ""
@@ -3097,7 +3207,7 @@ Err:
             If T = 18 Then
                 T += 1
                 TabStartS(T) = 255
-                'S += 2
+                S += 2
             End If
 
             SCnt = 0
@@ -3134,7 +3244,7 @@ Err:
             'End If
             'End If
 
-            S = 0                                   'Reset first sector for each track
+            'S = 0                                   'Reset first sector for each track
 
             GoTo NextStart
 
@@ -3183,10 +3293,10 @@ Err:
     Public Sub GetILfromDisk()
         On Error GoTo Err
 
-        IL0 = EORtransform(If(Disk(Track(18) + (0 * 256) + 250) <> 0, Disk(Track(18) + (0 * 256) + 250), 4))
-        IL1 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 251) <> 0, Disk(Track(18) + (0 * 256) + 251), 253))
-        IL2 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 252) <> 0, Disk(Track(18) + (0 * 256) + 252), 253))
-        IL3 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 253) <> 0, Disk(Track(18) + (0 * 256) + 253), 253))
+        IL0 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 250) <> 0, Disk(Track(18) + (0 * 256) + 250), EORtransform(4)))
+        IL1 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 252) <> 0, Disk(Track(18) + (0 * 256) + 252), EORtransform(3)))
+        IL2 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 253) <> 0, Disk(Track(18) + (0 * 256) + 253), EORtransform(3)))
+        IL3 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 254) <> 0, Disk(Track(18) + (0 * 256) + 254), EORtransform(3)))
 
         Exit Sub
 Err:

@@ -9,10 +9,10 @@ Imports System.Runtime.InteropServices
 ' Review the values of the assembly attributes
 
 <Assembly: AssemblyTitle("Sparkle 2")>
-<Assembly: AssemblyDescription("Sparkle 2 C64 Demo Tool")>
+<Assembly: AssemblyDescription("Sparkle 2 C64 IRQ Loader Tool")>
 <Assembly: AssemblyCompany("OMG")>
-<Assembly: AssemblyProduct("Sparkle 2 C64 Demo Tool")>
-<Assembly: AssemblyCopyright("Copyright © Sparta 2019-2021")>
+<Assembly: AssemblyProduct("Sparkle 2 C64 IRQ Loader Tool")>
+<Assembly: AssemblyCopyright("Copyright © Sparta 2019-2022")>
 <Assembly: AssemblyTrademark("")>
 
 <Assembly: ComVisible(False)>
@@ -31,5 +31,5 @@ Imports System.Runtime.InteropServices
 ' by using the '*' as shown below:
 ' <Assembly: AssemblyVersion("1.0.*")>
 
-<Assembly: AssemblyVersion("2.1.21.1202")>
-<Assembly: AssemblyFileVersion("2.1.21.1202")>
+<Assembly: AssemblyVersion("2.1.22.0205")>
+<Assembly: AssemblyFileVersion("2.1.22.0205")>
