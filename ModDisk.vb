@@ -2193,9 +2193,9 @@ Err:
             For I As Integer = O + 1 To tmpPrgs.Count - 1
                 FSI = Convert.ToInt32(tmpFileAddrA(I), 16)          'Inner loop File Start
                 FEI = FSI + Convert.ToInt32(tmpFileLenA(I), 16) - 1 'Inner loop File End
-                '----|------+---------|--------OR-------|------+---------|-----------------
-                '    FSO    FSI       FEO               FSO    FEI       FEO
-                If ((FSI >= FSO) And (FSI <= FEO)) Or ((FEI >= FSO) And (FEI <= FEO)) Then
+                '--|------+------|----OR----|------+------|----OR----|------+------|----OR-----|------+------|--
+                '  FSO    FSI    FEO        FSO    FEI    FEO        FSI    FSO    FEI        FSI    FEO    FEI
+                If ((FSI >= FSO) And (FSI <= FEO)) Or ((FEI >= FSO) And (FEI <= FEO)) Or ((FSO >= FSI) And (FSO <= FEI)) Or ((FEO >= FSI) And (FEO <= FEI)) Then
                     Dim OLS As Integer = If(FSO >= FSI, FSO, FSI)  'Overlap Start address
                     Dim OLE As Integer = If(FEO <= FEI, FEO, FEI)  'Overlap End address
 

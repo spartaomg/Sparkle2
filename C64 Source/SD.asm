@@ -14,39 +14,39 @@
 //----------------------------------------------------------------------------------------
 //	Revision history
 //
-//	v1.0 	- initial version based on Sparkle 1 Drive Code
+//	v00 	- initial version based on Sparkle 1 Drive Code
 //		- 128-cycle on-the-fly GCR read-decode-verify loop
 //		- introducing Spartan Stepping (TM)
 //
-//	v1.1 	- 127-cycle GCR RDV loop
+//	v01 	- 127-cycle GCR RDV loop
 //		  tolerates disk speeds 291-307 rpm
 //		- new disk sector layout
 //		  tracks start with Sector 2
 //		  zone 3 with IL4, zones 0-2 with IL3
 //
-//	v1.2	- improved 127-cycle GCR RDV loop
+//	v02	- improved 127-cycle GCR RDV loop
 //		  tolerates disk speeds 289-307 rpm
 //		- improved Spartan Stepping
 //		  60 bycles left for second half-step allowing settling of the R/W head
 //		- simplified bit shuffle and conversion
 //		- optimized sector layout and interleave handling for Spartan Stepping
 //
-//	v1.3	- new 125-cycle GCR RDV loop with 1 BVC instruction
+//	v03	- new 125-cycle GCR RDV loop with 1 BVC instruction
 //		  tolerates disk speeds 289-309 rpm
 //		- loader version used in OMG Got Balls!
 //		- alternative 127-cycle GCR RDV loop with 2 BVC instructions
 //		  tolerates disk speeds 286-307 rpm (not used)
 //
-//	v1.4	- speed improvements by eliminating motor stops in the middle of data transfer
+//	v04	- speed improvements by eliminating motor stops in the middle of data transfer
 //		- motor stop is delayed by 2 seconds after data transfer is complete
 //		- updated Spartan Step code
 //
-//	v1.5	- updated stepper code
+//	v05	- updated stepper code
 //		- bug fixes
 //		  fixed a bug that prevented seeking to Track 1 after disk finished then reloaded
 //		  fixed buggy motor stop delay
 //
-//	v1.6	- C64 reset detection
+//	v06	- C64 reset detection
 //		- new commmunication code: busy = #$02 (DO), ready = #$18 (CO|AA)
 //		  allows the C64 to detect drive reset
 //		  leaves DO/DI untouched when drive is busy, can detect C64 reset which turns DI=1
@@ -56,16 +56,16 @@
 //		- improved 125-cycle GCR RDV loop, now tolerates disk speeds 285-309 rpm
 //		- ANC instruction replaced with AND+CLC for Ultimate-II+ compatibility in stepper code
 //
-//	v1.7	- lots of code optimization
+//	v07	- lots of code optimization
 //		  swapped unfetched (00), wanted (ff/negative) and fetched (01/positive) flags
 //		- updated, faster wanted list building
 //		  results in faster loading with 0-25% CPU load
 //
-//	v1.8	- drive code updated to work with back-to-back compression code: no half-blocks left unused
+//	v08	- drive code updated to work with back-to-back compression code: no half-blocks left unused
 //		  the last block of a Bundle also contains the beginning of the next Bundle
 //		  C64 buffer needs to be left untouched between loader calls
 //
-//	v1.9 	- drive transfer loop modified to work with a 16-byte H2STab instead of a 256-byte tab
+//	v09 	- drive transfer loop modified to work with a 16-byte H2STab instead of a 256-byte tab
 //		  new transfer loop now takes 67 cycles (previous version was 65)
 //		  C64 transfer loop remains 72 cycles long
 //		  new 16-byte H2STab moved from $0200 to $0600
@@ -76,38 +76,38 @@
 //		- simplified wanted list preparations
 //		- end-of-disk detection
 //
-//	v2.0	- new 126-cycle GCR RDV loop with improved wobble tolerance based on THCM's tests
+//	v10	- new 126-cycle GCR RDV loop with improved wobble tolerance based on THCM's tests
 //		  tolerates disk speeds 291-309 rpm with max wobble in VICE, similar tolerance in Micro64
 //		  passed THCM's 24-hour test without error
 //		  previous 125-cycle GCR loop failed on THCM's SX-64 due to lack of wobble tolerance 
 //		- bug fixes based on THCM's tests
 //		- test disk code including zone tests
 //
-//	v2.1	- new 125-cycle GCR RDV loop
+//	v11	- new 125-cycle GCR RDV loop
 //		  tolerates disk speeds 289-311 rpm with max wobble in VICE across all 4 speed zones
 //		  passed THCM's 24-hour test without error in over $0d00 (3328) full disk loads
 //
-//	v2.2	- new communication code
+//	v12	- new communication code
 //		  inverts ATN check to allow bus lock
 //		  no drive reset detection currently
 //		- improved C64 reset detection
 //		- final, v1.0 release code!
 //
-//	v2.3	- custom interleave
+//	v13	- custom interleave
 //		- updated wanted sector selection algorithm
 //		- introduced in Sparkle v1.3
 //
-//	v2.4	- updated 125-cycle GCR RDV loop
+//	v14	- updated 125-cycle GCR RDV loop
 //		  tolerates 284-311 rpm disk speeds with max wobble in VICE across all 4 disk zones
 //		- GCR loop and sector parameters are only updated at zone changes
 //		- reworked block count update to work with new block structure
 //		- interleave bug fix (loader in infinite loop on track 19 if IL0=20)
 //		- released with Sparkle v1.4
 //
-//	v2.5	- block chain building bug fixed
+//	v15	- block chain building bug fixed
 //		- released with Sparkle V1.5
 //
-//	v2.6	- major update with random file access
+//	v16	- major update with random file access
 //		- new memory layout (see below)
 //		- secondary buffer feature removed to give space for directory
 //		- directory structure (max 128 files per disk, 64 files per block):
@@ -117,7 +117,7 @@
 //		  03 - block pointer, points at the first byte of bundle in block (NOT EOR transformed)
 //		- updated communication code
 //
-//	v2.7	- high score file saver
+//	v17	- high score file saver
 //		- flip disk detection with selectable disk ID ($80-$ff)
 //		- product ID check added to flip detection
 //		- additional memory layout improvements
@@ -125,7 +125,7 @@
 //		- reset drive with bundle ID #$ff
 //		- released with Sparkle 2
 //
-//	v2.8	- new GCR loop patch
+//	v18	- new GCR loop patch
 //		  better speed tolerance in zones 0-2
 //		  zone 3 remains 282-312 at 0 wobble in VICE
 //		- checking trailing zeros after fetching data block to improve reliability 
@@ -135,7 +135,7 @@
 //		- ATNA-based transfer loop eliminating H2STab
 //		- each track starts with sector 0 now
 //
-//	v2.9	- full GCR loop rewrite
+//	v19	- full GCR loop rewrite
 //		  124-cycle loop with on-the-fly checksum verification for zones 0-2
 //		  checksum verification is done partially outside the GCR loop for zone 3
 //		  much wider rotation speed tolerance range of 269-314 rpm accross all 4 speed zones with max wobble in VICE
@@ -155,7 +155,7 @@
 //	0100	01ff	Data Buffer on Stack
 //	0200	02ff	Second data buffer
 //	0300	03f1	GCR tables with code interleaved
-//	0300	06f2	Drive Code
+//	0300	06f3	Drive Code
 //	0700	07ff	Directory (4 bytes per entry, 64 entries per dir block, 2 dir blocks on disk)
 //
 //	Layout at Start
@@ -168,7 +168,7 @@
 //	Layout in PRG
 //
 //	2300	23f1	GCR tables			block 0
-//	2300	26f2	Drive Code			blockS 1-3 3 -> block 5
+//	2300	26f3	Drive Code			blockS 1-3 3 -> block 5
 //	2700	27ff	ZP GCR tables and GCR loop	block 4	-> block 3
 //	2800	283b	Installer			block 5	-> block 4
 //
@@ -273,6 +273,7 @@
 //Other constants:
 .label	SF		=$012a	//SS drive code Fetch vector
 .label	SH		=$012f	//SS drive code Got Header vector
+
 .label	OPC_BNE		=$d0
 
 //GCR Decoding Tables:
@@ -338,7 +339,7 @@ ToggleLED:	lda	#$08		//4b 4c
 //0357
 DataJmp:
 .byte				    <DT,>DT
-.byte					    $d9,$97,XX3,XX4,XX1,$17,XX2
+.byte					    $d9,$97,XX3,XX4,XX1,$17,XX2	//PC tool store version info here
 .byte	XX3,$a3,$a6,$a2,$a4,$a0,$c7
 //0367
 SHeaderJmp:
@@ -588,7 +589,7 @@ ToBneFetch:	bne	BneFetch	//Checksum mismatch, fetch header again
 		jmp	$0100		//Saver Code fetched
 
 //--------------------------------------
-//		Buffer Transitional Block
+//		Store Transitional Block
 //--------------------------------------
 
 StoreLoop:	pla
@@ -699,7 +700,9 @@ StepTmr:	lda	#$98
 		sta	$1c05
 
 Seek:		lda	$1c00
-PreCalc:	anc	#$1b		//ANC NOW WORKS ON THE ULTIMATE-II+ \o/
+PreCalc:	//anc	#$1b		//ANC NOW WORKS ON THE ULTIMATE-II+ \o/
+		and	#$1b		//but let's keep AND+CLC because the original 1541U no longer receives firmware updates
+		clc
 		adc	StepDir		//#$03 for stepping down, #$01 for stepping up
 		ora	#$0c		//LED and motor ON
 		cpy	#$80
