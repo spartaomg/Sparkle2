@@ -5005,46 +5005,46 @@ Err:
         If (Strings.Left(PartN.Name, 1) = "P") Or (Strings.Right(PartN.Nodes(0).Text, 3) = "YES") Then
             'First bundle on disk or aligned bundle
             ResetBuffer()
-        Else
+        End If
+        'Else
+        'Sort bundle, but SortPart Sub works with temporary arrays and liasts
 
-            'Sort bundle, but SortPart Sub works with temporary arrays and liasts
+        tmpPrgs = Prgs.ToList
+        tmpFileNameA = FileNameA
+        tmpFileAddrA = FileAddrA
+        tmpFileOffsA = FileOffsA
+        tmpFileLenA = FileLenA
+        tmpFileIOA = FileIOA
 
-            tmpPrgs = Prgs.ToList
-            tmpFileNameA = FileNameA
-            tmpFileAddrA = FileAddrA
-            tmpFileOffsA = FileOffsA
-            tmpFileLenA = FileLenA
-            tmpFileIOA = FileIOA
+        SortBundle()
 
-            SortBundle()
+        'Restor arrays and lists
 
-            'Restor arrays and lists
+        Prgs = tmpPrgs.ToList
+        FileNameA = tmpFileNameA
+        FileAddrA = tmpFileAddrA
+        FileOffsA = tmpFileOffsA
+        FileLenA = tmpFileLenA
+        FileIOA = tmpFileIOA
 
-            Prgs = tmpPrgs.ToList
-            FileNameA = tmpFileNameA
-            FileAddrA = tmpFileAddrA
-            FileOffsA = tmpFileOffsA
-            FileLenA = tmpFileLenA
-            FileIOA = tmpFileIOA
+        ReDim Buffer(255)
 
-            ReDim Buffer(255)
-
-            'Find the previous bundle's variables
+        'Find the previous bundle's variables
 TryAgain:
-            BytePtr = BundleBytePtrA(CurrentBundle - PrevCP)
-            BitPtr = BundleBitPtrA(CurrentBundle - PrevCP)
-            BitPos = BundleBitPosA(CurrentBundle - PrevCP)
-            PrevBC = BundleSizeA(CurrentBundle - PrevCP)
+        BytePtr = BundleBytePtrA(CurrentBundle - PrevCP)
+        BitPtr = BundleBitPtrA(CurrentBundle - PrevCP)
+        BitPos = BundleBitPosA(CurrentBundle - PrevCP)
+        PrevBC = BundleSizeA(CurrentBundle - PrevCP)
 
-            If BytePtr = 0 Then
-                If CurrentBundle - PrevCP > 0 Then
-                    PrevCP += 1
-                    GoTo TryAgain
-                Else
-                    ResetBuffer()
-                End If
+        If BytePtr = 0 Then
+            If CurrentBundle - PrevCP > 0 Then
+                PrevCP += 1
+                GoTo TryAgain
+            Else
+                ResetBuffer()
             End If
         End If
+        'End If
 
         'Will need to finish the previous bundle here!!!
         If (BufferCnt = 0) And (BytePtr = 255) Then

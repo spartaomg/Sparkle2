@@ -2202,7 +2202,7 @@ Err:
                     If (OLS >= &HD000) And (OLE <= &HDFFF) And (tmpFileIOA(O) <> tmpFileIOA(I)) Then
                         'Overlap is IO memory only and different IO status - NO OVERLAP
                     Else
-                        MsgBox("The following two files overlap in Bundle " + BundleCnt.ToString + ":" _
+                        MsgBox("The following two files overlap in Bundle " + (BundleCnt - 1).ToString + ":" _
                            + vbNewLine + vbNewLine + tmpFileNameA(I) + " ($" + Hex(FSI) + " - $" + Hex(FEI) + ")" + vbNewLine + vbNewLine _
                            + tmpFileNameA(O) + " ($" + Hex(FSO) + " - $" + Hex(FEO) + ")", vbOKOnly + vbExclamation)
                     End If
