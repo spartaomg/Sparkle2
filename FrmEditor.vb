@@ -3116,11 +3116,13 @@ Err:
         CurrentBundle = PC
         CurrentFile = FC
 
-        ReDim BundleSizeA(PC), BundleBytePtrA(PC), BundleBitPtrA(PC), BundleBitPosA(PC), BundleOrigSizeA(PC)
+        ResetBundleArrays()
 
-        BundleBytePtrA(PC) = 255
-        BundleBitPtrA(PC) = 0
-        BundleBitPosA(PC) = 15
+        'ReDim BundleSizeA(PC), BundleBytePtrA(PC), BundleBitPtrA(PC), BundleBitPosA(PC), BundleOrigSizeA(PC)
+
+        'BundleBytePtrA(PC) = 255
+        'BundleBitPtrA(PC) = 0
+        'BundleBitPosA(PC) = 7  '15 Fixing BitPos BUG - BitPos cannot be > 7
 
         DiskCnt = DC
         ReDim DiskSizeA(DiskCnt), DiskStartBundle(DiskCnt)
@@ -3323,7 +3325,7 @@ Err:
 
         BundleBytePtrA(PC) = 255
         BundleBitPtrA(PC) = 0
-        BundleBitPosA(PC) = 15
+        BundleBitPosA(PC) = 7       '15 Fixing BitPos BUG, BitPos cannot be > 7
 
     End Sub
 
