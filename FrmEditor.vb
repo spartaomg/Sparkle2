@@ -4498,9 +4498,13 @@ Err:
                     If FAddr = Prg(Prg(7)) + (Prg(Prg(7) + 1) * 256) Then DFA = True
                     FOffs = Prg(7) + 2
                 Else
-                    If FAddr = Prg(0) + (Prg(1) * 256) Then
-                        DFA = True
-                        FOffs = 2
+                    If Prg.Length > 2 Then
+                        If FAddr = Prg(0) + (Prg(1) * 256) Then
+                            DFA = True
+                            FOffs = 2
+                        Else
+                            FOffs = 0
+                        End If
                     Else
                         FOffs = 0
                     End If
@@ -4525,10 +4529,16 @@ Err:
                         End If
                     End If
                 Else
-                    If FAddr = Prg(0) + (Prg(1) * 256) Then
-                        If FOffs = 2 Then
-                            DFA = True
-                            DFO = True
+                    If Prg.Length > 2 Then
+                        If FAddr = Prg(0) + (Prg(1) * 256) Then
+                            If FOffs = 2 Then
+                                DFA = True
+                                DFO = True
+                            End If
+                        Else
+                            If FOffs = 0 Then
+                                DFO = True
+                            End If
                         End If
                     Else
                         If FOffs = 0 Then
@@ -4570,16 +4580,29 @@ Err:
                         End If
                     End If
                 Else
-                    If FAddr = Prg(0) + (Prg(1) * 256) Then
-                        If FOffs = 2 Then
-                            If FLen = Prg.Length - FOffs Then
-                                DFA = True
-                                DFO = True
-                                DFL = True
+                    If Prg.Length > 2 Then
+                        If FAddr = Prg(0) + (Prg(1) * 256) Then
+                            If FOffs = 2 Then
+                                If FLen = Prg.Length - FOffs Then
+                                    DFA = True
+                                    DFO = True
+                                    DFL = True
+                                End If
+                            Else
+                                If FLen = Prg.Length - FOffs Then
+                                    DFL = True
+                                End If
                             End If
                         Else
-                            If FLen = Prg.Length - FOffs Then
-                                DFL = True
+                            If FOffs = 0 Then
+                                If FLen = Prg.Length Then
+                                    DFO = True
+                                    DFL = True
+                                End If
+                            Else
+                                If FLen = Prg.Length Then
+                                    DFL = True
+                                End If
                             End If
                         End If
                     Else
