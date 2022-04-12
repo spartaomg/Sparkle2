@@ -34,7 +34,7 @@
     Private ReadOnly MaxShortOffset As Integer = 63 + 1
 
     Private ReadOnly MaxLongLen As Byte = 254 + 1   'Cannot be 255, there is an INY in the decompression ASM code, and that would make YR=#$00
-    'Private ReadOnly MaxMidLen As Byte = &H3F - 2 + 1     'Cannot be more than 29 because 30=LongMatchTag, 31=NextFileTage
+    'Private ReadOnly MaxMidLen As Byte = &H1F - 2 + 1     'Cannot be more than 29 because 30=LongMatchTag, 31=NextFileTage
     Private ReadOnly MaxMidLen As Byte = 61 + 1     'Cannot be more than 61 because 62=LongMatchTag, 63=NextFileTage
     Private ReadOnly MaxShortLen As Byte = 3 + 1    '1-3, cannot be 0 because it is preserved for EndTag
 

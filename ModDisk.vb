@@ -139,13 +139,14 @@
 
     Public DiskSizeA() As Integer
     Public DiskStartBundle() As Integer
-    Public BundleSizeA() As Integer
-    Public BundleOrigSizeA() As Integer
     Public FileSizeA() As Integer
     Public FBSDisk() As Integer
     Public BundleBytePtrA() As Integer
     Public BundleBitPtrA() As Integer
     Public BundleBitPosA() As Integer
+    Public BundleSizeA() As Integer
+    Public BundleBlockCntA() As Integer
+    Public BundleOrigSizeA() As Integer
     Public UncompBundleSize As Double = 0
 
     Public bBuildDisk As Boolean = False

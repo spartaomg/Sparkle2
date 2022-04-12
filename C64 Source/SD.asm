@@ -1,7 +1,7 @@
 //TAB=8
 //----------------------------------------------------------------------------------------
 //	SPARKLE
-//	Inspired by Lft's Spindle, Bitbreaker's Bitfire, and Krill's Loader
+//	Inspired by Lft, Bitbreaker, and Krill
 //	Drive Code
 //	Tested on 1541, 1541-II, 1571, 1541 Ultimate-II+, and Oceanic drives
 //----------------------------------------------------------------------------------------

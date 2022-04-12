@@ -1532,7 +1532,7 @@ Err:
         BundleNode = NewEntryNode    'TV.SelectedNode
 
         PC += 1
-        ReDim Preserve BundleBytePtrA(PC), BundleBitPtrA(PC), BundleBitPosA(PC), BundleSizeA(PC), BundleOrigSizeA(PC)
+        ReDim Preserve BundleBytePtrA(PC), BundleBitPtrA(PC), BundleBitPosA(PC), BundleSizeA(PC), BundleOrigSizeA(PC), BundleBlockCntA(PC)
 
         CurrentBundle = PC
 
@@ -3118,7 +3118,7 @@ Err:
 
         ResetBundleArrays()
 
-        'ReDim BundleSizeA(PC), BundleBytePtrA(PC), BundleBitPtrA(PC), BundleBitPosA(PC), BundleOrigSizeA(PC)
+        'ReDim BundleSizeA(PC), BundleBytePtrA(PC), BundleBitPtrA(PC), BundleBitPosA(PC), BundleOrigSizeA(PC), BundleBlockCntA(PC)
 
         'BundleBytePtrA(PC) = 255
         'BundleBitPtrA(PC) = 0
@@ -3321,7 +3321,7 @@ Err:
     End Sub
     Private Sub ResetBundleArrays()
 
-        ReDim BundleSizeA(PC), BundleBytePtrA(PC), BundleBitPtrA(PC), BundleBitPosA(PC), BundleOrigSizeA(PC)
+        ReDim BundleSizeA(PC), BundleBytePtrA(PC), BundleBitPtrA(PC), BundleBitPosA(PC), BundleOrigSizeA(PC), BundleBlockCntA(PC)
 
         BundleBytePtrA(PC) = 255
         BundleBitPtrA(PC) = 0
@@ -4665,7 +4665,7 @@ Err:
         Dim SNisBaseNode As Boolean = SN.Name = BaseNode.Name
 
         PC += 1
-        ReDim Preserve BundleBytePtrA(PC), BundleBitPtrA(PC), BundleBitPosA(PC), BundleSizeA(PC), BundleOrigSizeA(PC)
+        ReDim Preserve BundleBytePtrA(PC), BundleBitPtrA(PC), BundleBitPosA(PC), BundleSizeA(PC), BundleOrigSizeA(PC), BundleBlockCntA(PC)
 
         AddNode(SN, "P" + PC.ToString, "[Bundle]", &H20000 + PC, If(SNisBaseNode, colBunlde, colBundleGray))
         BundleNode = SN.Nodes("P" + PC.ToString)
@@ -4945,7 +4945,7 @@ Err:
 
     End Sub
 
-    Private Function CalcPartSize(PartN As TreeNode, Optional prevPartN As TreeNode = Nothing) As Integer
+    Private Function CalcBundleSize(PartN As TreeNode, Optional prevPartN As TreeNode = Nothing) As Integer
         On Error GoTo Err
 
         'THIS WILL CALCULATE THE SIZE OF A SINGLE Bundle, UPDATE Bundle NODE AND RETURN Bundle SIZE
@@ -5024,14 +5024,12 @@ Err:
         BundleCnt = CurrentBundle
 
         BufferCnt = 0
-        Dim PrevCP As Integer = 1
-        Dim PrevBC As Integer = 0
-        Dim PrevPartChgd As Boolean = False
+
         If (Strings.Left(PartN.Name, 1) = "P") Or (Strings.Right(PartN.Nodes(0).Text, 3) = "YES") Then
             'First bundle on disk or aligned bundle
             ResetBuffer()
         End If
-        'Else
+
         'Sort bundle, but SortPart Sub works with temporary arrays and liasts
 
         tmpPrgs = Prgs.ToList
@@ -5043,7 +5041,7 @@ Err:
 
         SortBundle()
 
-        'Restor arrays and lists
+        'Restore arrays and lists
 
         Prgs = tmpPrgs.ToList
         FileNameA = tmpFileNameA
@@ -5055,71 +5053,45 @@ Err:
         ReDim Buffer(255)
 
         'Find the previous bundle's variables
-TryAgain:
-        BytePtr = BundleBytePtrA(CurrentBundle - PrevCP)
-        BitPtr = BundleBitPtrA(CurrentBundle - PrevCP)
-        BitPos = BundleBitPosA(CurrentBundle - PrevCP)
-        PrevBC = BundleSizeA(CurrentBundle - PrevCP)
-
-        If BytePtr = 0 Then
-            If CurrentBundle - PrevCP > 0 Then
-                PrevCP += 1
-                GoTo TryAgain
-            Else
-                ResetBuffer()
-            End If
-        End If
-        'End If
-
-        'Will need to finish the previous bundle here!!!
-        If (BufferCnt = 0) And (BytePtr = 255) Then
-            NewBlock = SetNewBlock          'SetNewBlock is true at closing the previous bundle, so first it just sets NewBlock2
-            SetNewBlock = False             'And NewBlock will fire at the desired bundle
+        If FirstBundleOfDisk Then       'Strings.Left(PartN.Name, 1) = "P"
+            ResetBuffer()
         Else
-            Dim ThisPartIO As Integer = If(FileIOA.Count > 0, CheckNextIO(FileAddrA(0), FileLenA(0), FileIOA(0)), 0)
-            CloseBundle(ThisPartIO, False, True)
-        End If
+            BytePtr = BundleBytePtrA(CurrentBundle - 1)
+            BitPtr = BundleBitPtrA(CurrentBundle - 1)
+            BitPos = BundleBitPosA(CurrentBundle - 1)
 
-        If BufferCnt = 1 Then
-            'Closing the previous bundle resulted in an additional block, update previous bundle info
-            BufferCnt = 0
-            BundleBytePtrA(CurrentBundle - PrevCP) = BytePtr
-            BundleBitPtrA(CurrentBundle - PrevCP) = BitPtr
-            BundleBitPosA(CurrentBundle - PrevCP) = BitPos
-            BundleSizeA(CurrentBundle - PrevCP) = PrevBC + 1
-            PrevPartChgd = True 'We will add an additional block to the disk size
+            'Finish the previous bundle here (we need to know whether the current bundle is aligned and its IO status)
+            Dim ThisPartIO As Integer = If(FileIOA.Count > 0, CheckNextIO(FileAddrA(0), FileLenA(0), FileIOA(0)), 0)
+            NewBlock = PNewBlockA(CurrentBundle)
+            CloseBundle(ThisPartIO, False, True)
+
+            If BufferCnt = 1 Then
+                'Closing the previous bundle resulted in an additional block, update previous bundle info
+                BundleBlockCntA(CurrentBundle - 1) = BundleSizeA(CurrentBundle - 1) + 1
+                BufferCnt = 0   '...and reset buffer count
+            End If
         End If
 
         CompressBundle(True)
 
-        If CurrentBundle + 1 < PDiskNoA.Count Then
-            If PDiskNoA(CurrentBundle) = PDiskNoA(CurrentBundle + 1) Then
-                SetNewBlock = PNewBlockA(CurrentBundle + 1)
-            End If
-        Else
-            SetNewBlock = False
-        End If
-
-        If SetNewBlock = True Then
-            BufferCnt += 1
-        End If
-
         If CurrentBundle > BundleBytePtrA.Count Then
-            ReDim Preserve BundleBytePtrA(CurrentBundle), BundleBitPtrA(CurrentBundle), BundleBitPosA(CurrentBundle), BundleSizeA(CurrentBundle), BundleOrigSizeA(CurrentBundle)
+            ReDim Preserve BundleBytePtrA(CurrentBundle), BundleBitPtrA(CurrentBundle), BundleBitPosA(CurrentBundle), BundleSizeA(CurrentBundle), BundleOrigSizeA(CurrentBundle), BundleBlockCntA(CurrentBundle)
+        End If
+
+        If FirstBundleOfDisk Then       'Strings.Left(PartN.Name, 1) = "P"
+            BufferCnt += 1
         End If
 
         BundleBytePtrA(CurrentBundle) = BytePtr
         BundleBitPtrA(CurrentBundle) = BitPtr
         BundleBitPosA(CurrentBundle) = BitPos
-
-        If (Prgs.Count > 0) And (Strings.Left(PartN.Name, 1) = "P") Then
-            BufferCnt += 1
-        End If
-
         BundleSizeA(CurrentBundle) = BufferCnt
+        BundleBlockCntA(CurrentBundle) = BufferCnt
         BundleOrigSizeA(CurrentBundle) = UncompBundleSize
 
-        CalcPartSize = BufferCnt + If(PrevPartChgd = True, 1, 0)
+        CalcBundleSize = BufferCnt  'The return value is not used anywhere ATM, could be a sub instead of a function
+
+        FirstBundleOfDisk = False   'Clear First Bundle of Disk flag
 
         Exit Function
 Err:
@@ -5188,7 +5160,7 @@ Done:
                         DiskNode = BundleNode.Parent.Nodes(I)
                         CurrentDisk = (DiskNode.Tag And &HFFFF)
                         DiskNodeA(CurrentDisk) = DiskNode
-                        StartIndex = I + 1    'Exlude disk from calculation below
+                        StartIndex = I ' + 1    'INCLUDE DISK ////Exlude disk from calculation below
                         'For J As Integer = 0 To DiskNode.Nodes.Count - 1
                         'If InStr(DiskNode.Nodes(J).Name, sPacker) <> 0 Then
                         'Select Case Strings.Right(LCase(DiskNode.Nodes(J).Text), 6)
@@ -5220,6 +5192,8 @@ Done:
                     DiskNodeA(CurrentDisk) = DiskNode
                     DiskSizeA(CurrentDisk) = 0
 
+                    FirstBundleOfDisk = True
+
                     For J As Integer = 0 To DiskNode.Nodes.Count - 1
                         If InStr(DiskNode.Nodes(J).Name, sHSFile) <> 0 Then
                             If DiskNode.Nodes(J).Nodes.Count >= 3 Then
@@ -5239,7 +5213,9 @@ Done:
                     'Bundle
                     BundleNode = ParentNode.Nodes(I)
                     CurrentBundle = (BundleNode.Tag And &HFFFF)
-                    Dim CPS As Integer = CalcPartSize(ParentNode.Nodes(I))
+                    Dim PrevBundleBlockCnt = BundleBlockCntA(CurrentBundle - 1)
+                    CalcBundleSize(ParentNode.Nodes(I))
+                    'Dim CPS As Integer = CalcBundleSize(ParentNode.Nodes(I))
                     If DiskSectorsA Is Nothing Then
                         ReDim Preserve DiskSectorsA(CurrentDisk), DiskTracksA(CurrentDisk)
                         DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
@@ -5252,7 +5228,7 @@ Done:
                         DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
                         DiskTracksA(CurrentDisk) = StdTracksPerDisk
                     End If
-                    If DiskSizeA(CurrentDisk) + CPS > DiskSectorsA(CurrentDisk) Then
+                    If DiskSizeA(CurrentDisk) - PrevBundleBlockCnt + BundleBlockCntA(CurrentBundle - 1) + BundleBlockCntA(CurrentBundle) > DiskSectorsA(CurrentDisk) Then
                         Dim BI As String = Hex(PC - DiskStartBundle(DC) - 1)
                         If Len(BI) < 2 Then BI = "0" + BI
                         BundleNode.Text = "[Bundle " + BI + "]"
@@ -5260,7 +5236,7 @@ Done:
                                    DiskSectorsA(CurrentDisk).ToString + " blocks!", vbOKOnly + vbCritical, "Disk is full!")
                         'Exit For
                     End If
-                    DiskSizeA(CurrentDisk) += CPS
+                    DiskSizeA(CurrentDisk) += BundleBlockCntA(CurrentBundle - 1) + BundleBlockCntA(CurrentBundle) - PrevBundleBlockCnt
                 Case 3
                     'Script
                     CalcDiskSize(ParentNode.Nodes(I))
@@ -5296,7 +5272,7 @@ Err:
                     'Bundle
                     BundleNode = ParentNode.Nodes(I)
                     CurrentBundle = (BundleNode.Tag And &HFFFF)
-                    BufferCnt = BundleSizeA(CurrentBundle)
+                    BufferCnt = BundleBlockCntA(CurrentBundle) ' BundleSizeA(CurrentBundle)
                     UncompBundleSize = BundleOrigSizeA(CurrentBundle)
                     Dim BI As String = Hex((BundleNode.Tag And &HFFFF) - DiskStartBundle(CurrentDisk) - 1)
                     If Len(BI) < 2 Then BI = "0" + BI
