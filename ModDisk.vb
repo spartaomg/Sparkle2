@@ -1481,6 +1481,11 @@ Err:
     Public Function BuildDemoFromScript(Optional SaveIt As Boolean = True) As Boolean
         On Error GoTo Err
 
+        TotLits = 0
+        TotSM = 0
+        TotMM = 0
+        TotLM = 0
+
         BuildDemoFromScript = True
 
         'Generate Product ID unique to this build - it will be the same for all disks in this build
@@ -1693,6 +1698,10 @@ FindNext:
         If FinishDisk(True, SaveIt) = False Then GoTo NoDisk
 
         'MsgBox(TotalBits.ToString)
+        'MsgBox("Literals:" + vbTab + vbTab + TotLits.ToString + vbNewLine +
+        '       "Short Matches:" + vbTab + TotSM.ToString + vbNewLine +
+        '       "Mid Matches:" + vbTab + TotMM.ToString + vbNewLine +
+        '       "Long Matches:" + vbTab + TotLM.ToString)
 
         Exit Function
 Err:

@@ -14,10 +14,12 @@
 
     Public TotalBits As Integer = 0
 
+    Public TotLits, TotSM, TotMM, TotLM As Integer
+
     Private TransitionalBlock As Boolean
 
-    Private ReadOnly MatchSelector As Integer = 1
-    Private ReadOnly LitSelector As Integer = 0
+    Private ReadOnly MatchSelector As Integer = 0
+    Private ReadOnly LitSelector As Integer = 1
 
     Private ReadOnly LongMatchTag As Byte = &HF8    'Could be changed to &H00, but this is more economical
     Private ReadOnly NextFileTag As Byte = &HFC
@@ -614,6 +616,8 @@ Err:
 
         'Cycles += 77 + (15 * MLen)
 
+        TotLM += 1
+
         Exit Sub
 Err:
         ErrCode = Err.Number
@@ -634,6 +638,8 @@ Err:
 
         'Cycles += 67 + (15 * MLen)
 
+        TotMM += 1
+
         Exit Sub
 Err:
         ErrCode = Err.Number
@@ -652,6 +658,8 @@ Err:
         BytePtr -= 1
 
         'Cycles += 54 + (15 * MLen)
+
+        TotSM += 1
 
         Exit Sub
 Err:
@@ -685,6 +693,8 @@ Err:
         BytePtr -= Lits + 1
         LitSI -= Lits + 1
         Lits = -1
+
+        TotLits += 1
 
         'DO NOT RESET LITCNT HERE, IT IS NEEDED AT THE SUBSEQUENT MATCH TO SEE IF A MATCHTAG IS NEEDED!!!
 

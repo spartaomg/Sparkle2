@@ -461,7 +461,7 @@ LastBits:	ora	#$00		//2	10				|
 		sta	Buffer,x	//5	15				|
 JmpRcv:		bvc	RcvLoop		//3	(18)				|
 					//					|
-//------------------------------
+//------------------------------						|
 					//					|
 ChgJmp:		ldy	#<SpSDelay-<ChgJmp	//2	19	<---------------|
 		sty	JmpRcv+1	//4	23
@@ -646,22 +646,22 @@ MatchCopy:	lda	$10ad,y		//Y=#$02-#$04 (short) vs #$03-#$3e (mid) vs #$3f-#$ff (l
 //------------------------------
 
 BitCheck:	asl	Bits		//C=0 here
-		bcc	LitCheck	//C=0, literals
-		bne	Match		//C=1, Z=0, this is a match (Bits: 1)
+		bcc	Match		//C=0, match
+		bne	LitCheck	//C=1, Z=0, literal (bits: 1)
 
 //------------------------------
 
-		lda	Buffer,x	//C=1, Z=1, Bits=#$00, token bit in C, update Bits
+		lda	Buffer,x	//C=1, Z=1 => Bits=#$00, token bit in C, update Bits
 		dex
 		rol
 		sta	Bits
-		bcs	Match
+		bcc	Match		//C=0, match
 
 //------------------------------
 
-LitCheck:	asl	Bits		//C=1, for first check in block, C=0 for any other cases
-		bcc	ShortLit	//C=0, we have 1 literal (Bits: 00)
-		beq	NextBit		//C=1, Z=1, this is the token bit in C (Bits=#$00), get next bit stream byte
+LitCheck:	asl	Bits		//C=1
+		bcc	ShortLit	//C=0, we have 1 literal (bits: 10)
+		beq	NextBit		//C=1, Z=1, this is the token bit in C (bits=11), get next bit stream byte
 
 //------------------------------
 //		LITERALS 2-16
