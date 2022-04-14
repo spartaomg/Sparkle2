@@ -504,10 +504,6 @@ SpSDelay:	lda	#<RcvLoop-<ChgJmp	//2	20	Restore Receive loop
 		sta	SpComp+1		//4	32	SpComp+1=(#$2a <-> #$ff)
 		bmi	RcvLoop			//3	(35) (Drive loop takes 33 cycles)
 
-//------------------------------
-
-		jsr	BusLock
-
 //------------------------------------------------------------
 //		BLOCK STRUCTURE FOR DEPACKER
 //------------------------------------------------------------
@@ -520,15 +516,14 @@ SpSDelay:	lda	#<RcvLoop-<ChgJmp	//2	20	Restore Receive loop
 //------------------------------------------------------------
 
 Sparkle_LoadNext:
-		ldx	#$ff		//Entry point for next bundle in block
-		stx	MidLitSeq+1
-		inx
+		jsr	BusLock		//Entry point for next bundle in block
+		sta	MidLitSeq+1
 		
-		lda	Buffer		//First bitstream value
-		stx	Buffer		//this will also be the EndofBlock Tag
+		ldx	#$00
+GetBits:	lda	Buffer,x	//First bitstream value
 		bne	StoreBits
 		ldx	Buffer+$ff	//=LastX
-		lda	Buffer,x
+		bne	GetBits
 StoreBits:	sta	Bits		//Store it on ZP for faster processing
 
 NextFile:	dex			//Entry point for next file in block, C must be 0 here for subsequent files	
@@ -549,6 +544,7 @@ SkipIO:		sta	ZP+1		//Hi Byte of Dest Address
 		dex
 
 		ldy	#$00		//Needed for Literals
+		sty	Buffer		//this will also be the EndofBlock Tag
 
 		jmp	LitCheck	//Always, C=1 after first run, C=0 for next file in block
 
@@ -576,8 +572,8 @@ MidConv:	tay			//Match Length=#$01-#$3d (mid) vs. #$3e-#$fe (long)
 
 //------------------------------
 
-//ShortLitHi:	dec	ZP+1
-//		bcc	ShortLCont
+ShortLitHi:	dec	ZP+1
+		bcc	ShortLCont
 
 //------------------------------
 //		LITERALS
@@ -596,9 +592,8 @@ MidLit:		iny			//Y+Lit-1, C=0
 		eor	#$ff		//ZP=ZP+(A^#$FF)+(C=1) = ZP=ZP-A (e.g. A=#$0e -> ZP=ZP-0e)
 		adc	ZP
 		sta	ZP
-		bcs	*+4
-		dec	ZP+1
-		//bcc	ShortLitHi	//This would save 1 cycle per literal sequence, needs 2 bytes freed
+
+		bcc	ShortLitHi	//This would save 1 cycle per literal sequence, needs 2 bytes freed
 
 ShortLCont:	txa
 SubX:		axs	#$00		//X=X-1-Literal (e.g. Lit=#$00 -> X=A-1-0)
@@ -621,8 +616,6 @@ ShortMatch:	tay			//Short Match Length=#$01-#$03 (corresponds to a match length 
 		eor	#$ff
 		adc	ZP		//Subtracting #$02-#$04
 		sta	ZP
-		//bcs	*+4
-		//dec	ZP+1
 		bcc	ShortMatchHi
 
 ShortMCont:	lda	Buffer,x	//Short Match Offset=($00-$3f)+1=$01-$40
@@ -646,8 +639,8 @@ MatchCopy:	lda	$10ad,y		//Y=#$02-#$04 (short) vs #$03-#$3e (mid) vs #$3f-#$ff (l
 //------------------------------
 
 BitCheck:	asl	Bits		//C=0 here
-		bcc	Match		//C=0, match
-		bne	LitCheck	//C=1, Z=0, literal (bits: 1)
+		bcc	LitCheck	//C=0, literals must be done first as matches after literals do not need a seletor bit
+		bne	Match		//C=1, Z=0, match (bits: 1)
 
 //------------------------------
 
@@ -655,7 +648,7 @@ BitCheck:	asl	Bits		//C=0 here
 		dex
 		rol
 		sta	Bits
-		bcc	Match		//C=0, match
+		bcs	Match		//C=1, match
 
 //------------------------------
 

@@ -10,7 +10,7 @@
 .label Sparkle_LoadA		=$184	//Index-based loader call (A=#$00-#$7f), or
 					//Requests a new disk & loads first bundle (A=#$80-#$fe [#$80 + disk index])
 .label Sparkle_LoadFetched	=$187	//Loads prefetched bundle, use only after Sparkle_SendCmd (A=bundle index)
-.label Sparkle_LoadNext		=$1fc	//Sequential loader call, parameterless, loads next bundle in sequence
+.label Sparkle_LoadNext		=$1f9	//Sequential loader call, parameterless, loads next bundle in sequence
 .label Sparkle_InstallIRQ	=$2d2	//Installs fallback IRQ (A=raster line, X/Y=subroutine/music player vector high/low bytes)
 .label Sparkle_RestoreIRQ	=$2d8	//Restores fallback IRQ without changing subroutine vector (A=raster line)
 .label Sparkle_IRQ		=$2e6	//Fallback IRQ vector

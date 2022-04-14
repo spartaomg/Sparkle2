@@ -2787,10 +2787,7 @@ Err:
         HSLength = 0
 
         'Reset interleave
-        IL0 = DefaultIL0
-        IL1 = DefaultIL1
-        IL2 = DefaultIL2
-        IL3 = DefaultIL3
+        ResetInterleaves()
 
         BufferCnt = 0
         BundleNo = 0
@@ -2845,6 +2842,21 @@ NoDisk:
         ResetDiskVariables = False
 
     End Function
+
+    Public Sub ResetInterleaves()
+        On Error GoTo Err
+
+        IL0 = DefaultIL0
+        IL1 = DefaultIL1
+        IL2 = DefaultIL2
+        IL3 = DefaultIL3
+
+        Exit Sub
+
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+    End Sub
 
     Public Function ResetBundleVariables() As Boolean
         On Error GoTo Err

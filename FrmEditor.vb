@@ -4061,6 +4061,8 @@ Err:
         DiskTracksA(CurrentDisk) = StdTracksPerDisk
         DiskSectorsA(CurrentDisk) = StdSectorsPerDisk
 
+        ResetInterleaves()
+
         If SNisBaseNode Then
             'Dim N As TreeNode = SN.Nodes("D" + DC.ToString)
 

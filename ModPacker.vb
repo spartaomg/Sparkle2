@@ -18,8 +18,8 @@
 
     Private TransitionalBlock As Boolean
 
-    Private ReadOnly MatchSelector As Integer = 0
-    Private ReadOnly LitSelector As Integer = 1
+    Private ReadOnly MatchSelector As Integer = 1
+    Private ReadOnly LitSelector As Integer = 0
 
     Private ReadOnly LongMatchTag As Byte = &HF8    'Could be changed to &H00, but this is more economical
     Private ReadOnly NextFileTag As Byte = &HFC
