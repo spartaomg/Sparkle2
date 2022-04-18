@@ -4,7 +4,7 @@ Imports System.ComponentModel
 Public Class FrmDisk
 
     Private Sub FrmDisk_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         Application.UseWaitCursor = True
 
@@ -23,7 +23,7 @@ Err:
     End Sub
 
     Private Sub FrmDisk_Activated(sender As Object, e As EventArgs) Handles Me.Activated
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         Refresh()
 
@@ -35,7 +35,7 @@ Err:
     End Sub
 
     Private Sub FrmDisk_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         Application.UseWaitCursor = False
 

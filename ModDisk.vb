@@ -1,4 +1,5 @@
 ﻿Friend Module ModDisk
+    Public ReadOnly DoOnErr As Boolean = True
     Public ErrCode As Integer = 0
 
     Public ReadOnly UserDeskTop As String = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
@@ -195,7 +196,7 @@
     Public SaverSupportsIO As Boolean = False
 
     Public Sub SetMaxSector()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Select Case CT
             Case 1 To 17
@@ -219,7 +220,7 @@ Err:
     End Sub
 
     Public Sub ResetArrays()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         DiskCnt = -1
 
@@ -246,7 +247,7 @@ Err:
     End Sub
 
     Public Function FindNextScriptEntry() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         FindNextScriptEntry = True
 
@@ -295,7 +296,7 @@ Err:
     End Function
 
     Public Sub SplitEntry()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         LastNonEmpty = -1
 
@@ -325,7 +326,7 @@ Err:
     End Sub
 
     Public Sub UpdateDiskSizeOnTheFly()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CP = Track(18)
 
@@ -363,7 +364,7 @@ Err:
     End Sub
 
     Public Sub NewDisk()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If TracksPerDisk = ExtTracksPerDisk Then
             ReDim Disk(ExtBytesPerDisk - 1)
@@ -455,7 +456,7 @@ Err:
     End Sub
 
     Private Function SectorOK(T As Byte, S As Byte) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim BP As Integer   'BAM Position for Bit Change
         Dim BB As Integer   'BAM Bit
@@ -478,7 +479,7 @@ Err:
     End Function
 
     Private Function FindNextFreeSector()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         FindNextFreeSector = True
 
@@ -518,7 +519,7 @@ Err:
     End Function
 
     Public Sub DeleteBit(T As Byte, S As Byte, Optional UpdateFreeBlocks As Boolean = True)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'Ignore tracks > 35
         'If T > 35 Then Exit Sub
@@ -544,7 +545,7 @@ Err:
     End Sub
 
     Public Function AddInterleave(Optional IL As Byte = 5) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         AddInterleave = True
 
@@ -580,7 +581,7 @@ Err:
     End Function
 
     Private Function TrackIsFull(T As Byte) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If Disk(Track(18) + T * 4) = 0 Then
             TrackIsFull = True
@@ -596,7 +597,7 @@ Err:
     End Function
 
     Private Sub CalcNextSector(Optional IL As Byte = 5)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Select Case CT
 
@@ -722,7 +723,7 @@ Err:
     End Sub
 
     Public Function InjectDriveCode(idcDiskID As Byte, idcFileCnt As Byte, idcNextID As Byte, Optional TestDisk As Boolean = False) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         InjectDriveCode = True
 
@@ -841,7 +842,7 @@ Err:
     End Function
 
     Private Sub InjectSaverPlugin()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If bSaverPlugin = False Then Exit Sub
         If HSFile.Length = 0 Then Exit Sub
@@ -1099,7 +1100,7 @@ Err:
     End Sub
 
     Public Function InjectLoader(DiskIndex As Integer, T As Byte, S As Byte, IL As Byte, Optional TestDisk As Boolean = False) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         InjectLoader = True
 
@@ -1231,7 +1232,7 @@ Err:
 
     End Function
     Private Sub UpdateZP()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'Check string length
         If LoaderZP.Length < 2 Then
@@ -1281,7 +1282,8 @@ Err:
         Dim OPC_LDAZP As Byte = &HA5
         Dim OPC_RORZP As Byte = &H66
         Dim OPC_ASLZP As Byte = &H6
-        Dim OPC_LDAZPY As Byte = &HB1
+        Dim OPC_EORIMM As Byte = &H49
+        'Dim OPC_LDAZPY As Byte = &HB1
 
         Dim ZPBase As Byte = &H2
 
@@ -1290,7 +1292,7 @@ Err:
                (Loader(I) = OPC_ADCZP) Or
                (Loader(I) = OPC_STAZPY) Then
 
-                If Loader(I + 1) = ZPBase Then
+                If (Loader(I + 1) = ZPBase) And (Loader(I + 2) <> OPC_EORIMM) Then  'Skip STA $0265 EOR #$FF
                     Loader(I + 1) = ZP
                     I += 1
                 End If
@@ -1322,9 +1324,9 @@ Err:
         Next
 
         ''ZP	                                 Instructions       Types
-        'Loader(LoaderBase + &HAF) = ZP      'STA ZP             STA ZP
+        'Loader(LoaderBase + &HAF) = ZP      'STA ZP                STA ZP
         'Loader(LoaderBase + &HD9) = ZP      'ADC ZP				ADC ZP
-        'Loader(LoaderBase + &HDB) = ZP      'STA ZP             STA (ZP),Y
+        'Loader(LoaderBase + &HDB) = ZP      'STA ZP                STA (ZP),Y
         'Loader(LoaderBase + &HEE) = ZP      'ADC ZP
         'Loader(LoaderBase + &HF0) = ZP      'STA ZP
         'Loader(LoaderBase + &HFF) = ZP      'STA (ZP),Y
@@ -1355,7 +1357,7 @@ Err:
     End Sub
 
     Public Function ConvertIntToHex(HInt As Integer, SLen As Integer) As String
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         ConvertIntToHex = LCase(Hex(HInt))
 
@@ -1373,7 +1375,7 @@ Err:
     End Function
 
     Public Function UpdateBAM(DiskIndex As Integer) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         UpdateBAM = True
 
@@ -1417,7 +1419,7 @@ Err:
     End Function
 
     Public Sub MakeTestDisk()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim B As Byte
         Dim TDiff As Integer = Track(19) - Track(18)
@@ -1479,7 +1481,7 @@ Err:
     End Sub
 
     Public Function BuildDemoFromScript(Optional SaveIt As Boolean = True) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         TotLits = 0
         TotSM = 0
@@ -1714,7 +1716,7 @@ NoDisk:
     End Function
 
     Public Function InsertScript(SubScriptPath As String) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         InsertScript = True
 
@@ -1859,7 +1861,7 @@ Err:
     End Function
 
     Private Function AddHeaderAndID() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         AddHeaderAndID = True
 
@@ -1901,7 +1903,7 @@ Err:
     End Function
 
     Private Function FinishDisk(LastDisk As Boolean, Optional SaveIt As Boolean = True) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         FinishDisk = True
 
@@ -1952,7 +1954,7 @@ NoDisk:
     End Function
 
     Private Function SaveDisk() As Boolean
-        'CANNOT HAVE ON ERROR FUNCTION DUE TO TRY/CATCH
+        'CANNOT HAVE On Error FUNCTION DUE TO TRY/CATCH
 
         SaveDisk = True
 
@@ -2015,7 +2017,7 @@ TryAgain:
     End Function
 
     Public Function CompressBundle(Optional FromEditor = False) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CompressBundleFromEditor = FromEditor
 
@@ -2105,7 +2107,7 @@ NoComp:
     End Function
 
     Private Function AddFile() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         AddFile = True
 
@@ -2125,7 +2127,7 @@ NoDisk:
 
     End Function
     Private Function BundleDone() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         BundleDone = True
 
@@ -2163,7 +2165,7 @@ NoDisk:
     End Function
 
     Public Function CheckNextIO(sAddress As String, sLength As String, NextFileUnderIO As Boolean) As Integer
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim pAddress As Integer = Convert.ToInt32(sAddress, 16) + Convert.ToInt32(sLength, 16)
 
@@ -2181,7 +2183,7 @@ Err:
     End Function
 
     Public Function SortBundle() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         SortBundle = True
 
@@ -2360,7 +2362,7 @@ NoSort:
     End Function
 
     Public Function AddHSFile() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         AddHSFile = True
 
@@ -2371,6 +2373,8 @@ NoSort:
         Dim FAN As Integer = 0
         Dim FON As Integer = 0
         Dim FLN As Integer = 0
+
+        Dim NumParams As Integer = 1
 
         Dim P() As Byte
 
@@ -2384,17 +2388,23 @@ NoSort:
             FN = ScriptPath + FN            'look for file in script's folder
         End If
 
-        'Correct file parameter length to 4 characters
+        'Correct file parameter length to 4-8 characters
         For I As Integer = 1 To ScriptEntryArray.Count - 1
 
             'Remove HEX prefix
-            'If InStr(ScriptEntryArray(I), "$") <> 0 Then        'C64
-            Replace(ScriptEntryArray(I), "$", "")
-            'ElseIf InStr(ScriptEntryArray(I), "&H") <> 0 Then   'VB
-            Replace(ScriptEntryArray(I), "&H", "")
-            'ElseIf InStr(ScriptEntryArray(I), "0x") <> 0 Then   'C, C++, C#, Java, Python, etc.
-            Replace(ScriptEntryArray(I), "0x", "")
-            'End If
+            If Left(ScriptEntryArray(I), 1) = "$" Then
+                ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 1)
+            End If
+            Select Case LCase(Left(ScriptEntryArray(I), 2))
+                Case "&h", "0x"
+                    ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 2)
+            End Select
+
+            If IsHexString(ScriptEntryArray(I)) Then
+                NumParams = I + 1
+            Else
+                Exit For
+            End If
 
             'Remove unwanted spaces
             Replace(ScriptEntryArray(I), " ", "")
@@ -2419,7 +2429,7 @@ NoSort:
         If IO.File.Exists(Replace(FN, "*", "")) = True Then
             P = IO.File.ReadAllBytes(Replace(FN, "*", ""))
 
-            Select Case ScriptEntryArray.Count
+            Select Case NumParams   'ScriptEntryArray.Count
                 Case 1  'No parameters in script
                     If InStr(LCase(Replace(FN, "*", "")), ".sid") <> 0 Then   'SID file - read parameters from file
                         FA = ConvertIntToHex(P(P(7)) + (P(P(7) + 1) * 256), 4)
@@ -2550,7 +2560,7 @@ NoDisk:
     End Function
 
     Public Function AddFileToPart() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         AddFileToPart = True
 
@@ -2558,10 +2568,12 @@ NoDisk:
         Dim FA As String = ""
         Dim FO As String = ""
         Dim FL As String = ""
-        Dim FAN As Integer = 0
-        Dim FON As Integer = 0
-        Dim FLN As Integer = 0
+        Dim FAN As Integer
+        Dim FON As Integer
+        Dim FLN As Integer
         Dim FUIO As Boolean = False
+
+        Dim NumParams As Integer = 1
 
         Dim P() As Byte
 
@@ -2574,17 +2586,23 @@ NoDisk:
             FN = ScriptPath + FN            'look for file in script's folder
         End If
 
-        'Correct file parameter length to 4 characters
+        'Correct file parameter length to 4-8 characters
         For I As Integer = 1 To ScriptEntryArray.Count - 1
 
             'Remove HEX prefix
-            'If InStr(ScriptEntryArray(I), "$") <> 0 Then        'C64
-            Replace(ScriptEntryArray(I), "$", "")
-            'ElseIf InStr(ScriptEntryArray(I), "&H") <> 0 Then   'VB
-            Replace(ScriptEntryArray(I), "&H", "")
-            'ElseIf InStr(ScriptEntryArray(I), "0x") <> 0 Then   'C, C++, C#, Java, Python, etc.
-            Replace(ScriptEntryArray(I), "0x", "")
-            'End If
+            If Left(ScriptEntryArray(I), 1) = "$" Then
+                ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 1)
+            End If
+            Select Case LCase(Left(ScriptEntryArray(I), 2))
+                Case "&h", "0x"
+                    ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 2)
+            End Select
+
+            If IsHexString(ScriptEntryArray(I)) Then
+                NumParams = I + 1
+            Else
+                Exit For
+            End If
 
             'Remove unwanted spaces
             Replace(ScriptEntryArray(I), " ", "")
@@ -2619,7 +2637,7 @@ NoDisk:
         If IO.File.Exists(FN) = True Then
             P = IO.File.ReadAllBytes(FN)
 
-            Select Case ScriptEntryArray.Count
+            Select Case NumParams   'ScriptEntryArray.Count
                 Case 1  'No parameters in script
                     If InStr(LCase(FN), ".sid") <> 0 Then   'SID file - read parameters from file
                         FA = ConvertIntToHex(P(P(7)) + (P(P(7) + 1) * 256), 4)
@@ -2718,7 +2736,7 @@ NoDisk:
     End Function
 
     Private Function SplitScriptEntry() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         SplitScriptEntry = True
 
@@ -2758,7 +2776,7 @@ Err:
     End Function
 
     Public Function ResetDiskVariables() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         ResetDiskVariables = True
 
@@ -2844,7 +2862,7 @@ NoDisk:
     End Function
 
     Public Sub ResetInterleaves()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         IL0 = DefaultIL0
         IL1 = DefaultIL1
@@ -2859,7 +2877,7 @@ Err:
     End Sub
 
     Public Function ResetBundleVariables() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         ResetBundleVariables = True
 
@@ -2886,7 +2904,7 @@ Err:
     End Function
 
     Public Function AddCompressedBundlesToDisk() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         AddCompressedBundlesToDisk = True
 
@@ -2928,7 +2946,7 @@ NoDisk:
     End Function
 
     Public Function AddDirArt() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         AddDirArt = True
 
@@ -2972,6 +2990,7 @@ NoDisk:
     End Function
 
     Private Sub ConvertBintoDirArt(Optional DirArtType As String = "bin")
+        If DoOnErr Then On Error GoTo Err
 
         Dim DA() As Byte = IO.File.ReadAllBytes(DirArtName)
 
@@ -3015,9 +3034,15 @@ NextSector:
             End If
         Next
 
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
     End Sub
 
     Private Sub ConvertD64ToDirArt()
+        If DoOnErr Then On Error GoTo Err
 
         Dim DA() As Byte = IO.File.ReadAllBytes(DirArtName)
 
@@ -3056,9 +3081,15 @@ NextSector:
             GoTo NextSector
         End If
 
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
     End Sub
 
     Private Sub ConvertTxtToDirArt()
+        If DoOnErr Then On Error GoTo Err
 
         Dim DirEntries() As String = DirArt.Split(vbLf)
         DirTrack = 18
@@ -3073,10 +3104,15 @@ NextSector:
             End If
         Next
 
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
     End Sub
 
     Private Sub AddDirEntry()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 0) = &H82   '"PRG" -  all dir entries will point at first file in dir
         Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 1) = 18     'Track 18 (track pointer of boot loader)
@@ -3101,7 +3137,7 @@ Err:
     End Sub
 
     Public Sub FindNextDirPos()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         DirPos = 0
 
@@ -3126,7 +3162,7 @@ Err:
     End Sub
 
     Private Sub FindNextDirSector()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'Sector order: 1,7,13,3,9,15,4,8,12,16
 
@@ -3177,7 +3213,7 @@ Err:
     End Sub
 
     Public Sub SetScriptPath(Path As String)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         ScriptName = Path
         ScriptPath = ScriptName
@@ -3200,7 +3236,7 @@ Err:
     End Sub
 
     Public Sub CalcILTab()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim SMax, IL As Integer
         Dim Disk(682 + 85) As Byte
@@ -3313,7 +3349,7 @@ Err:
     End Sub
 
     Public Sub GetILfromDisk()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         IL0 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 250) <> 0, Disk(Track(18) + (0 * 256) + 250), EORtransform(4)))
         IL1 = 256 - EORtransform(If(Disk(Track(18) + (0 * 256) + 252) <> 0, Disk(Track(18) + (0 * 256) + 252), EORtransform(3)))
@@ -3328,12 +3364,38 @@ Err:
     End Sub
 
     Private Sub UpdateBlocksFree()
+        If DoOnErr Then On Error GoTo Err
 
         If TracksPerDisk = ExtTracksPerDisk Then
             Dim ExtBlocksFree As Byte = If(BlocksFree > ExtSectorsPerDisk - StdSectorsPerDisk, ExtSectorsPerDisk - StdSectorsPerDisk, BlocksFree)
             Disk(Track(18) + 4) += ExtBlocksFree
         End If
 
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
     End Sub
+
+    Public Function IsHexString(S As String) As Boolean
+        If DoOnErr Then On Error GoTo Err
+
+        IsHexString = True
+
+        For I As Integer = 1 To S.Length
+            Select Case Mid(LCase(S), I, 1)
+                Case " ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"
+                Case Else
+                    IsHexString = False
+                    Exit For
+            End Select
+        Next
+
+        Exit Function
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+    End Function
 
 End Module

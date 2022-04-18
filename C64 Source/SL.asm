@@ -544,7 +544,7 @@ SkipIO:		sta	ZP+1		//Hi Byte of Dest Address
 		dex
 
 		ldy	#$00		//Needed for Literals
-		sty	Buffer		//this will also be the EndofBlock Tag
+		sty	Buffer		//This will also be the EndofBlock Tag
 
 		jmp	LitCheck	//Always, C=1 after first run, C=0 for next file in block
 
@@ -593,7 +593,7 @@ MidLit:		iny			//Y+Lit-1, C=0
 		adc	ZP
 		sta	ZP
 
-		bcc	ShortLitHi	//This would save 1 cycle per literal sequence, needs 2 bytes freed
+		bcc	ShortLitHi	//This saves 1 cycle per literal sequence
 
 ShortLCont:	txa
 SubX:		axs	#$00		//X=X-1-Literal (e.g. Lit=#$00 -> X=A-1-0)
@@ -616,7 +616,7 @@ ShortMatch:	tay			//Short Match Length=#$01-#$03 (corresponds to a match length 
 		eor	#$ff
 		adc	ZP		//Subtracting #$02-#$04
 		sta	ZP
-		bcc	ShortMatchHi
+		bcc	ShortMatchHi	//This saves 1 cycles per short match
 
 ShortMCont:	lda	Buffer,x	//Short Match Offset=($00-$3f)+1=$01-$40
 		lsr
@@ -625,7 +625,7 @@ ShortConv:	sec
 ShortConvNoSec:	adc	ZP
 		sta	MatchCopy+1	//MatchCopy+1=ZP+(Buffer)+(C=1)
 		lda	ZP+1
-MatchHi:	adc	#$00
+		adc	#$00
 		sta	MatchCopy+2	//C=0 after this
 		dex			//DEX needs to be after ShortConv
 		iny			//Y+=1 for bne to work (cannot be #$ff and #$00)

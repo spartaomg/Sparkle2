@@ -7,7 +7,7 @@
         Public Event CallBackProc(ByRef m As Message)
 
         Public Sub New(ByVal handle As IntPtr)
-            On Error GoTo Err
+            If DoOnErr Then On Error GoTo Err
 
             AssignHandle(handle)
 
@@ -21,7 +21,7 @@ Err:
         Public Property SubClass() As Boolean = False
 
         Protected Overrides Sub WndProc(ByRef m As Message)
-            On Error GoTo Err
+            If DoOnErr Then On Error GoTo Err
 
             If SubClass Then
                 RaiseEvent CallBackProc(m)
@@ -36,7 +36,7 @@ Err:
         End Sub
 
         Protected Overrides Sub Finalize()
-            On Error GoTo Err
+            If DoOnErr Then On Error GoTo Err
 
             MyBase.Finalize()
 

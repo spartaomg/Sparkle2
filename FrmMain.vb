@@ -16,7 +16,7 @@ Public Class FrmMain
     Private PrgT, PrgS, PrgB As Byte
 
     Private Sub FrmMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         If DotNetVersion() = False Then
             MsgBox("Sparkle requires .NET Framework version 4.5 or later!", vbOKOnly, "Please install .NET Framework")
@@ -111,7 +111,7 @@ Err:
     End Sub
 
     Private Sub TsbNew_Click(sender As Object, e As EventArgs) Handles tsbNew.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         If FileChanged Then
             Select Case MsgBox("Save current D64 file first?", vbYesNoCancel, "Save?")
@@ -153,7 +153,7 @@ Err:
     End Sub
 
     Private Sub TsbOpen_Click(sender As Object, e As EventArgs) Handles tsbOpen.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         Dim OpenDLG As New OpenFileDialog
 
@@ -192,7 +192,7 @@ Err:
     End Sub
 
     Private Function OpenFile()
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         OpenFile = True
 
@@ -241,7 +241,7 @@ Err:
     End Function
 
     Private Sub TsbSaveAs_Click(sender As Object, e As EventArgs) Handles tsbSaveAs.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         Dim SaveDLG As New SaveFileDialog With {
             .Filter = "D64 Files (*.d64)|*.d64",
@@ -269,7 +269,7 @@ Err:
     End Sub
 
     Private Sub TsbSave_Click(sender As Object, e As EventArgs) Handles tsbSave.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         If D64Name = "" Then
             TsbSaveAs_Click(sender, e)
@@ -287,7 +287,7 @@ Err:
     End Sub
 
     Private Sub SaveFile()
-        On Error GoTo ErrSaveFile
+        If DoOnErr Then If DoOnErr Then On Error GoTo ErrSaveFile
 
         File.WriteAllBytes(D64Name, Disk)
 
@@ -301,7 +301,7 @@ ErrSaveFile:
     End Sub
 
     Private Sub TsbBuildDisk_ButtonClick(sender As Object, e As EventArgs) Handles tsbBuildDisk.ButtonClick
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         Dim OpenDLG As New OpenFileDialog
 
@@ -333,7 +333,7 @@ Err:
     End Sub
 
     Private Sub TsmRebuildDisk_Click(sender As Object, e As EventArgs) Handles tsmRebuildDisk.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         If Script = "" Then
             TsbBuildDisk_ButtonClick(sender, e)
@@ -356,7 +356,7 @@ Err:
     End Sub
 
     Private Sub MakeDisk(sender As Object, e As EventArgs, Optional OnTheFly As Boolean = False)  'Args needed for button Sub calls
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         Dim DiskOK As Boolean
 
@@ -397,7 +397,7 @@ Done:
     End Sub
 
     Private Sub TsbBAM_Click(sender As Object, e As EventArgs) Handles tsbBAM.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         CT = 18
         CS = 0
@@ -416,7 +416,7 @@ Err:
     End Sub
 
     Private Sub TsbDir_Click(sender As Object, e As EventArgs) Handles tsbDir.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         CT = 18
         CS = 1
@@ -435,7 +435,7 @@ Err:
     End Sub
 
     Private Sub TsbFirstTrack_Click(sender As Object, e As EventArgs) Handles tsbFirstTrack.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         CT = 1
         CS = 0
@@ -449,7 +449,7 @@ Err:
     End Sub
 
     Private Sub TsbPrevTrack_Click(sender As Object, e As EventArgs) Handles tsbPrevTrack.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         If CT <> 1 Then
             CT -= 1
@@ -465,7 +465,7 @@ Err:
     End Sub
 
     Private Sub TsbNextTrack_Click(sender As Object, e As EventArgs) Handles tsbNextTrack.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         If CT <> TracksPerDisk Then
             CT += 1
@@ -481,7 +481,7 @@ Err:
     End Sub
 
     Private Sub TsbLastTrack_Click(sender As Object, e As EventArgs) Handles tsbLastTrack.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         CT = TracksPerDisk
         CS = 0
@@ -495,7 +495,7 @@ Err:
     End Sub
 
     Private Sub TsbNextSector4_Click(sender As Object, e As EventArgs) Handles tsbNextSector4.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         If CT = 18 Then
             If (Disk(Track(CT) + CS * 256) = 18) And (Disk(Track(CT) + CS * 256 + 1) <> 255) Then
@@ -525,7 +525,7 @@ Err:
     End Sub
 
     Private Sub TsbPrevSector4_Click(sender As Object, e As EventArgs) Handles tsbPrevSector4.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         Dim I As Integer
 
@@ -557,7 +557,7 @@ Err:
     End Sub
 
     Private Sub TsbSector0_Click(sender As Object, e As EventArgs) Handles tsbSector0.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         CS = 0
         ShowSector()
@@ -570,7 +570,7 @@ Err:
     End Sub
 
     Private Sub TsbPrevSector_Click(sender As Object, e As EventArgs) Handles tsbPrevSector.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         If CS <> 0 Then
             CS -= 1
@@ -585,7 +585,7 @@ Err:
     End Sub
 
     Private Sub TsbNextSector_Click(sender As Object, e As EventArgs) Handles tsbNextSector.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         If CS <> MaxSector Then
             CS += 1
@@ -600,7 +600,7 @@ Err:
     End Sub
 
     Private Sub TsbLastSector_Click(sender As Object, e As EventArgs) Handles tsbLastSector.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         CS = MaxSector
         ShowSector()
@@ -613,7 +613,7 @@ Err:
     End Sub
 
     Private Sub TxtSector_KeyDown(sender As Object, e As KeyEventArgs) Handles txtSector.KeyDown
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         Select Case e.KeyCode
             Case 48 To 57, 65 To 70
@@ -724,7 +724,7 @@ Err:
     End Sub
 
     Private Sub TxtSector_MouseDown(sender As Object, e As MouseEventArgs) Handles txtSector.MouseDown
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         Dim MS As Integer = txtSector.SelectionStart
 
@@ -743,7 +743,7 @@ Err:
     End Sub
 
     Private Sub TsbUndo_Click(sender As Object, e As EventArgs) Handles tsbUndo.Click
-        On Error GoTo Err
+        If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         Dim AsciiUndo As Boolean = True
 
@@ -806,7 +806,7 @@ Err:
     End Sub
 
     Private Sub AddToUndo()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         UndoCT(Undo) = CT
         UndoCS(Undo) = CS
@@ -829,7 +829,7 @@ Err:
     End Sub
 
     Private Sub ResetUndo()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         For Undo = 0 To 255
             UndoCT(Undo) = 0
@@ -851,7 +851,7 @@ Err:
     End Sub
 
     Private Sub ShowSector()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Select Case CT
             Case 1 To 17
@@ -971,7 +971,7 @@ Err:
     End Sub
 
     Private Function ByteToChar(B As Byte) As String
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
         If B > 9 Then
             B += 55
         Else
@@ -988,7 +988,7 @@ Err:
     End Function
 
     Private Sub StatusFileName(FN As String)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If FN = "*" Or FN = "" Then
             FN = "(New)" + FN
@@ -1011,7 +1011,7 @@ Err:
     End Sub
 
     Private Sub UpdateByte(N As Byte, Optional Undo As Boolean = False)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim B As Byte
 
@@ -1050,7 +1050,7 @@ Err:
     End Sub
 
     Private Sub CursorPos(SelLen As Integer)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim CheckStart As Integer = 0
 StartCheck1:
@@ -1084,7 +1084,7 @@ Err:
     End Sub
 
     Private Sub MoveCursorRight()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CB += 1
         If CB > 1 Then
@@ -1108,7 +1108,7 @@ Err:
     End Sub
 
     Private Sub MoveCursorLeft()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CB -= 1
         If CB < 0 Then
@@ -1132,7 +1132,7 @@ Err:
     End Sub
 
     Private Sub MoveCursorUp()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CY -= 1
         If CY < 0 Then
@@ -1149,7 +1149,7 @@ Err:
     End Sub
 
     Private Sub MoveCursorDown()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CY += 1
         If CY > 15 Then
@@ -1166,7 +1166,7 @@ Err:
     End Sub
 
     Private Sub TsbScriptEditor_Click(sender As Object, e As EventArgs) Handles TsbScriptEditor.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Using A As New FrmEditor
             A.ShowDialog(Me)
@@ -1192,7 +1192,7 @@ Err:
     End Sub
 
     Private Sub TxtCT_GotFocus(sender As Object, e As EventArgs) Handles txtCT.GotFocus
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         txtCT.SelectAll()
 
@@ -1204,7 +1204,7 @@ Err:
     End Sub
 
     Private Sub TxtCT_KeyDown(sender As Object, e As KeyEventArgs) Handles txtCT.KeyDown
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Select Case e.KeyCode
             Case Keys.D0, Keys.D1, Keys.D2, Keys.D3, Keys.D4, Keys.D5, Keys.D6, Keys.D7, Keys.D8, Keys.D9
@@ -1227,7 +1227,7 @@ Err:
     End Sub
 
     Private Sub TxtCT_LostFocus(sender As Object, e As EventArgs) Handles txtCT.LostFocus
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If txtCT.Text = "" Then
             txtCT.Text = CT.ToString
@@ -1247,7 +1247,7 @@ Err:
     End Sub
 
     Private Sub TxtCT_MouseDown(sender As Object, e As MouseEventArgs) Handles txtCT.MouseDown
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         txtCT.SelectAll()
 
@@ -1259,7 +1259,7 @@ Err:
     End Sub
 
     Private Sub TxtCS_GotFocus(sender As Object, e As EventArgs) Handles txtCS.GotFocus
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         txtCS.SelectAll()
 
@@ -1271,7 +1271,7 @@ Err:
     End Sub
 
     Private Sub TsbFirstPart_Click(sender As Object, e As EventArgs) Handles TsbFirstPart.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If PartT.Count > 0 Then
             CT = PartT(0)
@@ -1287,7 +1287,7 @@ Err:
     End Sub
 
     Private Sub TsbLastPart_Click(sender As Object, e As EventArgs) Handles TsbLastPart.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If PartT.Count > 0 Then
             CT = PartT(PartT.Count - 1)
@@ -1305,7 +1305,7 @@ Err:
     End Sub
 
     Private Sub TsbNextPart_Click(sender As Object, e As EventArgs) Handles TsbNextPart.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If PartT.Count > 0 Then
 
@@ -1338,7 +1338,7 @@ Err:
     End Sub
 
     Private Sub TsbPrevPart_Click(sender As Object, e As EventArgs) Handles TsbPrevPart.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If PartT.Count > 0 Then
 
@@ -1369,7 +1369,7 @@ Err:
     End Sub
 
     Private Sub TsbAbout_Click(sender As Object, e As EventArgs) Handles TsbAbout.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim A As New FrmAbout
         A.Show(Me)
@@ -1382,7 +1382,7 @@ Err:
     End Sub
 
     Private Sub TsmTestDisk_Click(sender As Object, e As EventArgs) Handles TsmTestDisk.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         MakeTestDisk()
 
@@ -1410,7 +1410,7 @@ Err:
     End Sub
 
     Private Sub TxtCS_KeyDown(sender As Object, e As KeyEventArgs) Handles txtCS.KeyDown
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Select Case e.KeyCode
             Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9
@@ -1433,7 +1433,7 @@ Err:
     End Sub
 
     Private Sub TxtCS_LostFocus(sender As Object, e As EventArgs) Handles txtCS.LostFocus
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If txtCS.Text = "" Then
             txtCS.Text = CS.ToString
@@ -1461,7 +1461,7 @@ Err:
     End Sub
 
     Private Sub TsmAssociate_Click(sender As Object, e As EventArgs) Handles TsmAssociate.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         AssociateSLS()
 
@@ -1473,7 +1473,7 @@ Err:
     End Sub
 
     Private Sub TsmDeleteAssociation_Click(sender As Object, e As EventArgs) Handles TsmDeleteAssociation.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         DeleteAssociation()
 
@@ -1485,7 +1485,7 @@ Err:
     End Sub
 
     Private Sub TxtCS_MouseDown(sender As Object, e As MouseEventArgs) Handles txtCS.MouseDown
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         txtCS.SelectAll()
 
@@ -1497,7 +1497,7 @@ Err:
     End Sub
 
     Private Sub FrmMain_DragDrop(sender As Object, e As DragEventArgs) Handles Me.DragDrop
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim DropFiles() As String = e.Data.GetData(DataFormats.FileDrop)
         For Each Path In DropFiles
@@ -1520,7 +1520,7 @@ Err:
     End Sub
 
     Private Sub TsbAddFile_Click(sender As Object, e As EventArgs) Handles TsbAddFile.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim OpenDLG As New OpenFileDialog
         Dim PrgFileName As String
@@ -1606,7 +1606,7 @@ Err:
     End Sub
 
     Private Function AddPrgToDisk(Prg() As Byte, T As Integer) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         AddPrgToDisk = True
 
@@ -1706,7 +1706,7 @@ NoGo:
     End Function
 
     Private Sub FrmMain_DragEnter(sender As Object, e As DragEventArgs) Handles Me.DragEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If e.Data.GetDataPresent(DataFormats.FileDrop) Then
             e.Effect = DragDropEffects.Copy
@@ -1720,7 +1720,7 @@ Err:
     End Sub
 
     Private Sub TxtSector_DragDrop(sender As Object, e As DragEventArgs) Handles txtSector.DragDrop
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         FrmMain_DragDrop(sender, e)
 
@@ -1732,7 +1732,7 @@ Err:
     End Sub
 
     Private Sub TxtSector_DragEnter(sender As Object, e As DragEventArgs) Handles txtSector.DragEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         FrmMain_DragEnter(sender, e)
 
@@ -1744,7 +1744,7 @@ Err:
     End Sub
 
     Private Sub ScanDiskForParts()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim BlockNo As Integer = 0
 
@@ -1785,7 +1785,7 @@ Err:
     End Sub
 
     Private Sub FrmMain_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
-        On Error Resume Next
+        If DoOnErr Then On Error Resume Next
 
         Cursor = Cursors.WaitCursor
 
@@ -1798,7 +1798,7 @@ Err:
     End Sub
 
     Private Sub FrmMain_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If e.Alt Then
             If e.KeyCode = Keys.F4 Then

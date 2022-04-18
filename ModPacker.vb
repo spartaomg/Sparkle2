@@ -6,6 +6,8 @@
         Public TotalBits As Integer     'Total Bits in Buffer
     End Structure
 
+    Private ReadOnly AllowShortMidMatches As Boolean = False
+
     Public BytePtr As Integer           'Buffer Byte Stream Pointer
     Public BitPtr As Integer            'Buffer Bit Stream Pointer
     Public NibblePtr As Integer         'Buffer 4Bit Stream Pointer
@@ -61,7 +63,7 @@
     'Private Cycles As Integer
     'Private BitStreamBytes As Integer
     Public Sub PackFile(PN As Byte(), Optional FA As String = "", Optional FUIO As Boolean = False)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         '----------------------------------------------------------------------------------------------------------
         'PROCESS FILE
@@ -135,7 +137,7 @@ Err:
     End Sub
 
     Private Sub CalcBestSequence(SeqHighestIndex As Integer, SeqLowestIndex As Integer, Optional FirstRun As Boolean = False)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim MaxO, MaxL, MaxLL, MaxSL As Integer
         Dim SeqLen, SeqOff As Integer
@@ -211,7 +213,13 @@ Match:                              If O <= MaxShortOffset Then
                                             SL(Pos) = If(L > MaxShortLen, MaxShortLen, L)   'Short matches cannot be longer than 4 bytes
                                             SO(Pos) = O       'Keep Offset 1-based
                                         End If
-                                        If LL(Pos) < L Then
+                                        'If LL(Pos) < L Then
+                                        'LL(Pos) = L
+                                        'LO(Pos) = O
+                                    End If
+                                    'Else
+                                    If AllowShortMidMatches Then
+                                        If (LL(Pos) < L) Then 'Allow short (2-byte) Mid Matches
                                             LL(Pos) = L
                                             LO(Pos) = O
                                         End If
@@ -221,6 +229,7 @@ Match:                              If O <= MaxShortOffset Then
                                             LO(Pos) = O
                                         End If
                                     End If
+                                    'End If
                                 End If
                                 Exit For
                             End If
@@ -242,20 +251,20 @@ Match:                              If O <= MaxShortOffset Then
 
             Seq(Pos + 1).TotalBits = &HFFFFFF       'Max block size=100 = $10000 bytes = $80000 bits, make default larger than this
 
-                        If LL(Pos) <> 0 Then                    'TODO: check if there is a more optimal way...
-                            CheckMatchSeq(LL(Pos), LO(Pos), Pos)
-                        End If
-                        If SL(Pos) <> 0 Then
-                            CheckMatchSeq(SL(Pos), SO(Pos), Pos)
-                        End If
-                        'Both LL(Pos) and SL(Pos) are 0, so this is a literal byte
-                        If (LL(Pos) = 0) And (SL(Pos) = 0) Then
-                            CheckLitSeq(Pos)
-                        End If
+            If LL(Pos) <> 0 Then                    'TODO: check if there is a more optimal way...
+                CheckMatchSeq(LL(Pos), LO(Pos), Pos)
+            End If
+            If SL(Pos) <> 0 Then
+                CheckMatchSeq(SL(Pos), SO(Pos), Pos)
+            End If
+            'Both LL(Pos) and SL(Pos) are 0, so this is a literal byte
+            If (LL(Pos) = 0) And (SL(Pos) = 0) Then
+                CheckLitSeq(Pos)
+            End If
 
-                    Next
+        Next
 
-                    Exit Sub
+        Exit Sub
 Err:
         ErrCode = Err.Number
         MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
@@ -263,7 +272,7 @@ Err:
     End Sub
 
     Private Sub CheckMatchSeq(SeqLen As Integer, SeqOff As Integer, Pos As Integer)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
         Dim TotBits As Integer
 
         'Check all possible lengths
@@ -296,7 +305,7 @@ Err:
     End Sub
 
     Private Sub CheckLitSeq(Pos As Integer)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TotBits As Integer
 
@@ -337,7 +346,7 @@ Err:
     End Sub
 
     Private Sub Pack()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'Packing is done backwards
 
@@ -473,7 +482,7 @@ Err:
     End Sub
 
     Private Sub CalcMatchBytesAndBits(Length As Integer, Offset As Integer) 'Match Length is 1 based
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If (Length <= MaxShortLen) And (Offset <= MaxShortOffset) Then
             MatchBytes = 1
@@ -493,7 +502,7 @@ Err:
     End Sub
 
     Private Function CalcLitBits(Lits As Integer) As Integer     'LitCnt is 0 based
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If Lits = -1 Then
             CalcLitBits = 0                       'Lits = -1		no literals, 0 bit
@@ -519,7 +528,7 @@ Err:
     End Function
 
     Private Function SequenceFits(BytesToAdd As Integer, BitsToAdd As Integer, Optional SequenceUnderIO As Integer = 0) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim BytesFree As Integer = BytePtr      '1,2,3,...,BytePtr-1,BytePtr
 
@@ -586,7 +595,7 @@ Err:
     End Function
 
     Private Sub AddMatchBit()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If LitCnt = -1 Then
             AddBits(MatchSelector, 1)   'Last Literal Length was -1, we need the Match selector bit (1)
@@ -603,7 +612,7 @@ Err:
     End Sub
 
     Private Sub AddLongMatch()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         TotMatch += 1
 
@@ -626,7 +635,7 @@ Err:
     End Sub
 
     Private Sub AddMidMatch()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         TotMatch += 1
 
@@ -648,7 +657,7 @@ Err:
     End Sub
 
     Private Sub AddShortMatch()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         TotMatch += 1
 
@@ -669,7 +678,7 @@ Err:
     End Sub
 
     Private Sub AddLitSequence()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If LitCnt = -1 Then Exit Sub
 
@@ -706,7 +715,7 @@ Err:
     End Sub
 
     Private Sub AddLitBits(Lits As Integer)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'We are never adding more than MaxLitBit number of bits here
 
@@ -745,7 +754,7 @@ Err:
 
     End Sub
     Private Sub AddNibble(Bit As Integer)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If NibblePtr = 0 Then
             NibblePtr = BytePtr
@@ -764,7 +773,7 @@ Err:
     End Sub
 
     Private Sub AddBits(Bit As Integer, BCnt As Byte)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         For I As Integer = BCnt - 1 To 0 Step -1
             If BitPos < 0 Then
@@ -800,7 +809,7 @@ Err:
     End Sub
 
     Public Function CloseBuffer() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CloseBuffer = True
 
@@ -934,7 +943,7 @@ NoDisk:
     End Function
 
     Public Function CloseBundle(Optional NextFileIO As Integer = 0, Optional LastPartOnDisk As Boolean = False, Optional FromEditor As Boolean = False) As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CloseBundle = True
 
@@ -1057,7 +1066,7 @@ NoGo:
     End Function
 
     Public Sub CloseFile()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'ADDS NEXT FILE TAG TO BUFFER
 
@@ -1096,7 +1105,7 @@ Err:
     End Sub
 
     Public Sub ResetBuffer() 'CHANGE TO PUBLIC
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         ReDim Buffer(255)       'New empty buffer
 
@@ -1125,7 +1134,7 @@ Err:
     End Sub
 
     Public Function CheckIO(Offset As Integer, Optional NextFileUnderIO As Integer = -1) As Integer
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Offset += PrgAdd
 
@@ -1145,7 +1154,7 @@ Err:
     End Function
 
     Public Sub UpdateByteStream()   'THIS IS ALSO USED BY LZ4+RLE!!!
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         ReDim Preserve ByteSt(BufferCnt * 256 - 1)
 

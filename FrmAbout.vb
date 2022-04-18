@@ -1,6 +1,6 @@
 ﻿Public Class FrmAbout
     Private Sub FrmAbout_Click(sender As Object, e As EventArgs) Handles Me.Click
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         Close()
 
@@ -12,7 +12,7 @@ Err:
     End Sub
 
     Private Sub FrmAbout_LostFocus(sender As Object, e As EventArgs) Handles Me.LostFocus
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         Close()
 
@@ -24,7 +24,7 @@ Err:
     End Sub
 
     Private Sub FrmAbout_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         Close()
 
@@ -36,7 +36,7 @@ Err:
     End Sub
 
     Private Sub FrmAbout_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         With lblMe
             .Text = "by Sparta, 2019-" + Year(Now).ToString
@@ -62,7 +62,7 @@ Err:
     End Sub
 
     Private Sub LblName_Click(sender As Object, e As EventArgs) Handles LblName.Click
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         Close()
 
@@ -74,7 +74,7 @@ Err:
     End Sub
 
     Private Sub lblDescription_Click(sender As Object, e As EventArgs) Handles lblDescription.Click
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         Close()
 
@@ -86,7 +86,7 @@ Err:
     End Sub
 
     Private Sub lblMe_Click(sender As Object, e As EventArgs) Handles lblMe.Click
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         Close()
 
@@ -98,7 +98,7 @@ Err:
     End Sub
 
     Private Sub LblVersion_Click(sender As Object, e As EventArgs) Handles LblVersion.Click
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         Close()
 
@@ -110,7 +110,7 @@ Err:
     End Sub
 
     Private Sub PbxLogo_Click(sender As Object, e As EventArgs) Handles PbxLogo.Click
-        On Error GoTo Err
+        If DoOnErr  then On Error GoTo Err
 
         Close()
 

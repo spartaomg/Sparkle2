@@ -61,6 +61,8 @@ Public Class FrmEditor
     Private FileSize As Integer
     Private FilePath As String
 
+    Private NumParams As Integer
+
     Private ReadOnly BaseScriptText As String = "This Script: "
     Private ReadOnly BaseScriptKey As String = "BaseScript"
 
@@ -68,11 +70,14 @@ Public Class FrmEditor
     Private ReadOnly NewDiskEntryText As String = "New Disk"
     Private ReadOnly NewBundleEntryText As String = "New Bundle"
     Private ReadOnly NewScriptEntryText As String = "New Script"
+    Private ReadOnly NewCommentEntryText As String = "New Comment Line"
     Private ReadOnly NewFileEntryText As String = "Add New File"
+
     Private ReadOnly NewEntryKey As String = "NewEntry"
     Private ReadOnly NewDiskKey As String = "NewDisk"
     Private ReadOnly NewBundleKey As String = "NewBundle"
     Private ReadOnly NewScriptKey As String = "NewScript"
+    Private ReadOnly NewCommentKey As String = "NewComment"
     Private ReadOnly NewFileKey As String = "NewFile"
 
     Private ZPSet As Boolean = False
@@ -107,6 +112,8 @@ Public Class FrmEditor
     Private ReadOnly sFileAddr As String = "Load Address: $"
     Private ReadOnly sFileOffs As String = "File Offset:  $"
     Private ReadOnly sFileLen As String = "File Length:  $"
+    Private ReadOnly sFileComment As String = "File Comment: "
+    Private ReadOnly sComment As String = "Comment: "
     Private ReadOnly sDirArt As String = "DirArt: "
     Private ReadOnly sZP As String = "Zeropage: "
     Private ReadOnly sProdID As String = "Product ID: "
@@ -133,6 +140,7 @@ Public Class FrmEditor
     Private ReadOnly tAddDisk As String = "Double click or press <Enter> to add a new disk structure to this script."
     Private ReadOnly tAddBundle As String = "Double click or press <Enter> to add a new bundle to this script."
     Private ReadOnly tAddScript As String = "Double click or press <Enter> to add an existing script to this script."
+    Private ReadOnly tAddCommentLine As String = "Double click or press <Enter> to add a new comment line to this script."
     Private ReadOnly tAddFile As String = "Double click or press <Enter> to add an existing file to this bundle."
     Private ReadOnly tNB As String = "Double click or press <Enter> to change the alignment of this bundle with a sector on the disk."
     Private ReadOnly tFileSize As String = "Original size of the selected file segment in blocks."
@@ -165,7 +173,7 @@ Public Class FrmEditor
     '"E.g. select 1 to loop to the first disk."
 
     Private Sub FrmEditor_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         bBuildDisk = False
 
@@ -232,7 +240,7 @@ Err:
     End Sub
 
     Private Sub FrmEditor_DragDrop(sender As Object, e As DragEventArgs) Handles Me.DragDrop
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim DropFiles() As String = e.Data.GetData(DataFormats.FileDrop)
         For Each Path In DropFiles
@@ -253,7 +261,7 @@ Err:
     End Sub
 
     Private Sub FrmEditor_DragEnter(sender As Object, e As DragEventArgs) Handles Me.DragEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If e.Data.GetDataPresent(DataFormats.FileDrop) Then
             e.Effect = DragDropEffects.Copy
@@ -267,7 +275,7 @@ Err:
     End Sub
 
     Private Sub FrmEditor_Closing(sender As Object, e As CancelEventArgs) Handles Me.Closing
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If txtEdit.Visible Then TV.Focus()
 
@@ -295,7 +303,7 @@ Err:
     End Sub
 
     Private Sub FrmEditor_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If e.Control Then
             Select Case e.KeyCode
@@ -355,7 +363,7 @@ Err:
     End Sub
 
     Private Sub FrmEditor_Resize(sender As Object, e As EventArgs) Handles Me.Resize
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         With TV
             .Width = Width - BtnNew.Width - 56
@@ -393,7 +401,7 @@ Err:
     End Sub
 
     Private Sub TV_KeyDown(sender As Object, e As KeyEventArgs) Handles TV.KeyDown
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim S As String
         Dim N As TreeNode = TV.SelectedNode
@@ -454,6 +462,15 @@ Err:
                     HandleKey = False
                 End If
                 Exit Sub
+                'Case NewCommentEntryText
+                'If e.KeyCode = Keys.Enter Then
+                'HandleKey = True
+                'e.SuppressKeyPress = True
+                'AddNewCommentNode()
+                'Else
+                'HandleKey = False
+                'End If
+                'Exit Sub
             Case NewFileEntryText
                 If e.KeyCode = Keys.Enter Then
                     HandleKey = True
@@ -834,7 +851,7 @@ Err:
     End Sub
 
     Private Sub Tv_KeyPress(sender As Object, e As KeyPressEventArgs) Handles TV.KeyPress
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If HandleKey = True Then e.Handled = True
 
@@ -846,7 +863,7 @@ Err:
     End Sub
 
     Private Sub TV_AfterSelect(sender As Object, e As TreeViewEventArgs) Handles TV.AfterSelect
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         NodeSelect()
 
@@ -857,7 +874,7 @@ Err:
     End Sub
 
     Private Sub TV_GotFocus(sender As Object, e As EventArgs) Handles TV.GotFocus
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         NodeSelect()
 
@@ -869,7 +886,7 @@ Err:
     End Sub
 
     Private Sub Tv_NodeMouseClick(sender As Object, e As TreeNodeMouseClickEventArgs) Handles TV.NodeMouseClick
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If e.Button = MouseButtons.Right Then
             TV.SelectedNode = e.Node
@@ -883,7 +900,7 @@ Err:
     End Sub
 
     Private Sub Tv_NodeMouseDoubleClick(sender As Object, e As TreeNodeMouseClickEventArgs) Handles TV.NodeMouseDoubleClick
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim k As New KeyEventArgs(Keys.Enter)
         TV_KeyDown(sender, k)
@@ -896,7 +913,7 @@ Err:
     End Sub
 
     Private Sub Tv_MouseDown(sender As Object, e As MouseEventArgs) Handles TV.MouseDown
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'Handle double clicks before a node is expanded or collapsed to prevent unwanted expansion or collapse
 
@@ -918,7 +935,7 @@ Err:
     End Sub
 
     Private Sub TV_MouseEnter(sender As Object, e As EventArgs) Handles TV.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         With TT
             .ToolTipIcon = ToolTipIcon.Info
@@ -937,7 +954,7 @@ Err:
     End Sub
 
     Private Sub TV_MouseLeave(sender As Object, e As EventArgs) Handles TV.MouseLeave
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         TT.Hide(TV)
 
@@ -949,7 +966,7 @@ Err:
     End Sub
 
     Private Sub Tv_DragDrop(sender As Object, e As DragEventArgs) Handles TV.DragDrop
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         FrmEditor_DragDrop(sender, e)
 
@@ -961,7 +978,7 @@ Err:
     End Sub
 
     Private Sub Tv_DragEnter(sender As Object, e As DragEventArgs) Handles TV.DragEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         FrmEditor_DragEnter(sender, e)
 
@@ -973,7 +990,7 @@ Err:
     End Sub
 
     Private Sub Tv_BeforeExpand(sender As Object, e As TreeViewCancelEventArgs) Handles TV.BeforeExpand
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'If (TV.SelectedNode.Tag < &H10000) And (TV.SelectedNode.Tag > 0) Then
         ''If ChkExpand.Checked = False Then
@@ -991,7 +1008,7 @@ Err:
     End Sub
 
     Private Sub Tv_BeforeCollapse(sender As Object, e As TreeViewCancelEventArgs) Handles TV.BeforeCollapse
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'If (TV.SelectedNode.Tag < &H10000) And (TV.SelectedNode.Tag > 0) Then
         ''If ChkExpand.Checked = True Then
@@ -1009,7 +1026,7 @@ Err:
     End Sub
 
     Private Sub TxtEdit_KeyDown(sender As Object, e As KeyEventArgs) Handles txtEdit.KeyDown
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Select Case e.KeyCode
             Case Keys.Left, Keys.Right, Keys.Back, Keys.Delete, Keys.End
@@ -1081,7 +1098,7 @@ Err:
     End Sub
 
     Private Sub TxtEdit_GotFocus(sender As Object, e As EventArgs) Handles txtEdit.GotFocus
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         SCC = New SubClassCtrl.SubClassing(TV.Handle) With {
         .SubClass = True
@@ -1097,7 +1114,7 @@ Err:
     End Sub
 
     Private Sub TxtEdit_LostFocus(sender As Object, e As EventArgs) Handles txtEdit.LostFocus
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         SCC.ReleaseHandle()
 
@@ -1128,7 +1145,7 @@ Err:
     End Sub
 
     Private Sub TxtEdit_MouseWheel(sender As Object, e As MouseEventArgs) Handles txtEdit.MouseWheel
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         TV.Focus()
 
@@ -1140,7 +1157,7 @@ Err:
     End Sub
 
     Private Sub SCC_CallBackProc(ByRef m As Message) Handles SCC.CallBackProc
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'If txtEdit is visible while we are scrolling - set focus back to Tv and hide txtEdit
         Select Case m.Msg
@@ -1156,7 +1173,7 @@ Err:
     End Sub
 
     Private Sub AddBaseNode()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         StartUpdate()
         BaseNode = TV.Nodes.Add(BaseScriptKey, BaseScriptText + "(New Script)")
@@ -1199,7 +1216,7 @@ Done:
     End Sub
 
     Private Sub AddNewEntryNode()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         NewEntryNode = BaseNode.Nodes.Add(NewEntryKey, NewEntryText)
 
@@ -1209,12 +1226,15 @@ Done:
             .Nodes.Add(NewDiskKey, NewDiskEntryText)
             .Nodes.Add(NewBundleKey, NewBundleEntryText)
             .Nodes.Add(NewScriptKey, NewScriptEntryText)
+            '.Nodes.Add(NewCommentKey, NewCommentEntryText)
             .Nodes(NewDiskKey).ForeColor = colNewEntry
             .Nodes(NewBundleKey).ForeColor = colNewEntry
             .Nodes(NewScriptKey).ForeColor = colNewEntry
+            '.Nodes(NewCommentKey).ForeColor = colNewEntry
             .Nodes(NewDiskKey).Tag = 0
             .Nodes(NewBundleKey).Tag = 0
             .Nodes(NewScriptKey).Tag = 0
+            '.Nodes(NewCommentKey).Tag = 0
             .Expand()
         End With
 
@@ -1226,7 +1246,7 @@ Err:
     End Sub
 
     Private Sub AddNewFileEntryNode(BundleNode As TreeNode)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         With BundleNode
             .Nodes.Add(BundleNode.Name + ":" + NewFileKey, NewFileEntryText)
@@ -1242,7 +1262,7 @@ Err:
     End Sub
 
     Private Sub AddFileNode()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim N As TreeNode = TV.SelectedNode
 
@@ -1319,7 +1339,7 @@ Done:
     End Sub
 
     Private Sub AddScriptNode()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         FileType = 4    'Script file
         OpenDemoFile()
@@ -1362,7 +1382,7 @@ Done:
     End Sub
 
     Private Sub UpdateScriptNode(SN As TreeNode)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         FileType = 4    'Script file
         OpenDemoFile()
@@ -1400,7 +1420,7 @@ Done:
     End Sub
 
     Private Sub OpenDemoFile()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim P, F As String
 
@@ -1440,7 +1460,7 @@ Err:
     End Sub
 
     Private Sub OpenFile(Optional dlgTitle As String = "", Optional dlgFilter As String = "", Optional dlgPath As String = "", Optional dlgFile As String = "")
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If dlgTitle = "" Then
             dlgTitle = "Open"
@@ -1475,7 +1495,7 @@ Err:
     End Sub
 
     Private Sub SaveFile(Optional dlgTitle As String = "", Optional dlgFilter As String = "", Optional dlgPath As String = "", Optional dlgFile As String = "", Optional OW As Boolean = True)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If dlgTitle = "" Then
             dlgTitle = "Save"
@@ -1514,7 +1534,7 @@ Err:
     End Sub
 
     Private Sub AddNewBlockNode(BunldeNode As TreeNode)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim Fnt As New Font("Consolas", 10)
         AddNode(BunldeNode, BunldeNode.Name + ":NB", sNewBlock + "NO", BunldeNode.Tag, colNewBlockNo, Fnt)
@@ -1526,8 +1546,32 @@ Err:
 
     End Sub
 
+    Private Sub AddNewCommentNode()
+        If DoOnErr Then On Error GoTo Err
+        Dim CommentNode As TreeNode = NewEntryNode
+
+        StartUpdate()
+
+        With CommentNode
+            .Nodes.Clear()
+            .Name = BaseNode.Name + ":CL"
+            .Text = sComment
+            .ForeColor = colFile
+            .Tag = BaseNode.Tag
+        End With
+        AddNewEntryNode()
+
+        FinishUpdate()
+        TV.SelectedNode = CommentNode
+
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+    End Sub
+
     Private Sub AddBundleNode()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         BundleNode = NewEntryNode    'TV.SelectedNode
 
@@ -1565,7 +1609,7 @@ Err:
 
     End Sub
     Private Sub AddDiskNode()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         DiskNode = NewEntryNode
 
@@ -1642,7 +1686,7 @@ Err:
     End Sub
 
     Private Sub AddNode(Parent As TreeNode, Name As String, Text As String, Optional Tag As Integer = 0, Optional NodeColor As Color = Nothing, Optional NodeFnt As Font = Nothing)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Parent.Nodes.Add(Name, Text)
         Parent.Nodes(Name).Tag = Tag
@@ -1663,7 +1707,7 @@ Err:
     End Sub
 
     Private Sub DeleteNode(N As TreeNode)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim Frm As New FrmDisk
 
@@ -1810,7 +1854,7 @@ Done:
     End Sub
 
     Private Sub NodeSelect()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If TV.SelectedNode Is Nothing Then Exit Sub
 
@@ -1869,7 +1913,7 @@ Err:
     End Sub
 
     Private Sub FindCurrentDisk(N As TreeNode, Optional FirstRun As Boolean = False)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If FirstRun Then
             CurrentDisk = 0
@@ -1906,7 +1950,7 @@ Err:
     End Sub
 
     Private Sub StartUpdate()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If Loading = True Then Exit Sub
 
@@ -1925,7 +1969,7 @@ Err:
     End Sub
 
     Private Sub FinishUpdate()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If Loading = True Then Exit Sub
 
@@ -1945,7 +1989,7 @@ Err:
     End Sub
 
     Private Sub CorrectTextLength()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'Corrects the length of txtEdit to 2 or 4 characters depending on MaxLength
         'Eliminates invalid values
@@ -2075,7 +2119,7 @@ Err:
     End Sub
 
     Private Sub ChangeFileParameters(FileNode As TreeNode, NodeIndex As Integer)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         StartUpdate()
 
@@ -2137,7 +2181,7 @@ Done:
 
 
     Private Sub GetFile(FileName As String)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If Strings.Left(FileName, Len(sHSFile)) = sHSFile Then
             FileName = Replace(FileName, sHSFile, "")
@@ -2157,7 +2201,7 @@ Err:
     End Sub
 
     Private Sub GetDefaultFileParameters(FileNode As TreeNode, Optional FA As String = "", Optional FO As String = "", Optional FL As String = "", Optional IsHSFile As Boolean = False)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         StartUpdate()
 
@@ -2237,7 +2281,7 @@ Done:
     End Sub
 
     Private Sub ResetFileParameters(FileNode As TreeNode, NodeIndex As Integer)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         StartUpdate()
 
@@ -2288,7 +2332,7 @@ Done:
     End Sub
 
     Private Sub ValidateFileParameters(FileNode As TreeNode)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         NewFile = FileNode.Text
 
@@ -2410,7 +2454,7 @@ Done:
     End Sub
 
     Private Sub CheckFileParameterColors(FileNode As TreeNode, Optional IsHSFile As Boolean = False, Optional IsScriptNode As Boolean = False)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         StartUpdate()
 
@@ -2465,7 +2509,7 @@ Done:
     End Sub
 
     Private Function OverlapsIO() As Boolean
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If (FAddr >= &HD000) And (FAddr < &HE000) Then
             'File beings under IO
@@ -2489,7 +2533,7 @@ Err:
     End Function
 
     Private Sub UpdateDiskPath()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim N As TreeNode = TV.SelectedNode
 
@@ -2509,7 +2553,7 @@ Err:
     End Sub
 
     Private Sub UpdateHSFilePath(Optional HSF As String = "")
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim N As TreeNode = TV.SelectedNode
 
@@ -2577,7 +2621,7 @@ Done:
     End Sub
 
     Private Sub UpdateDirArtPath()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim N As TreeNode = TV.SelectedNode
 
@@ -2597,7 +2641,7 @@ Err:
     End Sub
 
     Private Sub UpdateFileParameters(FileNode As TreeNode, Optional IsHSFile As Boolean = False)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If FileNode Is Nothing Then Exit Sub
 
@@ -2672,6 +2716,17 @@ Err:
             End If
         End If
 
+        'If FileNode.Nodes(FileNode.Name + ":FC") Is Nothing Then
+        'FileNode.Nodes.Add(FileNode.Name + ":FC", sFileComment)
+        'With FileNode.Nodes(FileNode.Name + ":FC")
+        '.Tag = FileNode.Tag
+        '.ForeColor = colFile
+        '.NodeFont = New Font("Consolas", 10)
+        'End With
+        'Else
+        'FileNode.Nodes(FileNode.Name + ":FC").Text = sFileComment
+        'End If
+
         FinishUpdate()
 
         FileNode.Expand()
@@ -2684,7 +2739,7 @@ Err:
     End Sub
 
     Private Function CalcFileSize(FN As String, FA As Integer, FL As Integer) As String
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CalcFileSize = FN
 
@@ -2718,7 +2773,7 @@ Err:
     End Function
 
     Private Function CalcOrigBlockCnt() As Integer
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CalcOrigBlockCnt = 0
 
@@ -2808,7 +2863,7 @@ Err:
     End Function
 
     Private Sub BtnLoad_Click(sender As Object, e As EventArgs) Handles BtnLoad.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         OpenFile("Sparkle Loader Script files", "Sparkle Loader Script files (*.sls)|*.sls")
         If NewFile <> "" Then
@@ -2831,7 +2886,7 @@ Err:
     End Sub
 
     Private Sub BtnSave_Click(sender As Object, e As EventArgs) Handles BtnSave.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         ConvertNodesToScript()
 
@@ -2862,7 +2917,7 @@ Err:
     End Sub
 
     Private Sub UpdateFileNode()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim N As TreeNode = TV.SelectedNode
 
@@ -2914,7 +2969,7 @@ Err:
     End Sub
 
     Private Sub BtnOK_Click(sender As Object, e As EventArgs) Handles BtnOK.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         bBuildDisk = True
 
@@ -2928,7 +2983,7 @@ Err:
     End Sub
 
     Private Sub SwapNewBlockStatus()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         With SelNode
             If Strings.Right(SelNode.Text, 2) = "NO" Then
@@ -2959,7 +3014,7 @@ Err:
     End Sub
 
     Private Sub BtnEntryUp_Click(sender As Object, e As EventArgs) Handles BtnEntryUp.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If TV.SelectedNode Is Nothing Then Exit Sub
 
@@ -2991,7 +3046,7 @@ Done:
     End Sub
 
     Private Sub BtnEntryDown_Click(sender As Object, e As EventArgs) Handles BtnEntryDown.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If TV.SelectedNode Is Nothing Then Exit Sub
 
@@ -3022,7 +3077,7 @@ Done:
     End Sub
 
     Private Sub SwapIOStatus()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         With SelNode
             If Strings.Right(.Text, 3) = "I/O" Then
@@ -3054,7 +3109,7 @@ Err:
     End Sub
 
     Private Sub ChkSize_CheckedChanged(sender As Object, e As EventArgs) Handles ChkSize.CheckedChanged
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CalcDiskSizeWithForm(BaseNode)
 
@@ -3066,7 +3121,7 @@ Err:
     End Sub
 
     Private Sub OpenScript()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         tssLabel.Text = "Script: " + ScriptName
 
@@ -3084,7 +3139,7 @@ Err:
     End Sub
 
     Private Sub BtnNew_Click(sender As Object, e As EventArgs) Handles BtnNew.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If MsgBox("Do you really want to start a new script?", vbQuestion + vbYesNo + vbDefaultButton2, "New script?") = vbNo Then Exit Sub
 
@@ -3098,7 +3153,7 @@ Err:
     End Sub
 
     Private Sub NewScript()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         SetScriptPath("")
 
@@ -3150,7 +3205,7 @@ Err:
     End Sub
 
     Private Sub Tv_NodeMouseHover(sender As Object, e As TreeNodeMouseHoverEventArgs) Handles TV.NodeMouseHover
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         TT.Hide(TV)
 
@@ -3173,6 +3228,9 @@ Err:
             ElseIf e.Node.Name = NewScriptKey Then
                 .ToolTipTitle = "Add New Script"
                 TTT = tAddScript
+                'ElseIf e.Node.Name = NewCommentKey Then
+                '.ToolTipTitle = "Add New Comment Line"
+                'TTT = tAddCommentLine
             ElseIf Strings.Right(e.Node.Name, 7) = NewFileKey Then
                 .ToolTipTitle = "Add New Demo File"
                 TTT = tAddFile
@@ -3274,7 +3332,7 @@ Err:
     End Sub
 
     Private Sub BtnCancel_Click(sender As Object, e As EventArgs) Handles BtnCancel.Click
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         bBuildDisk = False
 
@@ -3288,7 +3346,7 @@ Err:
     End Sub
 
     Private Sub UpdateScriptPath()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim N As TreeNode = TV.SelectedNode
 
@@ -3307,7 +3365,7 @@ Err:
     End Sub
 
     Private Sub ChkExpand_CheckedChanged(sender As Object, e As EventArgs) Handles ChkExpand.CheckedChanged
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If TV.Nodes.Count > 0 Then
             ToggleFileNodes(BaseNode)
@@ -3330,7 +3388,7 @@ Err:
     End Sub
 
     Private Sub ConvertScriptToNodes()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If Script = "" Then Exit Sub
 
@@ -3485,8 +3543,8 @@ Err:
                     End If
                     If ScriptEntryArray(0) IsNot Nothing Then
                         If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
-                        CorrectFileParameterFormat()
-                        AddHSFileToDiskNode(DiskNode, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
+
+                        AddHSFileToDiskNode(DiskNode)
                     End If
                     NewBundle = True
                 Case "prodid:"
@@ -3644,8 +3702,7 @@ Err:
                     If ScriptEntryArray(0) IsNot Nothing Then
                         If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
 
-                        CorrectFileParameterFormat()
-                        AddFileToScriptNode(BaseNode, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
+                        AddFileToScriptNode(BaseNode)
                     End If
                     NewBundle = False
                 Case "new block", "next block", "new sector", "align bundle", "align"
@@ -3679,7 +3736,7 @@ Done:
     End Sub
 
     Private Sub ConvertScriptToScriptNodes(SN As TreeNode, SPath As String)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If IO.File.Exists(SPath) = False Then Exit Sub
 
@@ -3818,8 +3875,8 @@ Done:
                     End If
                     If ScriptEntryArray(0) IsNot Nothing Then
                         If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
-                        CorrectFileParameterFormat()
-                        AddHSFileToDiskNode(DiskNode, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""), True)
+
+                        AddHSFileToDiskNode(DiskNode, True)
                     End If
                     NewBundle = True
                 Case "prodid:"
@@ -3979,8 +4036,7 @@ Done:
                     If ScriptEntryArray(0) IsNot Nothing Then
                         If InStr(ScriptEntryArray(0), ":") = 0 Then ScriptEntryArray(0) = Path + ScriptEntryArray(0)
 
-                        CorrectFileParameterFormat()
-                        AddFileToScriptNode(SN, ScriptEntryArray(0), If(ScriptEntryArray.Count > 1, ScriptEntryArray(1), ""), If(ScriptEntryArray.Count > 2, ScriptEntryArray(2), ""), If(ScriptEntryArray.Count > 3, ScriptEntryArray(3), ""))
+                        AddFileToScriptNode(SN)
                     End If
                     NewBundle = False
                 Case "new block", "next block", "new sector", "align bundle", "align"
@@ -3998,7 +4054,9 @@ Err:
     End Sub
 
     Private Sub CorrectFileParameterFormat()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
+
+        NumParams = 1
 
         'Correct file parameter lengths to 4-8 characters
         For I As Integer = 1 To ScriptEntryArray.Count - 1
@@ -4006,13 +4064,19 @@ Err:
             ScriptEntryArray(I) = Strings.LCase(ScriptEntryArray(I))
 
             'Remove HEX prefix
-            'If InStr(ScriptEntryArray(I), "$") <> 0 Then        'C64
-            Replace(ScriptEntryArray(I), "$", "")
-            'ElseIf InStr(ScriptEntryArray(I), "&h") <> 0 Then   'VB
-            Replace(ScriptEntryArray(I), "&h", "")
-            'ElseIf InStr(ScriptEntryArray(I), "0x") <> 0 Then   'C, C++, C#, Java, Python, etc.
-            Replace(ScriptEntryArray(I), "0x", "")
-            'End If
+            If Strings.Left(ScriptEntryArray(I), 1) = "$" Then
+                ScriptEntryArray(I) = Strings.Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 1)
+            End If
+            Select Case LCase(Strings.Left(ScriptEntryArray(I), 2))
+                Case "&h", "0x"
+                    ScriptEntryArray(I) = Strings.Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 2)
+            End Select
+
+            If IsHexString(ScriptEntryArray(I)) Then
+                NumParams = I + 1
+            Else
+                Exit For
+            End If
 
             'Remove unwanted spaces
             Replace(ScriptEntryArray(I), " ", "")
@@ -4041,7 +4105,7 @@ Err:
     End Sub
 
     Private Sub AddDiskToScriptNode(SN As TreeNode)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim SNisBaseNode As Boolean = SN.Name = BaseNode.Name
 
@@ -4114,7 +4178,7 @@ Err:
     End Sub
 
     Private Sub UpdateNode(Node As TreeNode, Text As String, Optional Tag As Integer = 0, Optional NodeColor As Color = Nothing, Optional NodeFnt As Font = Nothing)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If Node Is Nothing Then Exit Sub
 
@@ -4133,7 +4197,7 @@ Err:
     End Sub
 
     Private Sub AddScriptToScriptNode(SN As TreeNode, S As String)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         SC += 1
 
@@ -4153,29 +4217,43 @@ Err:
 
     End Sub
 
-    Private Sub AddHSFileToDiskNode(SN As TreeNode, FileName As String, Optional FA As String = "", Optional FO As String = "", Optional FL As String = "", Optional IsScriptNode As Boolean = False)
-        On Error GoTo Err
+    Private Sub AddHSFileToDiskNode(SN As TreeNode, Optional IsScriptNode As Boolean = False)
+        If DoOnErr Then On Error GoTo Err
+
+        CorrectFileParameterFormat()
 
         'Dim SNisBaseNode As Boolean = SN.Name = BaseNode.Name
+        Dim FA As String = ""
+        Dim FO As String = ""
+        Dim FL As String = ""
+        Dim FileName As String = ScriptEntryArray(0)
 
         NewFile = FileName
-        GetFile(FileName)
+        GetFile(NewFile)
 
-        If FA <> "" Then
-            If Len(FA) < 4 Then
-                FA = Strings.Left("0000", 4 - Len(FA)) + FA
+        If NumParams >= 2 Then
+            If ScriptEntryArray(1) <> "" Then
+                FA = ScriptEntryArray(1)
+                If Len(FA) < 4 Then
+                    FA = Strings.Left("0000", 4 - Len(FA)) + FA
+                End If
             End If
         End If
-
-        If FO <> "" Then
-            If Len(FO) < 8 Then
-                FO = Strings.Left("00000000", 8 - Len(FO)) + FO
+        If NumParams >= 3 Then
+            If ScriptEntryArray(2) <> "" Then
+                FO = ScriptEntryArray(2)
+                If Len(FO) < 8 Then
+                    FO = Strings.Left("00000000", 8 - Len(FO)) + FO
+                End If
             End If
         End If
-
-        If FL <> "" Then
-            If Len(FL) < 4 Then
-                FL = Strings.Left("0000", 4 - Len(FL)) + FL
+        If NumParams >= 4 Then
+            NumParams = 4
+            If ScriptEntryArray(3) <> "" Then
+                FL = ScriptEntryArray(3)
+                If Len(FL) < 4 Then
+                    FL = Strings.Left("0000", 4 - Len(FL)) + FL
+                End If
             End If
         End If
 
@@ -4228,7 +4306,7 @@ Err:
                 FileUnderIO = False
             End If
 
-            Select Case ScriptEntryArray.Count
+            Select Case NumParams'ScriptEntryArray.Count
                 Case 1      'No file parameters in script, use default parameters
                     DFA = True
                     DFO = True
@@ -4411,31 +4489,46 @@ Err:
 
     End Sub
 
-    Private Sub AddFileToScriptNode(SN As TreeNode, FileName As String, Optional FA As String = "", Optional FO As String = "", Optional FL As String = "")
-        On Error GoTo Err
+    Private Sub AddFileToScriptNode(SN As TreeNode)
+        If DoOnErr Then On Error GoTo Err
+
+        CorrectFileParameterFormat()
 
         If NewBundle = True Then AddBundleToScriptNode(SN)
 
         Dim SNisBaseNode As Boolean = SN.Name = BaseNode.Name
 
+        Dim FA As String = ""
+        Dim FO As String = ""
+        Dim FL As String = ""
+        Dim FileName As String = ScriptEntryArray(0)
+
         NewFile = FileName
-        GetFile(FileName)
+        GetFile(NewFile)
 
-        If FA <> "" Then
-            If Len(FA) < 4 Then
-                FA = Strings.Left("0000", 4 - Len(FA)) + FA
+        If NumParams >= 2 Then
+            If ScriptEntryArray(1) <> "" Then
+                FA = ScriptEntryArray(1)
+                If Len(FA) < 4 Then
+                    FA = Strings.Left("0000", 4 - Len(FA)) + FA
+                End If
             End If
         End If
-
-        If FO <> "" Then
-            If Len(FO) < 8 Then
-                FO = Strings.Left("00000000", 8 - Len(FO)) + FO
+        If NumParams >= 3 Then
+            If ScriptEntryArray(2) <> "" Then
+                FO = ScriptEntryArray(2)
+                If Len(FO) < 8 Then
+                    FO = Strings.Left("00000000", 8 - Len(FO)) + FO
+                End If
             End If
         End If
-
-        If FL <> "" Then
-            If Len(FL) < 4 Then
-                FL = Strings.Left("0000", 4 - Len(FL)) + FL
+        If NumParams >= 4 Then
+            NumParams = 4
+            If ScriptEntryArray(3) <> "" Then
+                FL = ScriptEntryArray(3)
+                If Len(FL) < 4 Then
+                    FL = Strings.Left("0000", 4 - Len(FL)) + FL
+                End If
             End If
         End If
 
@@ -4471,7 +4564,7 @@ Err:
             FileUnderIO = False
         End If
 
-        Select Case ScriptEntryArray.Count
+        Select Case NumParams'ScriptEntryArray.Count
             Case 1      'No file parameters in script, use default parameters
                 DFA = True
                 DFO = True
@@ -4641,6 +4734,7 @@ Err:
         AddNode(FileNode, FileNode.Name + ":FL", sFileLen + If(FL <> "", FL, DFLS), FileNode.Tag, If(SNisBaseNode, If(DFA, colFileParamDefault, colFileParamEdited), If(DFA, colFileParamDefaultGray, colFileIOEditedGray)), Fnt)
         AddNode(FileNode, FileNode.Name + ":FUIO", sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM"), FileNode.Tag, If(SNisBaseNode, If(FileUnderIO, colFileIOEdited, colFileIODefault), If(FileUnderIO, colFileIOEditedGray, colFileIODefaultGray)), Fnt)
         AddNode(FileNode, FileNode.Name + ":FS", sFileSize + FileSize.ToString + " block" + If(FileSize = 1, "", "s"), FileNode.Tag, If(SNisBaseNode, colFileSize, colFileSizeGray), Fnt)
+        'AddNode(FileNode, FileNode.Name + ":FC", sFileComment, FileNode.Tag, colFile, Fnt)
 
         If SNisBaseNode Then
             CheckFileParameterColors(FileNode)  'This will make sure colors are OK
@@ -4663,7 +4757,7 @@ Err:
     End Sub
 
     Private Sub AddBundleToScriptNode(SN As TreeNode)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
         Dim SNisBaseNode As Boolean = SN.Name = BaseNode.Name
 
         PC += 1
@@ -4684,7 +4778,7 @@ Err:
     End Sub
 
     Private Sub ConvertNodesToScript()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim Frm As New FrmDisk
         Frm.Show(Me)
@@ -4830,7 +4924,7 @@ Done:   Frm.Close()
     End Sub
 
     Private Sub ReNumberEntries(ParentNode As TreeNode, Optional NodeIndex As Integer = -1)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'THIS WILL RENUMBER ALL DISKS AND PARTS AND COUNT DISKS, PARTS, FILES AND SCRIPTS IN THE SCRIPT
 
@@ -4895,7 +4989,7 @@ Err:
     End Sub
 
     Private Sub ScanScript(ParentNode As TreeNode)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'THIS WILL COUNT DISKS, PARTS, FILES AND SCRIPTS IN THE SCRIPT
         'AND RENAME THEM ACCORDING TO ORDER
@@ -4948,7 +5042,7 @@ Err:
     End Sub
 
     Private Function CalcBundleSize(PartN As TreeNode, Optional prevPartN As TreeNode = Nothing) As Integer
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'THIS WILL CALCULATE THE SIZE OF A SINGLE Bundle, UPDATE Bundle NODE AND RETURN Bundle SIZE
 
@@ -5124,7 +5218,7 @@ Done:
     End Sub
 
     Private Sub CalcDiskSize(ParentNode As TreeNode, Optional PartNodeIndex As Integer = -1)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         'THIS WILL CALCULATE EVERY DISK'S AND Bundle'S SIZE IN THE SCRIPT AND UPDATE EVERY DISK AND Bundle NODE
         'ALWAYS CALL IT WITH BASENODE
@@ -5262,7 +5356,7 @@ Err:
     End Sub
 
     Private Sub UpdatePartNames(ParentNode As TreeNode)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         For I As Integer = 0 To ParentNode.Nodes.Count - 1
             Select Case Int(ParentNode.Nodes(I).Tag / &H10000)
@@ -5303,7 +5397,7 @@ Err:
     End Sub
 
     Private Sub TxtEdit_MouseHover(sender As Object, e As EventArgs) Handles txtEdit.MouseHover
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         ShowTT()
 
@@ -5315,7 +5409,7 @@ Err:
     End Sub
 
     Private Sub ShowTT()
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         TT.Hide(txtEdit)
 
@@ -5400,7 +5494,7 @@ Err:
 
     End Sub
     Private Sub ToggleFileNodes(N As TreeNode)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         StartUpdate()
 
@@ -5459,7 +5553,7 @@ Err:
     End Sub
 
     Private Sub BtnNew_MouseEnter(sender As Object, e As EventArgs) Handles BtnNew.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Click or press Ctrl+N to start a new script."
         ShowToolTip("New Script", TTT, BtnNew)
@@ -5472,7 +5566,7 @@ Err:
     End Sub
 
     Private Sub BtnLoad_MouseEnter(sender As Object, e As EventArgs) Handles BtnLoad.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Click or press Ctrl+L to load an existing script."
         ShowToolTip("Load Script", TTT, BtnLoad)
@@ -5485,7 +5579,7 @@ Err:
     End Sub
 
     Private Sub BtnSave_MouseEnter(sender As Object, e As EventArgs) Handles BtnSave.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Click or press Ctrl+S to save your script."
         ShowToolTip("Save Script", TTT, BtnSave)
@@ -5498,7 +5592,7 @@ Err:
     End Sub
 
     Private Sub BtnEntryDown_MouseEnter(sender As Object, e As EventArgs) Handles BtnEntryDown.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Click or press Ctrl+PgDn to move this entry and its content down in your script."
         ShowToolTip("Move Entry Down", TTT, BtnEntryDown)
@@ -5511,7 +5605,7 @@ Err:
     End Sub
 
     Private Sub BtnEntryUp_MouseEnter(sender As Object, e As EventArgs) Handles BtnEntryUp.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Click or press Ctrl+PgUp to move this entry and its content up in your script."
         ShowToolTip("Move Entry Up", TTT, BtnEntryUp)
@@ -5524,7 +5618,7 @@ Err:
     End Sub
 
     Private Sub ChkSize_MouseEnter(sender As Object, e As EventArgs) Handles ChkSize.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Check or press Ctrl+A to autocalculate disk and bundle sizes during script editing."
         ShowToolTip("Autocalculate Disk and Bundle Sizes", TTT, ChkSize)
@@ -5537,7 +5631,7 @@ Err:
     End Sub
 
     Private Sub ChkExpand_MouseEnter(sender As Object, e As EventArgs) Handles ChkExpand.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Check or press Ctrl+D to show entry details."
         ShowToolTip("Show Details", TTT, ChkExpand)
@@ -5550,7 +5644,7 @@ Err:
     End Sub
 
     Private Sub ChkToolTips_MouseEnter(sender As Object, e As EventArgs) Handles ChkToolTips.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Check or press Ctrl+T to show tooltips."
         ShowToolTip("Show TooTips", TTT, ChkToolTips)
@@ -5563,7 +5657,7 @@ Err:
     End Sub
 
     Private Sub ShowToolTip(TTTitle As String, TTText As String, Owner As Control)
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If ChkToolTips.Checked = False Then Exit Sub
 
@@ -5586,7 +5680,7 @@ Err:
     End Sub
 
     Private Sub OptFullPaths_MouseEnter(sender As Object, e As EventArgs) Handles OptFullPaths.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Check or press Ctrl+P to save your scripts with full file paths."
         ShowToolTip("Use Full Paths", TTT, OptFullPaths)
@@ -5599,7 +5693,7 @@ Err:
     End Sub
 
     Private Sub OptRelativePaths_MouseEnter(sender As Object, e As EventArgs) Handles OptRelativePaths.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Check or press Ctrl+R to save your scripts with file paths relative to the script's path."
         ShowToolTip("Use Relative Paths", TTT, OptRelativePaths)
@@ -5612,7 +5706,7 @@ Err:
     End Sub
 
     Private Sub BtnOK_MouseEnter(sender As Object, e As EventArgs) Handles BtnOK.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Click or press F5 to close the editor and build your demo."
         ShowToolTip("Close & Build Demo", TTT, BtnOK)
@@ -5625,7 +5719,7 @@ Err:
     End Sub
 
     Private Sub BtnCancel_MouseEnter(sender As Object, e As EventArgs) Handles BtnCancel.MouseEnter
-        On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Dim TTT As String = "Click or press Alt+F4 to closed the editor without building your demo."
         ShowToolTip("Close without Building Demo", TTT, BtnCancel)
