@@ -3,7 +3,7 @@
 //	SPARKLE
 //	Inspired by Lft, Bitbreaker, and Krill
 //	Drive Code
-//	Tested on 1541, 1541-II, 1571, 1541 Ultimate-II+, and Oceanic drives
+//	Tested on 1541, 1541-II, 1571, the 1541 Ultimate series, and Oceanic drives
 //----------------------------------------------------------------------------------------
 //	- 2-bit + ATN protocol, combined fixed-order and out-of-order loading
 //	- 124-cycle GCR read-decode-verify loop with 1 BVC instruction
@@ -153,24 +153,26 @@
 //	0000	007d	ZP GCR tables and variables
 //	007c	00ff	GCR Loop and loop patches
 //	0100	01ff	Data Buffer on Stack
-//	0200	02ff	Second data buffer
+//	0200	02ff	Second Data Buffer
 //	0300	03f1	GCR tables with code interleaved
-//	0300	06f3	Drive Code
+//	0411	0472	GCR table with code interleaved
+//	0300	06f4	Drive Code
 //	0700	07ff	Directory (4 bytes per entry, 64 entries per dir block, 2 dir blocks on disk)
 //
 //	Layout at Start
 //
 //	0300	03f1	GCR tables			block 0
-//	0300	05ff	Code				blocks 1-2
+//	0300	05ff	Code				blocks 0-2
 //	0600	06ff	ZP GCR tables and GCR loop	block 3
-//	0700	073b	Installer			block 4
+//	0700	0736	Installer			block 4
 //
 //	Layout in PRG
 //
 //	2300	23f1	GCR tables			block 0
-//	2300	26f3	Drive Code			blockS 1-3 3 -> block 5
-//	2700	27ff	ZP GCR tables and GCR loop	block 4	-> block 3
-//	2800	283b	Installer			block 5	-> block 4
+//	2411	2472	GCR table			block 1
+//	2300	26f4	Drive Code			blocks 0-3 3 -> block 5
+//	2700	27ff	ZP GCR tables and GCR loop	block 	   4 -> block 3
+//	2800	2836	Installer			block 	   5 -> block 4
 //
 //----------------------------------------------------------------------------------------
 //	Track 18
@@ -339,7 +341,7 @@ ToggleLED:	lda	#$08		//4b 4c
 //0357
 DataJmp:
 .byte				    <DT,>DT
-.byte					    $d9,$97,XX3,XX4,XX1,$17,XX2	//PC tool store version info here
+.byte					    $d9,$97,XX3,XX4,XX1,$17,XX2	//PC tool stores version info here
 .byte	XX3,$a3,$a6,$a2,$a4,$a0,$c7
 //0367
 SHeaderJmp:
@@ -701,7 +703,7 @@ StepTmr:	lda	#$98
 
 Seek:		lda	$1c00
 PreCalc:	//anc	#$1b		//ANC NOW WORKS ON THE ULTIMATE-II+ \o/
-		and	#$1b		//but let's keep AND+CLC because the original 1541U no longer receives firmware updates
+		and	#$1b		//but we keep AND+CLC because the original 1541U no longer receives firmware updates :(
 		clc
 		adc	StepDir		//#$03 for stepping down, #$01 for stepping up
 		ora	#$0c		//LED and motor ON
@@ -795,7 +797,7 @@ UpdatePatch:	sta.z	LoopMod2
 
 //--------------------------------------
 
-		lsr	TrackChg	//Are we changing track after CATN?
+		lsr	TrackChg	//Are we changing tracks after CATN?
 		bcc	CheckATN	//No, goto CATN
 		jmp	StartTr		//Yes, go back to transfer (JSR/RTS cannot be used)
 
@@ -808,8 +810,8 @@ Reset:		jmp	($fffc)
 //--------------------------------------
 
 CheckATN:	lda	$1c00		//Fetch Motor and LED status
-		ora	#$08		//Make sure LED will be turned back on when we restart
-		tax			//This needs to be precalculated here, so that we do not affect Z flag at Restart
+		ora	#$08		//Make sure LED will be on when we restart
+		tax			//This needs to be done here, so that we do not affect Z flag at Restart
 
 		ldy	#$64		//100 frames (2 seconds) delay before turning motor off (#$fa for 5 sec)
 DelayOut:	lda	#$4f		//Approx. 1 frame delay (20000 cycles = $4e20 -> $4e+$01=$4f)

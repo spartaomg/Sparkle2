@@ -189,6 +189,7 @@
     Public CmdLine As Boolean = False
 
     Private Loader() As Byte
+    Private BlocksUsedBySaver As Integer = 0
 
     Public CompressBundleFromEditor As Boolean = False
     Public LastFileOfBundle As Boolean = False
@@ -811,6 +812,7 @@ Err:
         'Disk(Track(18) + (0 * 256) + 245) = LastBitPtr
 
         'Add IncludeSaveCode flag (Buffer address: $010c)
+        BlocksUsedBySaver = 0
         If bSaverPlugin Then
             Disk(Track(18) + (0 * 256) + 249) = EORtransform(2)
             InjectSaverPlugin()
@@ -853,11 +855,11 @@ Err:
             Exit Sub
         End If
 
-        Dim BlocksNeeded = Int(HSLength / &H100) + 1 + 2
+        BlocksUsedBySaver = Int(HSLength / &H100) + 1 + 2
 
-        If BlocksFree < BlocksNeeded Then
+        If BlocksFree < BlocksUsedBySaver Then
             MsgBox("The Hi-Score File Saver Plugin cannot be added because there is not enough free space on the disk!" + vbNewLine + vbNewLine +
-            "The Plugin and the Hi-Score File would need " + BlocksNeeded.ToString + " free blocks but there " + If(BlocksFree = 1, "is", "are") + " only " + BlocksFree.ToString +
+            "The Plugin and the Hi-Score File would need " + BlocksUsedBySaver.ToString + " free blocks but there " + If(BlocksFree = 1, "is", "are") + " only " + BlocksFree.ToString +
             " block" + If(BlocksFree = 1, "", "s") + " available on the disk.", vbOKOnly + vbExclamation, "Hi-Score File Saver Plugin Error")
             Exit Sub
         End If
@@ -3367,7 +3369,7 @@ Err:
         If DoOnErr Then On Error GoTo Err
 
         If TracksPerDisk = ExtTracksPerDisk Then
-            Dim ExtBlocksFree As Byte = If(BlocksFree > ExtSectorsPerDisk - StdSectorsPerDisk, ExtSectorsPerDisk - StdSectorsPerDisk, BlocksFree)
+            Dim ExtBlocksFree As Byte = If(BlocksFree > ExtSectorsPerDisk - StdSectorsPerDisk, ExtSectorsPerDisk - StdSectorsPerDisk - BlocksUsedBySaver, BlocksFree)
             Disk(Track(18) + 4) += ExtBlocksFree
         End If
 

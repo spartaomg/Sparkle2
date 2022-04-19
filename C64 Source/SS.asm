@@ -48,7 +48,7 @@
 .const	c64busy		=$f8		//DO NOT CHANGE IT TO #$FF!!!
 
 .var	FirstLit	=$f7		//First block's literal count
-.var	NextLit		=$fa		//All other block's literal count
+.var	NextLit		=$fa		//All other blocks' literal count
 
 .if (SupportIO == true) {
 .eval	FirstLit	-=1
@@ -143,7 +143,7 @@ LitLoop:
 		lda	HdrCtr+1	//#$07 vs #$05
 		cmp	#<BHdrLong-BlockHdr-1
 		bne	SkipZeros	//#$05? - this is needed - in the case of the first block, addition's result is #$fe
-		sec			//+1
+		sec			//+1 C=1 anyway?, SEC not needed here???
 		adc	LitCnt		//=LitCnt-1
 		eor	#$ff
 		beq	SkipZeros
@@ -157,7 +157,7 @@ ZeroLoop:	lda	#$00
 		bne	ZeroLoop
 		lda	#<NextBCt	//Closing byte = block count = $00 EOR-transformed
 		jsr	Send
-SkipZeros:	lda	#BHdrLong-BlockHdr-1	
+SkipZeros:	lda	#BHdrLong-BlockHdr-1
 		sta	HdrCtr+1
 
 //----------------------------------------
@@ -266,16 +266,7 @@ ByteBfr:	sta	$0700		//And save it to buffer, overwriting internal directory
 //		Encode data block
 //--------------------------------------
 
-		jsr	Encode	//Data Block: $104 bytes (#$07+$100 data bytes+checksum+#$00+#$00) -> $145 GCR-encoded bytes
-
-		//The last $45 bytes of Tab8 are overwritten by GCR codes, but luckily this is not a problem!
-		//Tab8 is encoded as 77788888 and is required to decode the track number in the sector header
-		//The expected value is either #$23 (Track 35) which is encoded as 10|01010011 -> #$53
-		//Or #$28 (Track 40) endcoded as 10|01001001 -> #$49 which values are used for indexing into Tab8
-		//In both cases, the GCR loop reads from the lower, intact half of Tab8 :)
-		//In fact, the high nibble of the track number can only be 0 (01|010), 1 (01|011), or 2 (10|010)
-		//Bit 2 is 0 in all 3 cases making all tracks accessible via the intact part of Tab8 :)
-
+		jsr	Encode		//Data Block: $104 bytes (#$07+$100 data bytes+checksum+#$00+#$00) -> $145 GCR-bytes
 		jsr	ToggleLED	//Turn LED on
 
 //--------------------------------------
@@ -291,7 +282,7 @@ SHeader:	cmp	$0103		//35	Header byte #10 (GGGHHHHH) = $55, skipped (cycles 32-63
 		bne	SFetch		//37	We are on Track 35/40 here, so it is ALWAYS Speed Zone 0 (32 cycles per byte)
 		jsr	ShufToRaw	//57
 					//jsr	ShufToRaw	43
-					//ldx	#$99		45
+					//ldx	#$09		45
 					//axs	#$00		47
 					//eor	BitShufTab,x	51
 					//rts			57

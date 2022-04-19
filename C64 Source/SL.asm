@@ -3,7 +3,7 @@
 //	SPARKLE
 //	Inspired by Lft, Bitbreaker, and Krill
 //	C64 Code
-//	Tested on 1541, 1541-II, 1571, 1541 Ultimate-II+, and Oceanic drvies
+//	Tested on 1541, 1541-II, 1571, the 1541 Ultimate series, and Oceanic drvies
 //----------------------------------------------------------------------
 //	Version history
 //
@@ -390,7 +390,7 @@ LoaderCode:
 
 Sparkle_SendCmd:
 		sta	Bits		//Store Bundle Number on ZP
-		jsr	Set01		//$dd00=#$3b, $1800=#$95, Bus Lock, A=#$35
+		jsr	Set01		//$dd00=#$3b, $1800=#$95, A=#$35
 SS_Send:	ldx	#sendbyte	//CO=1, AO=1 => C64 is ready to send a byte, X=#$18
 		stx	$dd00		//Signal to Drive that we want to send Bundle Index
 		bit	$dd00		//$dd00=#$9b, $1800=#$94
@@ -566,7 +566,7 @@ MidConv:	tay			//Match Length=#$01-#$3d (mid) vs. #$3e-#$fe (long)
 		dex
 		lda	Buffer,x	//Match Offset=$00-$ff+(C=1)=$01-$100
 
-		bcs	ShortConvNoSec	//Skip sec
+		bcs	ShortConvNoSec	//Skip SEC
 		dec	ZP+1
 		bcc	ShortConv	//Converge with short match
 
