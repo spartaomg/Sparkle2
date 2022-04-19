@@ -34,6 +34,9 @@ Public Class FrmMain
         If Debugger.IsAttached = False Then         'Check if prg is run from IDE
             TsmTestDisk.Visible = False     'No, hide test disk option
             TssSep.Visible = False
+            DoOnErr = True
+        Else
+            DoOnErr = False
         End If
 
         'DoRegistryMagic()

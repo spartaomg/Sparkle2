@@ -1,5 +1,5 @@
 ﻿Friend Module ModDisk
-    Public ReadOnly DoOnErr As Boolean = True
+    Public DoOnErr As Boolean = True
     Public ErrCode As Integer = 0
 
     Public ReadOnly UserDeskTop As String = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)

@@ -27,6 +27,8 @@ Public Class FrmEditor
     Private ReadOnly colScript As Color = Color.DarkOliveGreen
     Private ReadOnly colScriptGray As Color = Color.FromArgb(35, 35, 35)
     Private ReadOnly colNewEntry As Color = Color.Navy
+    Private ReadOnly colComment As Color = Color.FromArgb(64, 128, 128)
+    Private ReadOnly colCommentGray As Color = Color.FromArgb(108, 108, 108)
 
     Private WithEvents SCC As SubClassCtrl.SubClassing
     Private Const WM_VSCROLL As Integer = &H115
@@ -47,6 +49,7 @@ Public Class FrmEditor
     Private FAddr, FOffs, FLen, PLen As Integer
 
     Private SC, DC, PC, FC As Integer
+    Private CC As Integer               'Comment counter
 
     Private FirstBundleOfDisk As Boolean
 
@@ -62,6 +65,7 @@ Public Class FrmEditor
     Private FilePath As String
 
     Private NumParams As Integer
+    Private FileComment As String
 
     Private ReadOnly BaseScriptText As String = "This Script: "
     Private ReadOnly BaseScriptKey As String = "BaseScript"
@@ -70,7 +74,7 @@ Public Class FrmEditor
     Private ReadOnly NewDiskEntryText As String = "New Disk"
     Private ReadOnly NewBundleEntryText As String = "New Bundle"
     Private ReadOnly NewScriptEntryText As String = "New Script"
-    Private ReadOnly NewCommentEntryText As String = "New Comment Line"
+    Private ReadOnly NewCommentEntryText As String = "New Comment"
     Private ReadOnly NewFileEntryText As String = "Add New File"
 
     Private ReadOnly NewEntryKey As String = "NewEntry"
@@ -147,6 +151,7 @@ Public Class FrmEditor
     Private ReadOnly tFileAddr As String = "Double click or start typing to edit the file segment's load address."
     Private ReadOnly tFileOffs As String = "Double click or start typing to edit the file segment's offset."
     Private ReadOnly tFileLen As String = "Double click or start typing to edit the file segment's length."
+    Private ReadOnly tFileComment As String = "Double click or start typing to edit the file segment's comment."
     Private ReadOnly tLoadUIO As String = "Double click or press <Enter> to change the file segment's I/O status, if applicable."
     Private ReadOnly tDirArt As String = "Double click or press <Enter> to add a DirArt file to the demo's directory." + vbNewLine +
         "Press the <Delete> key to delete the current DirArt file."
@@ -222,6 +227,8 @@ Public Class FrmEditor
         AddBaseNode()
 
         SC = 0 : DC = 0 : PC = 0 : FC = 0
+
+        CC = 0
 
         ReDim DiskStartBundle(DC)
 
@@ -462,15 +469,15 @@ Err:
                     HandleKey = False
                 End If
                 Exit Sub
-                'Case NewCommentEntryText
-                'If e.KeyCode = Keys.Enter Then
-                'HandleKey = True
-                'e.SuppressKeyPress = True
-                'AddNewCommentNode()
-                'Else
-                'HandleKey = False
-                'End If
-                'Exit Sub
+            Case NewCommentEntryText
+                If e.KeyCode = Keys.Enter Then
+                    HandleKey = True
+                    e.SuppressKeyPress = True
+                    AddNewCommentNode()
+                Else
+                    HandleKey = False
+                End If
+                Exit Sub
             Case NewFileEntryText
                 If e.KeyCode = Keys.Enter Then
                     HandleKey = True
@@ -493,6 +500,7 @@ Err:
             Exit Sub
         End If
 
+
         S = Strings.Left(N.Name, InStr(N.Name, ":") + 1)
 
         If Strings.Right(N.Name, 3) = ":FS" Then        'Is this a File Size node?
@@ -508,6 +516,55 @@ Err:
                 HandleKey = False
             End If
             Exit Sub
+        ElseIf Strings.Left(SelNode.Text, Len(sComment)) = sComment Then
+            If N.ForeColor = colComment Then
+                Select Case e.KeyCode
+                    Case Keys.A To Keys.Z, Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9, Keys.Enter
+                        With txtEdit
+                            .MaxLength = 32767
+                            .Tag = sComment
+                            .Text = Strings.Right(N.Text, Len(N.Text) - Len(sComment))
+                            N.Text = sComment
+                            .Left = TV.Left + N.Bounds.Left + N.Bounds.Width
+                            .Width = TV.Left + TV.Width - .Left - 2 - 17    'Subtract border and scrollbar widths
+                            .Top = TV.Top + N.Bounds.Top + 3
+                            .ForeColor = N.ForeColor
+
+                            .Visible = True
+                        End With
+
+                        HandleKey = True
+                        e.SuppressKeyPress = True
+                    Case Else
+                        HandleKey = False
+                End Select
+            Else
+                HandleKey = False
+            End If
+        ElseIf Strings.Right(N.Name, 3) = ":FC" Then
+            If N.ForeColor = colComment Then
+                Select Case e.KeyCode
+                    Case Keys.A To Keys.Z, Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9, Keys.Enter
+                        With txtEdit
+                            .MaxLength = 32767
+                            .Tag = sFileComment
+                            .Text = Strings.Right(N.Text, Len(N.Text) - Len(sFileComment))
+                            N.Text = sFileComment
+                            .Left = TV.Left + N.Bounds.Left + N.Bounds.Width
+                            .Width = TV.Left + TV.Width - .Left - 2 - 17    'Subtract border and scrollbar widths
+                            .Top = TV.Top + N.Bounds.Top + 3
+                            .ForeColor = N.ForeColor
+                            .Visible = True
+                        End With
+
+                        HandleKey = True
+                        e.SuppressKeyPress = True
+                    Case Else
+                        HandleKey = False
+                End Select
+            Else
+                HandleKey = False
+            End If
         ElseIf Strings.Right(N.Name, 5) = ":FUIO" Then
             If e.KeyCode = Keys.Enter Then
                 HandleKey = True
@@ -1226,15 +1283,15 @@ Done:
             .Nodes.Add(NewDiskKey, NewDiskEntryText)
             .Nodes.Add(NewBundleKey, NewBundleEntryText)
             .Nodes.Add(NewScriptKey, NewScriptEntryText)
-            '.Nodes.Add(NewCommentKey, NewCommentEntryText)
+            .Nodes.Add(NewCommentKey, NewCommentEntryText)
             .Nodes(NewDiskKey).ForeColor = colNewEntry
             .Nodes(NewBundleKey).ForeColor = colNewEntry
             .Nodes(NewScriptKey).ForeColor = colNewEntry
-            '.Nodes(NewCommentKey).ForeColor = colNewEntry
+            .Nodes(NewCommentKey).ForeColor = colNewEntry
             .Nodes(NewDiskKey).Tag = 0
             .Nodes(NewBundleKey).Tag = 0
             .Nodes(NewScriptKey).Tag = 0
-            '.Nodes(NewCommentKey).Tag = 0
+            .Nodes(NewCommentKey).Tag = 0
             .Expand()
         End With
 
@@ -1551,13 +1608,14 @@ Err:
         Dim CommentNode As TreeNode = NewEntryNode
 
         StartUpdate()
-
+        CC += 1
         With CommentNode
             .Nodes.Clear()
-            .Name = BaseNode.Name + ":CL"
+            .Name = BaseNode.Name + ":CL" + CC.ToString
             .Text = sComment
-            .ForeColor = colFile
-            .Tag = BaseNode.Tag
+            .ForeColor = colComment
+            .Tag = CC + &H40000
+            .NodeFont = New Font("Consolas", 10)
         End With
         AddNewEntryNode()
 
@@ -1666,12 +1724,6 @@ Err:
             DiskNode.Nodes(sZP).ForeColor = colDiskInfo
             ZPSet = True
         End If
-        'If LoopSet = False Then
-        'LoopNode.Tag = DiskNode.Tag
-        'DiskNode.Nodes.Add(LoopNode)
-        'DiskNode.Nodes(sLoop).ForeColor = colDiskInfo
-        'LoopSet = True
-        'End If
         AddNewEntryNode()
 
         FinishUpdate()
@@ -1839,6 +1891,17 @@ Err:
                         CalcDiskSize(BaseNode)
                     End If
                 End If
+            Case 7  'Comment entry
+                If MsgBox("Are you sure you want to delete the following Comment entry?" + vbNewLine + vbNewLine + N.Text, vbQuestion + vbYesNo + vbDefaultButton2) = vbYes Then
+                    'P = N.Parent
+                    Frm.Show(Me)
+
+                    StartUpdate()
+
+                    N.Remove()
+
+                    GoTo Done
+                End If
         End Select
 
         GoTo Done
@@ -1873,7 +1936,13 @@ Done:
             Case colFile        'File node
                 NodeType = 3
             Case colScript      'Script node
-                NodeType = 4
+                    NodeType = 4
+            Case colComment
+                If Strings.Left(SelNode.Text, Len(sComment)) = sComment Then
+                    NodeType = 7    'Comment node
+                Else
+                    NodeType = 0    'File comment - node cannot be deleted
+                End If
             Case Else
                 If Strings.Left(SelNode.Text, Len(sDirArt)) = sDirArt Then
                     NodeType = 5    'DirArt node
@@ -1885,7 +1954,7 @@ Done:
         End Select
 
         Select Case NodeType
-            Case 1, 2, 4
+            Case 1, 2, 4, 7
                 BtnEntryUp.Enabled = SelNode.Index > 0
                 BtnEntryDown.Enabled = SelNode.Index < BaseNode.Nodes.Count - 2
             Case Else
@@ -2497,6 +2566,7 @@ Done:
         FileNode.Nodes(0).ForeColor = If(IsScriptNode = False, If(DFA = True, colFileParamDefault, colFileParamEdited), If(DFA = True, colFileParamDefaultGray, colFileParamEditedGray))
         FileNode.Nodes(1).ForeColor = If(IsScriptNode = False, If(DFO = True, colFileParamDefault, colFileParamEdited), If(DFO = True, colFileParamDefaultGray, colFileParamEditedGray))
         FileNode.Nodes(2).ForeColor = If(IsScriptNode = False, If(DFL = True, colFileParamDefault, colFileParamEdited), If(DFL = True, colFileParamDefaultGray, colFileParamEditedGray))
+        FileNode.Nodes(5).ForeColor = If(IsScriptNode = False, colComment, colCommentGray)
 
         GoTo Done
 Err:
@@ -2716,16 +2786,16 @@ Err:
             End If
         End If
 
-        'If FileNode.Nodes(FileNode.Name + ":FC") Is Nothing Then
-        'FileNode.Nodes.Add(FileNode.Name + ":FC", sFileComment)
-        'With FileNode.Nodes(FileNode.Name + ":FC")
-        '.Tag = FileNode.Tag
-        '.ForeColor = colFile
-        '.NodeFont = New Font("Consolas", 10)
-        'End With
-        'Else
-        'FileNode.Nodes(FileNode.Name + ":FC").Text = sFileComment
-        'End If
+        If FileNode.Nodes(FileNode.Name + ":FC") Is Nothing Then
+            FileNode.Nodes.Add(FileNode.Name + ":FC", sFileComment)
+            With FileNode.Nodes(FileNode.Name + ":FC")
+                .Tag = FileNode.Tag
+                .ForeColor = colComment
+                .NodeFont = New Font("Consolas", 10)
+            End With
+        Else
+            FileNode.Nodes(FileNode.Name + ":FC").Text = sFileComment + FileComment
+        End If
 
         FinishUpdate()
 
@@ -3029,7 +3099,9 @@ Err:
             BaseNode.Nodes.RemoveAt(I)
             BaseNode.Nodes.Insert(I - 1, N)
             'TV.Refresh()
-            CalcDiskSize(BaseNode, I - 1)
+            If Strings.Left(N.Text, Len(sComment)) <> sComment Then
+                CalcDiskSize(BaseNode, I - 1)
+            End If
             FinishUpdate()
             TV.SelectedNode = N
             TV.Focus()
@@ -3061,7 +3133,9 @@ Done:
             BaseNode.Nodes.RemoveAt(I)
             BaseNode.Nodes.Insert(I + 1, N)
             'TV.Refresh()
-            CalcDiskSize(BaseNode, I)
+            If Strings.Left(N.Text, Len(sComment)) <> sComment Then
+                CalcDiskSize(BaseNode, I)
+            End If
             FinishUpdate()
             TV.SelectedNode = N
             TV.Focus()
@@ -3165,6 +3239,7 @@ Err:
         DC = 0
         PC = 0
         FC = 0
+        CC = 0
 
         CurrentScript = SC
         CurrentDisk = DC
@@ -3228,9 +3303,9 @@ Err:
             ElseIf e.Node.Name = NewScriptKey Then
                 .ToolTipTitle = "Add New Script"
                 TTT = tAddScript
-                'ElseIf e.Node.Name = NewCommentKey Then
-                '.ToolTipTitle = "Add New Comment Line"
-                'TTT = tAddCommentLine
+            ElseIf e.Node.Name = NewCommentKey Then
+                .ToolTipTitle = "Add New Comment"
+                TTT = tAddCommentLine
             ElseIf Strings.Right(e.Node.Name, 7) = NewFileKey Then
                 .ToolTipTitle = "Add New Demo File"
                 TTT = tAddFile
@@ -3249,6 +3324,9 @@ Err:
             ElseIf Strings.Right(e.Node.Name, 3) = ":FL" Then
                 .ToolTipTitle = "File Length"
                 TTT = tFileLen
+            ElseIf Strings.Right(e.Node.Name, 3) = ":FC" Then
+                .ToolTipTitle = "File Comment"
+                TTT = tFileComment
             ElseIf Strings.Right(e.Node.Name, 5) = ":FUIO" Then
                 .ToolTipTitle = "I/O Status"
                 TTT = tLoadUIO
@@ -3309,12 +3387,6 @@ Err:
                     Case sTracksPerDisk
                         .ToolTipTitle = "Tracks on Disk"
                         TTT = tTracksPerDisk
-                        'Case sPacker
-                        '.ToolTipTitle = "Packer to be used"
-                        'TTT = tPacker
-                        'Case sLoop
-                        '.ToolTipTitle = "Looping after the last disk"
-                        'TTT = tLoop
                     Case Else
                 End Select
             End If
@@ -3419,6 +3491,7 @@ Err:
         PC = 0
         FC = 0
         SC = 0
+        CC = 0
 
         CurrentDisk = DC
         CurrentBundle = PC
@@ -3708,7 +3781,12 @@ Err:
                 Case "new block", "next block", "new sector", "align bundle", "align"
                     BundleInNewBlock = True
                 Case Else
-                    'Figure out what to do with comments here...
+                    CC += 1
+                    If NewBundle Then   'Comment between bundles
+                        AddNode(BaseNode, BaseNode.Name + ":CL" + CC.ToString, sComment + Lines(I), CC + &H40000, colComment, New Font("Consolas", 10))
+                    Else                'Comment in bundle - add it to last file
+                        FileNode.Nodes(5).Text += Lines(I)
+                    End If
             End Select
         Next
 
@@ -4042,7 +4120,12 @@ Done:
                 Case "new block", "next block", "new sector", "align bundle", "align"
                     BundleInNewBlock = True
                 Case Else
-                    'Figure out what to do with comments here...
+                    CC += 1
+                    If NewBundle Then   'Comment between bundles
+                        AddNode(SN, SN.Name + ":CL" + CC.ToString, sComment + Lines(I), CC + &H40000, colCommentGray, New Font("Consolas", 10))
+                    Else                'Comment in bundle - add it to last file
+                        FileNode.Nodes(5).Text += Lines(I)
+                    End If
             End Select
         Next
 
@@ -4059,9 +4142,7 @@ Err:
         NumParams = 1
 
         'Correct file parameter lengths to 4-8 characters
-        For I As Integer = 1 To ScriptEntryArray.Count - 1
-
-            ScriptEntryArray(I) = Strings.LCase(ScriptEntryArray(I))
+        For I As Integer = 1 To If(ScriptEntryArray.Count <= 4, ScriptEntryArray.Count - 1, 3)
 
             'Remove HEX prefix
             If Strings.Left(ScriptEntryArray(I), 1) = "$" Then
@@ -4095,6 +4176,17 @@ Err:
                         ScriptEntryArray(I) = Strings.Right(ScriptEntryArray(I), 4)
                     End If
             End Select
+        Next
+
+        FileComment = ""
+
+        For I As Integer = NumParams To ScriptEntryArray.Count - 1
+            If ScriptEntryArray(I) <> "" Then
+                If FileComment <> "" Then
+                    FileComment += vbTab
+                End If
+                FileComment += ScriptEntryArray(I)
+            End If
         Next
 
         Exit Sub
@@ -4475,6 +4567,7 @@ Err:
         AddNode(FileNode, FileNode.Name + ":FL", sFileLen + If(FL <> "", FL, DFLS), FileNode.Tag, If(IsScriptNode = False, If(DFL, colFileParamDefault, colFileParamEdited), If(DFL, colFileParamDefaultGray, colFileParamEditedGray)), Fnt)
         AddNode(FileNode, FileNode.Name + ":FUIO", sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM"), FileNode.Tag, If(IsScriptNode = False, If(DFA, colFileIODefault, colFileIOEdited), If(DFA, colFileIODefaultGray, colFileIOEditedGray)), Fnt)
         AddNode(FileNode, FileNode.Name + ":FS", sHSFileSize + FileSize.ToString + " block" + If(FileSize = 1, "", "s"), FileNode.Tag, colFileSize, Fnt)
+        AddNode(FileNode, FileNode.Name + ":FC", sFileComment + FileComment, FileNode.Tag, colFile, Fnt)
 
         If bCreateBlankHSFile = False Then CheckFileParameterColors(FileNode, True, IsScriptNode)  'This will make sure colors are OK
 
@@ -4734,7 +4827,7 @@ Err:
         AddNode(FileNode, FileNode.Name + ":FL", sFileLen + If(FL <> "", FL, DFLS), FileNode.Tag, If(SNisBaseNode, If(DFA, colFileParamDefault, colFileParamEdited), If(DFA, colFileParamDefaultGray, colFileIOEditedGray)), Fnt)
         AddNode(FileNode, FileNode.Name + ":FUIO", sFileUIO + If((OverlapsIO() = True) And (FileUnderIO = False), "I/O", "RAM"), FileNode.Tag, If(SNisBaseNode, If(FileUnderIO, colFileIOEdited, colFileIODefault), If(FileUnderIO, colFileIOEditedGray, colFileIODefaultGray)), Fnt)
         AddNode(FileNode, FileNode.Name + ":FS", sFileSize + FileSize.ToString + " block" + If(FileSize = 1, "", "s"), FileNode.Tag, If(SNisBaseNode, colFileSize, colFileSizeGray), Fnt)
-        'AddNode(FileNode, FileNode.Name + ":FC", sFileComment, FileNode.Tag, colFile, Fnt)
+        AddNode(FileNode, FileNode.Name + ":FC", sFileComment + FileComment, FileNode.Tag, If(SNisBaseNode, colComment, colCommentGray), Fnt)
 
         If SNisBaseNode Then
             CheckFileParameterColors(FileNode)  'This will make sure colors are OK
@@ -4835,6 +4928,10 @@ Err:
                                                 End If
                                             End If
                                         End If
+                                        If DiskNode.Nodes(J).Nodes(5).Text <> sFileComment Then
+                                            Dim Cmt As String = Strings.Right(DiskNode.Nodes(J).Nodes(5).Text, Strings.Len(DiskNode.Nodes(J).Nodes(5).Text) - Strings.Len(sFileComment))
+                                            Script += vbTab + If(Strings.Left(Cmt, 1) <> "#", "#", "") + Cmt
+                                        End If
                                     End If
                                     Script += vbNewLine
                                 End If
@@ -4897,8 +4994,20 @@ Err:
                                         End If
                                     End If
                                 End If
+                                If FileNode.Nodes.Count = 6 Then
+                                    If FileNode.Nodes(5).Text <> sFileComment Then
+                                        Dim Cmt As String = Strings.Right(FileNode.Nodes(5).Text, Strings.Len(FileNode.Nodes(5).Text) - Strings.Len(sFileComment))
+                                        Script += vbTab + If(Strings.Left(Cmt, 1) <> "#", "#", "") + Cmt
+                                    End If
+                                End If
                             End If
                             Script += vbNewLine
+                        ElseIf BundleNode.Nodes(J).Tag >= &H40000 Then
+                            If NewLineAdded = False Then
+                                Script += vbNewLine
+                                NewLineAdded = True
+                            End If
+                            Script += Strings.Right(BundleNode.Nodes(J).Text, Len(BundleNode.Nodes(J).Text) - Len(sComment)) + vbNewLine
                         End If
                     Next
                 Case &H30000 To &H3FFFF
@@ -4906,7 +5015,12 @@ Err:
                     ScriptNode = BaseNode.Nodes(I)
                     Dim S As String = ScriptNode.Text.TrimStart("[").TrimEnd("]")
                     Script += vbNewLine + "Script:" + vbTab + Strings.Right(S, Len(S) - Len(sScript)) + vbNewLine
+                Case &H40000 To &H4FFFF
+                    'Comment Node
+                    Dim Cmt As String = Strings.Right(BaseNode.Nodes(I).Text, Len(BaseNode.Nodes(I).Text) - Len(sComment))
+                    Script += vbNewLine + If(Strings.Left(Cmt, 1) <> "#", "#", "") + Cmt
                 Case Else
+
             End Select
         Next
 
@@ -4933,6 +5047,7 @@ Done:   Frm.Close()
             PC = 0
             FC = 0
             SC = 0
+            CC = 0
             FirstBundleOfDisk = True
             ReDim PDiskNoA(PC), PNewBlockA(PC), DiskStartBundle(DC)
         End If
@@ -4999,6 +5114,8 @@ Err:
             PC = 0
             FC = 0
             SC = 0
+            CC = 0
+
             FirstBundleOfDisk = True
             ReDim DiskStartBundle(DC)
         End If
@@ -5456,6 +5573,10 @@ Err:
                     .ToolTipTitle = "Editing the file segment's Length"
                     TTT = "Type in the hex length of this data segment." +
                         vbNewLine + "If this field is left empty, Sparkle will use (file length-offset) as length." +
+                        vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
+                Case sFileComment
+                    .ToolTipTitle = "Editing the file comment"
+                    TTT = "Type in anything you want to remember about this file." +
                         vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
                 Case sZP + "$"
                     .ToolTipTitle = "Editing the Zeropage Usage of the Loader"
