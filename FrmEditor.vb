@@ -5266,9 +5266,10 @@ Err:
         ReDim Buffer(255)
 
         'Find the previous bundle's variables
-        If FirstBundleOfDisk Then       'Strings.Left(PartN.Name, 1) = "P"
-            ResetBuffer()
-        Else
+        'If Strings.Left(PartN.Name, 1) = "P" Then 
+        'ResetBuffer()
+        'Else
+        If Strings.Left(PartN.Name, 1) = "p" Then           'DO NOT use FirstBundleOfDisk here - it gets cleared before this check
             BytePtr = BundleBytePtrA(CurrentBundle - 1)
             BitPtr = BundleBitPtrA(CurrentBundle - 1)
             BitPos = BundleBitPosA(CurrentBundle - 1)
@@ -5291,7 +5292,7 @@ Err:
             ReDim Preserve BundleBytePtrA(CurrentBundle), BundleBitPtrA(CurrentBundle), BundleBitPosA(CurrentBundle), BundleSizeA(CurrentBundle), BundleOrigSizeA(CurrentBundle), BundleBlockCntA(CurrentBundle)
         End If
 
-        If FirstBundleOfDisk Then       'Strings.Left(PartN.Name, 1) = "P"
+        If Strings.Left(PartN.Name, 1) = "P" Then   'DO NOT use FirstBundleOFDisk here - it gets cleared before this check
             BufferCnt += 1
         End If
 
@@ -5475,6 +5476,8 @@ Err:
     Private Sub UpdatePartNames(ParentNode As TreeNode)
         If DoOnErr Then On Error GoTo Err
 
+        CurrentDisk = 0
+
         For I As Integer = 0 To ParentNode.Nodes.Count - 1
             Select Case Int(ParentNode.Nodes(I).Tag / &H10000)
                 Case 1
@@ -5487,7 +5490,7 @@ Err:
                     CurrentBundle = (BundleNode.Tag And &HFFFF)
                     BufferCnt = BundleBlockCntA(CurrentBundle) ' BundleSizeA(CurrentBundle)
                     UncompBundleSize = BundleOrigSizeA(CurrentBundle)
-                    Dim BI As String = Hex((BundleNode.Tag And &HFFFF) - DiskStartBundle(CurrentDisk) - 1)
+                    Dim BI As String = Hex(CurrentBundle - DiskStartBundle(CurrentDisk) - 1)
                     If Len(BI) < 2 Then BI = "0" + BI
                     If UncompBundleSize > 0 Then
                         BundleNode.Text = "[Bundle " + BI + ": " + BufferCnt.ToString +
