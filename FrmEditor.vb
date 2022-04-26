@@ -4808,13 +4808,30 @@ Err:
                 End If
         End Select
 
+        If FOffs > Prg.Length - 1 Then
+            MsgBox("Invalid offset detected!" + vbNewLine + "File:" + vbTab + FileName + vbNewLine +
+                    "Offset:" + vbTab + "$" + Hex(FOffs) + vbNewLine + vbNewLine +
+                    "The offset has been corrected to $" + Hex(Prg.Length - 1), vbOKOnly + vbExclamation, "Invalid offset")
+            FOffs = Prg.Length - 1                            'If offset>prg length-1 then correct it
+            DFO = False
+        End If                                              'Length=prg length- offset
+
         If (FLen = 0) Or (FOffs + FLen > Prg.Length) Then   'Make sure length is valid
+            MsgBox("Invalid file length detected!" + vbNewLine + "File:" + vbTab + FileName + vbNewLine +
+                    "Length:" + vbTab + "$" + Hex(FOffs) + vbNewLine + vbNewLine +
+                    "The file length has been corrected to $0001", vbOKOnly + vbExclamation, "Invalid file length")
             FLen = Prg.Length - FOffs
+            DFL = False
         End If
 
         If FAddr + FLen > &H10000 Then
             FLen = &H10000 - FAddr
+            DFL = False
         End If
+
+        FA = ConvertIntToHex(FAddr, 4)
+        FO = ConvertIntToHex(FOffs, 8)
+        FL = ConvertIntToHex(FLen, 4)
 
         FileSize = Int(FLen / 254)
         If FLen Mod 254 <> 0 Then FileSize += 1

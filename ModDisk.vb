@@ -2657,7 +2657,7 @@ NoDisk:
                     End If
                 Case 2  'One parameter in script
                     FA = ScriptEntryArray(1)                                'Load address from script
-                    FO = "00000000"                                             'Offset will be 0, length=prg length
+                    FO = "00000000"                                         'Offset will be 0, length=prg length
                     FL = ConvertIntToHex(P.Length, 4)
                 Case 3  'Two parameters in script
                     FA = ScriptEntryArray(1)                                'Load address from script
@@ -2673,8 +2673,11 @@ NoDisk:
                     FO = ScriptEntryArray(2)
                     FON = Convert.ToInt32(FO, 16)                           'Make sure offset is valid
                     If FON > P.Length - 1 Then
-                        FON = P.Length - 1                                  'If offset>prg length-1 then correct it
-                        FO = ConvertIntToHex(FON, 8)
+                        MsgBox("Invalid offset detected in the following file:" + vbNewLine +
+                               FN, vbOKOnly + vbCritical, "Invalid offset")
+                        GoTo NoDisk
+                        'FON = P.Length - 1                                  'If offset>prg length-1 then correct it
+                        'FO = ConvertIntToHex(FON, 8)
                     End If                                                  'Length=prg length- offset
                     FL = ScriptEntryArray(3)
             End Select
@@ -2685,15 +2688,20 @@ NoDisk:
 
             'Make sure file length is not longer than actual file (should not happen)
             If FON + FLN > P.Length Then
-                FLN = P.Length - FON
-                FL = ConvertIntToHex(FLN, 4)
+                MsgBox("Invalid file length detected in the following file:" + vbNewLine +
+                               FN, vbOKOnly + vbCritical, "Invalid file length")
+                GoTo NoDisk
+                'FLN = P.Length - FON
+                'FL = ConvertIntToHex(FLN, 4)
             End If
 
             'Make sure file address+length<=&H10000
             If FAN + FLN > &H10000 Then
-                FLN = &H10000 - FAN
-                'FL = ConvertNumberToHexString(FLN Mod 256, Int(FLN / 256))
-                FL = ConvertIntToHex(FLN, 4)
+                MsgBox("Invalid file address and/or length detected in the following file:" + vbNewLine +
+                               FN, vbOKOnly + vbCritical, "Invalid file address and/or length")
+                GoTo NoDisk
+                'FLN = &H10000 - FAN
+                'FL = ConvertIntToHex(FLN, 4)
             End If
 
             'Trim file to the specified chunk (FLN number of bytes starting at FON, to Address of FAN)

@@ -710,7 +710,7 @@ Err:
         Exit Sub
 Err:
         ErrCode = Err.Number
-        MsgBox(ErrorToString() + vbNewLine + BundleCnt.ToString + vbNewLine + BlockCnt.ToString + vbNewLine + BytePtr.ToString + vbNewLine + LitCnt.ToString, vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
 
     End Sub
 
