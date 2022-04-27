@@ -4809,24 +4809,27 @@ Err:
         End Select
 
         If FOffs > Prg.Length - 1 Then
-            MsgBox("Invalid offset detected!" + vbNewLine + "File:" + vbTab + FileName + vbNewLine +
-                    "Offset:" + vbTab + "$" + Hex(FOffs) + vbNewLine + vbNewLine +
-                    "The offset has been corrected to $" + Hex(Prg.Length - 1), vbOKOnly + vbExclamation, "Invalid offset")
             FOffs = Prg.Length - 1                            'If offset>prg length-1 then correct it
             DFO = False
+            MsgBox("Invalid offset detected in the following entry:" + vbNewLine + vbNewLine +
+                    ScriptEntryType + vbTab + ScriptEntry + vbNewLine + vbNewLine +
+                    "The offset has been corrected to $" + ConvertIntToHex(FOffs, 8), vbOKOnly + vbExclamation, "Invalid offset")
         End If                                              'Length=prg length- offset
 
         If (FLen = 0) Or (FOffs + FLen > Prg.Length) Then   'Make sure length is valid
-            MsgBox("Invalid file length detected!" + vbNewLine + "File:" + vbTab + FileName + vbNewLine +
-                    "Length:" + vbTab + "$" + Hex(FOffs) + vbNewLine + vbNewLine +
-                    "The file length has been corrected to $0001", vbOKOnly + vbExclamation, "Invalid file length")
             FLen = Prg.Length - FOffs
             DFL = False
+            MsgBox("Invalid file length detected in the following entry:" + vbNewLine + vbNewLine +
+                    ScriptEntryType + vbTab + ScriptEntry + vbNewLine + vbNewLine +
+                    "The file length has been corrected to $" + ConvertIntToHex(FLen, 4), vbOKOnly + vbExclamation, "Invalid file length")
         End If
 
         If FAddr + FLen > &H10000 Then
             FLen = &H10000 - FAddr
             DFL = False
+            MsgBox("Invalid file length detected in the following entry:" + vbNewLine + vbNewLine +
+                    ScriptEntryType + vbTab + ScriptEntry + vbNewLine + vbNewLine +
+                    "The file length has been corrected to $" + ConvertIntToHex(FLen, 4), vbOKOnly + vbExclamation, "Invalid file length")
         End If
 
         FA = ConvertIntToHex(FAddr, 4)

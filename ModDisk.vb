@@ -2673,8 +2673,8 @@ NoDisk:
                     FO = ScriptEntryArray(2)
                     FON = Convert.ToInt32(FO, 16)                           'Make sure offset is valid
                     If FON > P.Length - 1 Then
-                        MsgBox("Invalid offset detected in the following file:" + vbNewLine +
-                               FN, vbOKOnly + vbCritical, "Invalid offset")
+                        MsgBox("Invalid offset detected in the following entry:" + vbNewLine + vbNewLine +
+                               ScriptEntryType + vbTab + ScriptEntry, vbOKOnly + vbCritical, "Invalid offset")
                         GoTo NoDisk
                         'FON = P.Length - 1                                  'If offset>prg length-1 then correct it
                         'FO = ConvertIntToHex(FON, 8)
@@ -2688,8 +2688,8 @@ NoDisk:
 
             'Make sure file length is not longer than actual file (should not happen)
             If FON + FLN > P.Length Then
-                MsgBox("Invalid file length detected in the following file:" + vbNewLine +
-                               FN, vbOKOnly + vbCritical, "Invalid file length")
+                MsgBox("Invalid file length detected in the following entry:" + vbNewLine + vbNewLine +
+                               ScriptEntryType + vbTab + ScriptEntry, vbOKOnly + vbCritical, "Invalid file length")
                 GoTo NoDisk
                 'FLN = P.Length - FON
                 'FL = ConvertIntToHex(FLN, 4)
@@ -2697,8 +2697,8 @@ NoDisk:
 
             'Make sure file address+length<=&H10000
             If FAN + FLN > &H10000 Then
-                MsgBox("Invalid file address and/or length detected in the following file:" + vbNewLine +
-                               FN, vbOKOnly + vbCritical, "Invalid file address and/or length")
+                MsgBox("Invalid file address and/or length detected in the following entry:" + vbNewLine + vbNewLine +
+                               ScriptEntryType + vbTab + ScriptEntry, vbOKOnly + vbCritical, "Invalid file address and/or length")
                 GoTo NoDisk
                 'FLN = &H10000 - FAN
                 'FL = ConvertIntToHex(FLN, 4)
