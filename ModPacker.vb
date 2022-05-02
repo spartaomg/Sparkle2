@@ -532,12 +532,7 @@ Err:
 
         Dim BytesFree As Integer = BytePtr      '1,2,3,...,BytePtr-1,BytePtr
 
-        'If (TransitionalBlock = True) Or (BufferCnt = 0) Then
-        'BytesFree -= 1
-        'End If
-
         'If this is a transitional block (including block 0 on disk) then we need 1 byte for block count (will be overwritten by Close Byte
-
         If (TransitionalBlock = True) Or (BufferCnt = 0) Then
             BytesFree -= 1
         End If
@@ -791,8 +786,8 @@ DecBitPos:
             BitsLeft -= 1
             If BitPos = 0 Then
                 If (Buffer(BitPtr) Mod 2 = 1) Then
-                    'MsgBox(Hex(BitPtr))
                     BitPos = -1
+                    BitsLeft = 0
                 End If
             End If
             'Very first BitPtr in buffer has a 1 in BitPos=0 (Token Bit) -> Skip It!!!
@@ -843,8 +838,6 @@ Err:
         If SI < 0 Then Exit Function             'We have reached the end of the file -> exit
 
         'If we have not reached the end of the file, then update buffer
-
-        'If PrgAdd + SI = &HFDE6 Then MsgBox(MLen.ToString)
 
         Buffer(BytePtr) = (PrgAdd + SI) Mod 256
         AdLoPos = BytePtr

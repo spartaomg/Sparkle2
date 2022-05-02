@@ -396,7 +396,7 @@ SS_Send:	ldx	#sendbyte	//CO=1, AO=1 => C64 is ready to send a byte, X=#$18
 		bit	$dd00		//$dd00=#$9b, $1800=#$94
 		bmi	*-3		//Wait for Drive response ($1800->00 => $dd00=#$1b, $1800=#$85)
 
-		anc	#$31		//Drive is ready to receive byte, A=#$31, C=0
+		anc	#$31		//Drive is ready to receive byte, A=#$31, C=0 - NOT NEEDED!!!
 
 					//Sending bits via AO, flipping CO to signal new bit
 BitSLoop:	adc	#$e7		//2	A=#$31+#$e7=#$18 and C=1 after addition in first pass, C=0 in all other passes
@@ -432,7 +432,7 @@ Sparkle_LoadFetched:
 //--------------------------------------
 
 RcvLoop:
-Read1:		lda	$dd00		//4		W1-W2 = 18 cycles					25-28
+Read1:		lda	$dd00		//4		W1-W2 = 18 cycles			25-28
 		sty	$dd00		//4	8	Y=#$08 -> ATN=1
 		lsr			//2	10
 		lsr			//2	12
@@ -445,7 +445,7 @@ Read2:		ora	$dd00		//4		W2-W3 = 16 cycles
 		lsr			//2	10
 		lsr			//2	12
 SpComp:		cpx	#Sp		//2	14	Will be changed to #$ff in Spartan Step Delay
-		beq	ChgJmp		//2/3	16/17 whith branch -------------|
+		beq	ChgJmp		//2/3	16/17 with branch --------------|
 		ldy	#$08		//2	(18/28)	ATN=1			|
 					//					|
 Read3:		ora	$dd00		//4		W3-W4 = 17 cycles	|
@@ -472,7 +472,7 @@ ChgJmp:		ldy	#<SpSDelay-<ChgJmp	//2	19	<---------------|
 //------------------------------
 
 LongMatch:	bne	NextFile	//A=#$fc - Next File in Bundle
-		clc			//C=0		
+		clc			//C=0
 		dex			//A=#$f8 - Long Match, read next byte for Match Length (#$3e-#$fe)
 		lda	Buffer,x	//If A=#$00 then this Bundle is done, rest of the block in buffer is the beginning of the next Bundle
 		bne	MidConv		//Otherwise, converge with mid match (A=#$3e-#$fe here if branch taken)
@@ -504,6 +504,8 @@ SpSDelay:	lda	#<RcvLoop-<ChgJmp	//2	20	Restore Receive loop
 		sta	SpComp+1		//4	32	SpComp+1=(#$2a <-> #$ff)
 		bmi	RcvLoop			//3	(35) (Drive loop takes 33 cycles)
 
+		jsr	BusLock		//This requires $01 = #$35+
+
 //------------------------------------------------------------
 //		BLOCK STRUCTURE FOR DEPACKER
 //------------------------------------------------------------
@@ -516,10 +518,10 @@ SpSDelay:	lda	#<RcvLoop-<ChgJmp	//2	20	Restore Receive loop
 //------------------------------------------------------------
 
 Sparkle_LoadNext:
-		jsr	BusLock		//Entry point for next bundle in block
-		sta	MidLitSeq+1
-		
-		ldx	#$00
+		ldx	#$ff		//Entry point for next bundle in block
+		stx	MidLitSeq+1
+
+		inx
 GetBits:	lda	Buffer,x	//First bitstream value
 		bne	StoreBits
 		ldx	Buffer+$ff	//=LastX
@@ -546,7 +548,7 @@ SkipIO:		sta	ZP+1		//Hi Byte of Dest Address
 		ldy	#$00		//Needed for Literals
 		sty	Buffer		//This will also be the EndofBlock Tag
 
-		jmp	LitCheck	//Always, C=1 after first run, C=0 for next file in block
+		beq	LitCheck	//Always
 
 //------------------------------
 //		MID MATCH
@@ -569,11 +571,6 @@ MidConv:	tay			//Match Length=#$01-#$3d (mid) vs. #$3e-#$fe (long)
 		bcs	ShortConvNoSec	//Skip SEC
 		dec	ZP+1
 		bcc	ShortConv	//Converge with short match
-
-//------------------------------
-
-ShortLitHi:	dec	ZP+1
-		bcc	ShortLCont
 
 //------------------------------
 //		LITERALS
@@ -652,7 +649,7 @@ BitCheck:	asl	Bits		//C=0 here
 
 //------------------------------
 
-LitCheck:	asl	Bits		//C=1
+LitCheck:	asl	Bits
 		bcc	ShortLit	//C=0, we have 1 literal (bits: 10)
 		beq	NextBit		//C=1, Z=1, this is the token bit in C (bits=11), get next bit stream byte
 
@@ -681,6 +678,11 @@ SkipML:		ror			//0000xxxx vs 1xxxxxxx depending on branch taken
 
 		ldy	Buffer,x	//Literal lengths 17-251 (Bits: 11|0000|xxxxxxxx)
 		bcc	LongLit		//ALWAYS, C=0, we have 17-251 literals
+
+//------------------------------
+
+ShortLitHi:	dec	ZP+1
+		bcc	ShortLCont
 
 //------------------------------
 
