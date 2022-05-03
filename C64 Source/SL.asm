@@ -481,11 +481,11 @@ LongMatch:	bne	NextFile	//A=#$fc - Next File in Bundle
 //		END OF BUNDLE
 //------------------------------
 
-		dex			//8
-		stx	Buffer+$ff	//12
-Set01:		lda	#$35		//14
-		sta	$01		//17
-Done:		rts			//23
+		dex
+		stx	Buffer+$ff
+Set01:		lda	#$35
+		sta	$01
+Done:		rts
 
 //------------------------------
 //		END OF BLOCK
@@ -504,7 +504,7 @@ SpSDelay:	lda	#<RcvLoop-<ChgJmp	//2	20	Restore Receive loop
 		sta	SpComp+1		//4	32	SpComp+1=(#$2a <-> #$ff)
 		bmi	RcvLoop			//3	(35) (Drive loop takes 33 cycles)
 
-		jsr	BusLock		//This requires $01 = #$35+
+		jsr	BusLock		//This requires $01 = #$35+, can't start LoadNext with this...
 
 //------------------------------------------------------------
 //		BLOCK STRUCTURE FOR DEPACKER
@@ -548,7 +548,7 @@ SkipIO:		sta	ZP+1		//Hi Byte of Dest Address
 		ldy	#$00		//Needed for Literals
 		sty	Buffer		//This will also be the EndofBlock Tag
 
-		beq	LitCheck	//Always
+		beq	LitCheck	//ALWAYS
 
 //------------------------------
 //		MID MATCH
@@ -659,18 +659,18 @@ LitCheck:	asl	Bits
 		
 MidLitSeq:	ldy	#$f8
 		bpl	SkipML		//C=1 here
-		ldy	Buffer,x	//6 cycles and 5 bytes less here
+		ldy	Buffer,x
 		tya
 		dex
 		alr	#$f0		//0xxxx000
 		lsr			//00xxxx00
 		lsr			//000xxxx0
-SkipML:		ror			//0000xxxx vs 1xxxxxxx depending on branch taken
+SkipML:		ror			//0000xxxx vs 1xxxxxxx C=0, N=0 vs N=1 depending on branch taken
 		sta	MidLitSeq+1
-		tya			//4 cycles and 3 bytes more here, saving 2 cycles and 2 bytes overall per midlit byte
+		tya
 		anc	#$0f		//C=0
 		tay
-		bne	MidLit		//33+20=53
+		bne	MidLit
 
 //------------------------------
 //		LITERALS 17-251
