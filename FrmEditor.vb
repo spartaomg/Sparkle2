@@ -2210,17 +2210,18 @@ Err:
             End Select
             ResetFileParameters(FileNode, NodeIndex)
         ElseIf txtEdit.Text <> txtBuffer Then
-            GetDefaultFileParameters(FileNode, A)
             Select Case NodeIndex
                 Case 0
+                    GetDefaultFileParameters(FileNode,A)
                     'Load Address has changed, check if Offset is default and update it as needed
                     If FileNode.Nodes(1).ForeColor = colFileParamDefault Then FileNode.Nodes(1).Text = sFileOffs + DFOS
                     GoTo Node2
                 Case 1
+                    GetDefaultFileParameters(FileNode, A, O)
                     'Load Address and/or Offset have changed, check if length is default and update it as needed
 Node2:              If FileNode.Nodes(2).ForeColor = colFileParamDefault Then FileNode.Nodes(2).Text = sFileLen + DFLS
                 Case 2
-                    'Nothing here...
+                    GetDefaultFileParameters(FileNode, A, O, L)
             End Select
         Else
             Select Case NodeIndex
@@ -2436,7 +2437,7 @@ Done:
         If FAddr + FLen > &HFFFF Then
             FLen = &H10000 - FAddr
             If IsHSFile Then
-                FLen = FLen And &HF00
+                FLen = FLen And &HF00   'Not sure this is needed here, HSFile is handled below. But it doesn't hurt for sure...
             End If
             FileNode.Nodes(2).Text = sFileLen + ConvertIntToHex(FLen, 4)
         End If
@@ -2449,13 +2450,14 @@ Done:
 
             If FAddr > &HFF00 Then
                 FAddr = &HFF00
+                FLen = &H100        'Don't let HSFile wrap
                 FileNode.Nodes(0).Text = sFileAddr + ConvertIntToHex(FAddr, 4)
             End If
 
             FLen = If((FLen Mod &H100 <> 0) Or (FLen = 0), FLen + &H100, FLen) And &HF00
             FileNode.Nodes(2).Text = sFileLen + ConvertIntToHex(FLen, 4)
 
-            FileSize = Int(FLen / &H100) + 1 + 2
+            FileSize = Int(FLen / &H100) + 1 + 2    'WHY?
             FileNode.Nodes(4).Text = sHSFileSize + FileSize.ToString + " block" + If(FileSize = 1, "", "s")
 
             With FileNode
@@ -2506,11 +2508,11 @@ Done:
             '----------------------------------
         End If
 
-        FAS = ConvertIntToHex(FAddr, 4)
-        FOS = ConvertIntToHex(FOffs, 8)
-        FLS = ConvertIntToHex(FLen, 4)
+        'FAS = ConvertIntToHex(FAddr, 4)        'THESE ARE NOT USED ANYWHERE
+        'FOS = ConvertIntToHex(FOffs, 8)
+        'FLS = ConvertIntToHex(FLen, 4)
 
-        GetDefaultFileParameters(FileNode,,,, IsHSFile)
+        'GetDefaultFileParameters(FileNode,,,, IsHSFile)
         CheckFileParameterColors(FileNode, IsHSFile)
 
         GoTo Done

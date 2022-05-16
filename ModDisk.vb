@@ -2076,7 +2076,7 @@ TryAgain:
             'The only two parameters that are needed are FA and FUIO... FileLenA(i) is not used
             PackFile(Prgs(I).ToArray, FileAddrA(I), FileIOA(I))
             If I < Prgs.Count - 1 Then
-                'WE NEED TO USE THE NEXT FILE'S ADDRES, LENGTH AND I/O STATUS HERE
+                'WE NEED TO USE THE NEXT FILE'S ADDRESS, LENGTH AND I/O STATUS HERE
                 'FOR I/O BYTE CALCULATION FOR THE NEXT PART - BUG reported by Raistlin/G*P
                 PrgAdd = Convert.ToInt32(FileAddrA(I + 1), 16)
                 PrgLen = Prgs(I + 1).Length ' Convert.ToInt32(FileLenA(I + 1), 16)
@@ -2346,7 +2346,11 @@ SortDone:
         'Once Bundle is sorted, calculate the I/O status of the last byte of the first file and the number of bits that will be needed
         'to finish the last block of the previous bundle (when the I/O status of the just sorted bundle needs to be known)
         'This is used in CloseBuffer
-        'Bytes needed: LongMatch Tag, NextBundle Tag, AdLo, AdHi, First Lit, +/- I/O, 1 Bit Stream Byte (for 1 Lit Bit), +/- 1 Match Bit
+
+        'Bytes needed: (1)LongMatch Tag, (2)NextBundle Tag, (3)AdLo, (4)AdHi, (5)First Lit, (6)1 Bit Stream Byte (for 1 Lit Bit), (7)+/- I/O
+        '+/- 1 Match Bit (if the last sequence of the last bundle is a match sequence, no Match Bit after a Literal sequence)
+        'Match Bit will be determened by MLen in SequenceFits() function, NOT ADDED TO BitsNeededForNextBundle here!!!
+
         'We may be overcalculating here but that is safer than undercalculating which would result in buggy decompression
         'If the last block is not the actual last block of the bundle...
         'With overcalculation, worst case scenario is a little bit worse compression ratio of the last block
@@ -2380,13 +2384,7 @@ NoSort:
 
         Dim P() As Byte
 
-        'If Right(FN, 1) = "*" Then
-        'FN = ""
-        'MsgBox("The Hi-Score File cannot be loaded under the I/O space!", vbOKOnly + vbExclamation, "Hi-Score File Error")
-        'GoTo NoDisk
-        'End If
-
-        If InStr(FN, ":") = 0 Then  'relative file path
+        If InStr(FN, ":") = 0 Then          'relative file path
             FN = ScriptPath + FN            'look for file in script's folder
         End If
 
