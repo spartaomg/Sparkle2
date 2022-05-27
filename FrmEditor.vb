@@ -150,9 +150,9 @@ Public Class FrmEditor
     Private ReadOnly tAddFile As String = "Double click or press <Enter> to add an existing file to this bundle."
     Private ReadOnly tNB As String = "Double click or press <Enter> to change the alignment of this bundle with a sector on the disk."
     Private ReadOnly tFileSize As String = "Original size of the selected file segment in blocks."
-    Private ReadOnly tFileAddr As String = "Double click or start typing to edit the file segment's load address."
-    Private ReadOnly tFileOffs As String = "Double click or start typing to edit the file segment's offset."
-    Private ReadOnly tFileLen As String = "Double click or start typing to edit the file segment's length."
+    Private ReadOnly tFileAddr As String = "Double click or start typing to edit the file segment's load address. Press the ""."" key to switch to decimal mode."
+    Private ReadOnly tFileOffs As String = "Double click or start typing to edit the file segment's offset. Press the ""."" key to switch to decimal mode."
+    Private ReadOnly tFileLen As String = "Double click or start typing to edit the file segment's length. Press the ""."" key to switch to decimal mode."
     Private ReadOnly tFileComment As String = "Double click or start typing to edit the file segment's comment."
     Private ReadOnly tLoadUIO As String = "Double click or press <Enter> to change the file segment's I/O status, if applicable."
     Private ReadOnly tDirArt As String = "Double click or press <Enter> to add a DirArt file to the demo's directory." + vbNewLine +
@@ -5674,16 +5674,19 @@ Err:
                 Case sFileAddr
                     .ToolTipTitle = "Editing the file segment's Load Address"
                     TTT = "Type in the hex load address of this data segment." +
+                        vbNewLine + "Press the ""."" key to enter decimal mode and the ""H"" key to return to hexadecimal mode." +
                         vbNewLine + "If this field is left empty, Sparkle will reset it to its default value." +
                         vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
                 Case sFileOffs
                     .ToolTipTitle = "Editing the file segment's Offset"
                     TTT = "Type in the hex offset of this data segment (first byte to be loaded)." +
+                        vbNewLine + "Press the ""."" key to enter decimal mode and the ""H"" key to return to hexadecimal mode." +
                         vbNewLine + "If this field is left empty, Sparkle will reset it to its default value." +
                         vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
                 Case sFileLen
                     .ToolTipTitle = "Editing the file segment's Length"
                     TTT = "Type in the hex length of this data segment." +
+                        vbNewLine + "Press the ""."" key to enter decimal mode and the ""H"" key to return to hexadecimal mode." +
                         vbNewLine + "If this field is left empty, Sparkle will use (file length-offset) as length." +
                         vbNewLine + "Press <Enter> or <Tab> to save changes, or <Escape> to cancel editing."
                 Case sFileComment
