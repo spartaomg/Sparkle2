@@ -199,7 +199,7 @@ Partial Class FrmEditor
         '
         Me.tssLabel.AutoToolTip = True
         Me.tssLabel.Name = "tssLabel"
-        Me.tssLabel.Size = New System.Drawing.Size(616, 17)
+        Me.tssLabel.Size = New System.Drawing.Size(647, 17)
         Me.tssLabel.Spring = True
         Me.tssLabel.Text = "Script: (New Script)"
         Me.tssLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft

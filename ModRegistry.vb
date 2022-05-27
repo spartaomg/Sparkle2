@@ -5,6 +5,9 @@ Imports System.Runtime.CompilerServices
 
 Friend Module ModRegistry
 
+    Private ReadOnly DotNet45ReleaseKey As Integer = 378389
+    Private ReadOnly DotNet48ReleaseKey As Integer = 528040
+
     Private ReadOnly OMGFolder As String = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\" + My.Application.Info.CompanyName
     Private ReadOnly SparkleFolder As String = OMGFolder + "\Sparkle"
     Private ReadOnly ConfigFile As String = SparkleFolder + "\Sparkle.config"
@@ -187,7 +190,7 @@ Err:
 
         Using NDPKey As RegistryKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32).OpenSubKey(SubKey)
             If NDPKey IsNot Nothing AndAlso NDPKey.GetValue("Release") IsNot Nothing Then
-                DotNetVersion = CheckFor45PlusVersion(NDPKey.GetValue("Release"))
+                DotNetVersion = CheckFor48PlusVersion(NDPKey.GetValue("Release"))
             Else
                 DotNetVersion = False
             End If
@@ -201,13 +204,13 @@ Err:
     End Function
 
     'Checking the version using >= will enable forward compatibility.
-    Private Function CheckFor45PlusVersion(releaseKey As Integer) As Boolean
-        If DoOnErr  then On Error GoTo Err
+    Private Function CheckFor48PlusVersion(releaseKey As Integer) As Boolean
+        If DoOnErr Then On Error GoTo Err
 
-        If releaseKey >= 378389 Then
-            CheckFor45PlusVersion = True
+        If releaseKey >= DotNet48ReleaseKey Then    'Minimum releaseKey for .Net 4.8: 528040 (requires at least Windows 7 SP1)
+            CheckFor48PlusVersion = True
         Else
-            CheckFor45PlusVersion = False
+            CheckFor48PlusVersion = False
         End If
 
         Exit Function

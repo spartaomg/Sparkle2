@@ -19,7 +19,7 @@ Public Class FrmMain
         If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         If DotNetVersion() = False Then
-            MsgBox("Sparkle requires .NET Framework version 4.5 or later!", vbOKOnly, "Please install .NET Framework")
+            MsgBox("Sparkle requires .NET Framework version 4.8 or later!", vbOKOnly, "Please install .NET Framework")
             End
         End If
 
@@ -32,7 +32,7 @@ Public Class FrmMain
         End If
 
         If Debugger.IsAttached = False Then         'Check if prg is run from IDE
-            TsmTestDisk.Visible = False     'No, hide test disk option
+            TsmTestDisk.Visible = False             'No, hide test disk option
             TssSep.Visible = False
             DoOnErr = True
         Else
@@ -130,9 +130,9 @@ Err:
             End Select
         End If
 
-        DiskHeader = "demo disk " + Year(Now).ToString
-        DiskID = "sprkl"
-        DemoName = "demo"
+        DiskHeader = "" '"demo disk " + Year(Now).ToString
+        DiskID = "" '"sprkl"
+        DemoName = "" '"demo"
 
         NewDisk()
 

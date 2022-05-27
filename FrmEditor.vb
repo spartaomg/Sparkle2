@@ -35,13 +35,15 @@ Public Class FrmEditor
     Private Const WM_HSCROLL As Integer = &H114
     Private Const WM_MOUSEWHEEL As Integer = &H20A
 
+    Private DecimalValue As Boolean = False
+
     Private txtBuffer As String = ""
     Private Loading As Boolean = False
 
     Private DFA, DFO, DFL As Boolean
     Private DFAS, DFOS, DFLS As String
     Private DFAN, DFON, DFLN As Integer
-    Private FAS, FOS, FLS As String
+    'Private FAS, FOS, FLS As String
 
     Private Ext As String   'File extension
     Private P() As Byte     'File
@@ -412,6 +414,7 @@ Err:
 
         Dim S As String
         Dim N As TreeNode = TV.SelectedNode
+        Dim SampleText As String
 
         If e.KeyCode = Keys.Delete Then
             HandleKey = True
@@ -579,20 +582,34 @@ Err:
 
             'Load Address
             Select Case e.KeyCode
-                Case Keys.D0 To Keys.D9, Keys.A To Keys.F, Keys.Enter
+                Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9, Keys.A To Keys.F, Keys.Enter, Keys.OemPeriod, Keys.Decimal
                     HandleKey = True
                     e.SuppressKeyPress = True
                     S = sFileAddr
 FileData:
-                    txtEdit.MaxLength = 4
+                    If (e.KeyCode = Keys.OemPeriod) OrElse (e.KeyCode = Keys.Decimal) Then
+                        DecimalValue = True
+                    End If
+                    If DecimalValue = False Then
+                        txtEdit.MaxLength = 4
+                        SampleText = "0000"
+                    Else
+                        txtEdit.MaxLength = 5
+                        SampleText = "00000"
+                    End If
+
 FileDataFO:
                     With txtEdit
                         .Tag = S
                         .Text = Strings.Right(N.Text, Len(N.Text) - Len(S))
-                        N.Text = S
+                        If DecimalValue = False Then
+                            N.Text = S
+                        Else
+                            N.Text = Replace(S, "$", "") + "."
+                        End If
                         .Top = TV.Top + N.Bounds.Top + 3
                         .Left = TV.Left + N.Bounds.Left + N.Bounds.Width
-                        .Width = TextRenderer.MeasureText(.Text, N.NodeFont).Width
+                        .Width = TextRenderer.MeasureText(SampleText, N.NodeFont).Width
                         .ForeColor = N.ForeColor
                         .Visible = True
                     End With
@@ -604,11 +621,21 @@ FileDataFO:
 
             'File Offset
             Select Case e.KeyCode
-                Case Keys.D0 To Keys.D9, Keys.A To Keys.F, Keys.Enter
+                Case Keys.D0 To Keys.D9, Keys.A To Keys.F, Keys.Enter, Keys.OemPeriod, Keys.Decimal
                     HandleKey = True
                     e.SuppressKeyPress = True
                     S = sFileOffs
-                    txtEdit.MaxLength = 8
+                    If (e.KeyCode = Keys.OemPeriod) OrElse (e.KeyCode = Keys.Decimal) Then
+                        DecimalValue = True
+                    End If
+
+                    If DecimalValue Then
+                        txtEdit.MaxLength = 10
+                        SampleText = "0000000000"
+                    Else
+                        txtEdit.MaxLength = 8
+                        SampleText = "00000000"
+                    End If
                     GoTo FileDataFO
                 Case Else
                     HandleKey = False
@@ -619,7 +646,7 @@ FileDataFO:
 
             'File Length
             Select Case e.KeyCode
-                Case Keys.D0 To Keys.D9, Keys.A To Keys.F, Keys.Enter
+                Case Keys.D0 To Keys.D9, Keys.A To Keys.F, Keys.Enter, Keys.OemPeriod
                     HandleKey = True
                     e.SuppressKeyPress = True
                     S = sFileLen
@@ -835,25 +862,6 @@ FileDataFO:
                                 HandleKey = False
                                 Exit Sub
                         End Select
-            'Case sLoop
-
-            'Select Case e.KeyCode
-            'Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9, Keys.Enter
-            '.Text = Strings.Right(N.Text, Len(N.Text) - Len(S))
-            '.Width = TextRenderer.MeasureText("000", N.NodeFont).Width
-            '.Tag = S
-            'N.Text = .Tag
-            '.Left = TV.Left + N.Bounds.Left + N.Bounds.Width
-            '.MaxLength = 3
-            '.Visible = True
-            '
-            'HandleKey = True
-            'e.SuppressKeyPress = True
-            'Case Else
-            'HandleKey = False
-            'Exit Sub
-            'End Select
-
                     Case sIL0, sIL1, sIL2, sIL3, sTracksPerDisk
                         Select Case e.KeyCode
                             Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9, Keys.Enter
@@ -886,6 +894,8 @@ FileDataFO:
                 'txtEdit.Text = Char.ConvertFromUtf32(e.KeyValue)
                 If e.KeyCode = Keys.Enter Then
                     .SelectAll()
+                ElseIf DecimalValue Then
+                    .Text = ""
                 Else
                     If e.Modifiers = Keys.Shift Then
                         .Text = ChrW(e.KeyValue)
@@ -942,7 +952,7 @@ Err:
 
     End Sub
 
-    Private Sub Tv_NodeMouseClick(sender As Object, e As TreeNodeMouseClickEventArgs) Handles TV.NodeMouseClick
+    Private Sub TV_NodeMouseClick(sender As Object, e As TreeNodeMouseClickEventArgs) Handles TV.NodeMouseClick
         If DoOnErr Then On Error GoTo Err
 
         If e.Button = MouseButtons.Right Then
@@ -956,7 +966,7 @@ Err:
 
     End Sub
 
-    Private Sub Tv_NodeMouseDoubleClick(sender As Object, e As TreeNodeMouseClickEventArgs) Handles TV.NodeMouseDoubleClick
+    Private Sub TV_NodeMouseDoubleClick(sender As Object, e As TreeNodeMouseClickEventArgs) Handles TV.NodeMouseDoubleClick
         If DoOnErr Then On Error GoTo Err
 
         Dim k As New KeyEventArgs(Keys.Enter)
@@ -969,7 +979,7 @@ Err:
 
     End Sub
 
-    Private Sub Tv_MouseDown(sender As Object, e As MouseEventArgs) Handles TV.MouseDown
+    Private Sub TV_MouseDown(sender As Object, e As MouseEventArgs) Handles TV.MouseDown
         If DoOnErr Then On Error GoTo Err
 
         'Handle double clicks before a node is expanded or collapsed to prevent unwanted expansion or collapse
@@ -1022,7 +1032,7 @@ Err:
 
     End Sub
 
-    Private Sub Tv_DragDrop(sender As Object, e As DragEventArgs) Handles TV.DragDrop
+    Private Sub TV_DragDrop(sender As Object, e As DragEventArgs) Handles TV.DragDrop
         If DoOnErr Then On Error GoTo Err
 
         FrmEditor_DragDrop(sender, e)
@@ -1034,7 +1044,7 @@ Err:
 
     End Sub
 
-    Private Sub Tv_DragEnter(sender As Object, e As DragEventArgs) Handles TV.DragEnter
+    Private Sub TV_DragEnter(sender As Object, e As DragEventArgs) Handles TV.DragEnter
         If DoOnErr Then On Error GoTo Err
 
         FrmEditor_DragEnter(sender, e)
@@ -1046,7 +1056,7 @@ Err:
 
     End Sub
 
-    Private Sub Tv_BeforeExpand(sender As Object, e As TreeViewCancelEventArgs) Handles TV.BeforeExpand
+    Private Sub TV_BeforeExpand(sender As Object, e As TreeViewCancelEventArgs) Handles TV.BeforeExpand
         If DoOnErr Then On Error GoTo Err
 
         'If (TV.SelectedNode.Tag < &H10000) And (TV.SelectedNode.Tag > 0) Then
@@ -1064,7 +1074,7 @@ Err:
 
     End Sub
 
-    Private Sub Tv_BeforeCollapse(sender As Object, e As TreeViewCancelEventArgs) Handles TV.BeforeCollapse
+    Private Sub TV_BeforeCollapse(sender As Object, e As TreeViewCancelEventArgs) Handles TV.BeforeCollapse
         If DoOnErr Then On Error GoTo Err
 
         'If (TV.SelectedNode.Tag < &H10000) And (TV.SelectedNode.Tag > 0) Then
@@ -1107,21 +1117,43 @@ Err:
                     TV.SelectedNode = TV.TopNode
                 End If
             Case Keys.Escape
+                DecimalValue = False
                 txtEdit.Text = txtBuffer
                 e.SuppressKeyPress = True
                 e.Handled = True
                 TV.Focus()
             Case Else
-                'Find entries with hex numbers
-                If (txtEdit.MaxLength = 6) Or (txtEdit.MaxLength = 4) Or (txtEdit.MaxLength = 2) Or (txtEdit.MaxLength = 8) Then
-                    If (Strings.Left(txtEdit.Tag, 2) = Strings.Left(sIL0, 2)) Or (Strings.Left(txtEdit.Tag, Len(sTracksPerDisk)) = sTracksPerDisk) Then    'Decimal
-                        'Decimal:
+                If DecimalValue Then
+                    GoTo Decimals
+                ElseIf (txtEdit.MaxLength = 6) Or (txtEdit.MaxLength = 4) Or (txtEdit.MaxLength = 2) Or (txtEdit.MaxLength = 8) Then
+                    'Find entries with numbers...
+                    If (Strings.Left(txtEdit.Tag, 2) = Strings.Left(sIL0, 2)) OrElse (Strings.Left(txtEdit.Tag, Len(sTracksPerDisk)) = sTracksPerDisk) Then    'Decimal
+Decimals:
                         Select Case e.KeyCode
                             Case Keys.D0 To Keys.D9, Keys.NumPad0 To Keys.NumPad9
                                 If (e.Modifiers = Keys.Shift) OrElse (e.Modifiers = Keys.Control) OrElse (e.Modifiers = Keys.Alt) Then
                                     e.SuppressKeyPress = True
                                     e.Handled = True
                                 End If
+                            Case Keys.H
+                                If (txtEdit.MaxLength = 5) OrElse (txtEdit.MaxLength = 10) Then
+                                    TV.SelectedNode.Text = TV.SelectedNode.Text.TrimEnd(".") + "$"
+                                    With txtEdit
+                                        .Left = TV.Left + TV.SelectedNode.Bounds.Left + TV.SelectedNode.Bounds.Width
+                                        .Text = ""
+                                        Select Case .MaxLength
+                                            Case 5
+                                                .MaxLength = 4
+                                                .Width = TextRenderer.MeasureText("0000", .Font).Width
+                                            Case 10
+                                                .MaxLength = 8
+                                                .Width = TextRenderer.MeasureText("00000000", .Font).Width
+                                        End Select
+                                    End With
+                                    DecimalValue = False
+                                End If
+                                e.SuppressKeyPress = True
+                                e.Handled = True
                             Case Else
                                 e.SuppressKeyPress = True
                                 e.Handled = True
@@ -1137,13 +1169,30 @@ Err:
                                             e.Handled = True
                                         End If
                                 End Select
+                            Case Keys.OemPeriod, Keys.Decimal
+                                If (txtEdit.MaxLength = 4) OrElse (txtEdit.MaxLength = 8) Then
+                                    DecimalValue = True
+                                    txtEdit.Text = ""
+                                    With txtEdit
+                                        TV.SelectedNode.Text = Replace(TV.SelectedNode.Text, "$", "") + "."
+                                        .Left = TV.Left + TV.SelectedNode.Bounds.Left + TV.SelectedNode.Bounds.Width
+                                        Select Case .MaxLength
+                                            Case 4
+                                                .MaxLength = 5
+                                                .Width = TextRenderer.MeasureText("00000", .Font).Width
+                                            Case 8
+                                                .MaxLength = 10
+                                                .Width = TextRenderer.MeasureText("0000000000", .Font).Width
+                                        End Select
+                                    End With
+                                End If
+                                e.SuppressKeyPress = True
+                                e.Handled = True
                             Case Else
                                 e.SuppressKeyPress = True
                                 e.Handled = True
                         End Select
                     End If
-                    'ElseIf txtEdit.MaxLength = 3 Then   'Loop feature, on decimals
-                    'GoTo Decimal
                 End If
         End Select
 
@@ -1160,8 +1209,6 @@ Err:
         SCC = New SubClassCtrl.SubClassing(TV.Handle) With {
         .SubClass = True
         }
-
-        'txtBuffer = txtEdit.Text
 
         Exit Sub
 Err:
@@ -1697,9 +1744,12 @@ Err:
         Dim Fnt As New Font("Consolas", 10)
 
         AddNode(DiskNode, sDiskPath + DC.ToString, sDiskPath + "demo.d64", DiskNode.Tag, colDiskInfo, Fnt)
-        AddNode(DiskNode, sDiskHeader + DC.ToString, sDiskHeader + "demo disk " + Year(Now).ToString, DiskNode.Tag, colDiskInfo, Fnt)
-        AddNode(DiskNode, sDiskID + DC.ToString, sDiskID + "sprkl", DiskNode.Tag, colDiskInfo, Fnt)
-        AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + "demo", DiskNode.Tag, colDiskInfo, Fnt)
+        'AddNode(DiskNode, sDiskHeader + DC.ToString, sDiskHeader + "demo disk " + Year(Now).ToString, DiskNode.Tag, colDiskInfo, Fnt)
+        AddNode(DiskNode, sDiskHeader + DC.ToString, sDiskHeader, DiskNode.Tag, colDiskInfo, Fnt)
+        'AddNode(DiskNode, sDiskID + DC.ToString, sDiskID + "sprkl", DiskNode.Tag, colDiskInfo, Fnt)
+        AddNode(DiskNode, sDiskID + DC.ToString, sDiskID, DiskNode.Tag, colDiskInfo, Fnt)
+        'AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + "demo", DiskNode.Tag, colDiskInfo, Fnt)
+        AddNode(DiskNode, sDemoName + DC.ToString, sDemoName, DiskNode.Tag, colDiskInfo, Fnt)
         AddNode(DiskNode, sDemoStart + DC.ToString, sDemoStart + "$", DiskNode.Tag, colDiskInfo, Fnt)
         AddNode(DiskNode, sDirArt + DC.ToString, sDirArt, DiskNode.Tag, colDiskInfo, Fnt)
         'AddNode(DiskNode, sProdID + DC.ToString, sProdID, DiskNode.Tag, colDisk, Fnt)
@@ -2155,15 +2205,39 @@ Err:
                         txtEdit.Text = Strings.Left("000000", 6 - Len(txtEdit.Text)) + txtEdit.Text
                     End If
                 End If
-                'Case sLoop
-                'If txtEdit.Text = "" Then txtEdit.Text = "0"
-                'Dim L As Integer = Convert.ToInt32(txtEdit.Text, 10)
-                'If L > 255 Then L = 255
-                'txtEdit.Text = L.ToString
             Case Else
+                If DecimalValue = True Then
+                    If IsNumeric(txtEdit.Text) Then
+                        Dim TxtEditInt As UInt64 = Convert.ToInt64(txtEdit.Text)
+                        Select Case txtEdit.MaxLength
+                            Case 5
+                                If TxtEditInt > 65535 Then
+                                    MsgBox("The decimal value cannot be larger than 65535 ($FFFF)!", vbInformation + vbOKOnly, "Decimal value too large")
+                                    txtEdit.Text = txtBuffer
+                                Else
+                                    txtEdit.Text = Hex(TxtEditInt)
+                                End If
+                            Case 10
+                                If TxtEditInt > 4294967295 Then
+                                    MsgBox("The decimal value cannot be larger than 4,294,967,295 ($FFFFFFFF)!", vbInformation + vbOKOnly, "Decimal value too large")
+                                    txtEdit.Text = txtBuffer
+                                Else
+                                    txtEdit.Text = Hex(TxtEditInt)
+                                End If
+                        End Select
+                    Else
+                        txtEdit.Text = txtBuffer
+                    End If
+                    Select Case txtEdit.MaxLength
+                        Case 5
+                            txtEdit.MaxLength = 4
+                        Case 10
+                            txtEdit.MaxLength = 8
+                    End Select
+                    DecimalValue = False
+                End If
                 Select Case txtEdit.MaxLength
                     Case 2  'ZP value, see above
-                    Case 3  'Loop value, see above
                     Case 4  'Address and Length values
                         If (Len(txtEdit.Text) < 4) And (Len(txtEdit.Text) > 0) Then
                             txtEdit.Text = Strings.Left("0000", 4 - Len(txtEdit.Text)) + txtEdit.Text
@@ -3281,7 +3355,7 @@ Err:
 
     End Sub
 
-    Private Sub Tv_NodeMouseHover(sender As Object, e As TreeNodeMouseHoverEventArgs) Handles TV.NodeMouseHover
+    Private Sub TV_NodeMouseHover(sender As Object, e As TreeNodeMouseHoverEventArgs) Handles TV.NodeMouseHover
         If DoOnErr Then On Error GoTo Err
 
         TT.Hide(TV)
@@ -4155,10 +4229,21 @@ Err:
                     ScriptEntryArray(I) = Strings.Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 2)
             End Select
 
-            If IsHexString(ScriptEntryArray(I)) Then
+            If Strings.Left(ScriptEntryArray(I), 1) = "." Then
+                ScriptEntryArray(I) = ScriptEntryArray(I).TrimStart(".")
+                If IsNumeric(ScriptEntryArray(I)) Then
+                    Dim ScriptEntryInt As Integer = Convert.ToInt32(ScriptEntryArray(I))
+                    ScriptEntryArray(I) = Hex(ScriptEntryInt)
+                Else
+                    Exit For
+                End If
+            End If
+
+            If IsNumeric("&H" + ScriptEntryArray(I)) Then
+                'If IsHexString(ScriptEntryArray(I)) Then
                 NumParams = I + 1
-            Else
-                Exit For
+                Else
+                    Exit For
             End If
 
             'Remove unwanted spaces
@@ -4227,9 +4312,12 @@ Err:
             Dim Fnt As New Font("Consolas", 10)
 
             AddNode(DiskNode, sDiskPath + DC.ToString, sDiskPath + "demo.d64", DiskNode.Tag, colDiskInfo, Fnt)
-            AddNode(DiskNode, sDiskHeader + DC.ToString, sDiskHeader + "demo disk " + Year(Now).ToString, DiskNode.Tag, colDiskInfo, Fnt)
-            AddNode(DiskNode, sDiskID + DC.ToString, sDiskID + "sprkl", DiskNode.Tag, colDiskInfo, Fnt)
-            AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + "demo", DiskNode.Tag, colDiskInfo, Fnt)
+            'AddNode(DiskNode, sDiskHeader + DC.ToString, sDiskHeader + "demo disk " + Year(Now).ToString, DiskNode.Tag, colDiskInfo, Fnt)
+            AddNode(DiskNode, sDiskHeader + DC.ToString, sDiskHeader, DiskNode.Tag, colDiskInfo, Fnt)
+            'AddNode(DiskNode, sDiskID + DC.ToString, sDiskID + "sprkl", DiskNode.Tag, colDiskInfo, Fnt)
+            AddNode(DiskNode, sDiskID + DC.ToString, sDiskID, DiskNode.Tag, colDiskInfo, Fnt)
+            'AddNode(DiskNode, sDemoName + DC.ToString, sDemoName + "demo", DiskNode.Tag, colDiskInfo, Fnt)
+            AddNode(DiskNode, sDemoName + DC.ToString, sDemoName, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sDemoStart + DC.ToString, sDemoStart + "$", DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sDirArt + DC.ToString, sDirArt, DiskNode.Tag, colDiskInfo, Fnt)
             AddNode(DiskNode, sTracksPerDisk + DC.ToString, sTracksPerDisk + TracksPerDisk.ToString, DiskNode.Tag, colDiskInfo, Fnt)
@@ -4258,7 +4346,6 @@ Err:
             'LoopSet = True
             'End If
         End If
-
 
         'CalcDiskNodeSize(N)
 
@@ -4916,11 +5003,11 @@ Err:
                                 Script += "Path:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sDiskPath)) + vbNewLine
                             Case sDiskHeader + CurrentDisk.ToString
                                 Dim DH As String = Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sDiskHeader))
-                                If DH = "" Then DH = "demo disk " + Year(Now).ToString
+                                'If DH = "" Then DH = "demo disk " + Year(Now).ToString
                                 Script += "Header:" + vbTab + DH + vbNewLine
                             Case sDiskID + CurrentDisk.ToString
                                 Dim DI As String = Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sDiskID))
-                                If DI = "" Then DI = "sprkl"
+                                'If DI = "" Then DI = "sprkl"
                                 Script += "ID:" + vbTab + DI + vbNewLine
                             Case sDemoName + CurrentDisk.ToString
                                 Script += "Name:" + vbTab + Strings.Right(DiskNode.Nodes(J).Text, Len(DiskNode.Nodes(J).Text) - Len(sDemoName)) + vbNewLine

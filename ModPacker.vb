@@ -6,7 +6,7 @@
         Public TotalBits As Integer     'Total Bits in Buffer
     End Structure
 
-    Private ReadOnly AllowShortMidMatches As Boolean = False    'This would result in saving a few bytes per disk side but unpacking is slower...
+#Const AllowShortMidMatches = False    'This would result in saving a few bytes per disk side but unpacking is slower...
 
     Public BytePtr As Integer           'Buffer Byte Stream Pointer
     Public BitPtr As Integer            'Buffer Bit Stream Pointer
@@ -140,8 +140,7 @@ Err:
     Private Sub CalcBestSequence(SeqHighestIndex As Integer, SeqLowestIndex As Integer, Optional FirstRun As Boolean = False)
         If DoOnErr Then On Error GoTo Err
 
-        Dim MaxO, MaxL, MaxLL, MaxSL As Integer
-        Dim SeqLen, SeqOff As Integer
+        Dim MaxO, MaxLL, MaxSL As Integer
 
         '----------------------------------------------------------------------------------------------------------
         'CALCULATE MAX MATCH LENGTHS AND OFFSETS FOR EACH POSITION
@@ -150,17 +149,11 @@ Err:
         'Pos = Min>0 to Max value, direction of execution is arbitrary (could be Max to Min>0 Step -1)
         For Pos As Integer = SeqLowestIndex To SeqHighestIndex         'Pos cannot be 0, Prg(0) is always literal as it is always 1 byte left
 
-            MaxLL = Math.Min(Pos + 1, MaxLongLen)   'If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)
-            MaxSL = Math.Min(Pos + 1, MaxShortLen)  'If(Pos >= MaxShortLen - 1, MaxShortLen, Pos + 1)
-
             'Offset goes from 1 to max offset (cannot be 0)
             MaxO = Math.Min(MaxMidOffset, SeqHighestIndex - Pos)    'If(Pos + MaxMidOffset < SeqHighestIndex, MaxMidOffset, SeqHighestIndex - Pos)    'MaxO=256 or less
             'Match length goes from 1 to max length
-            'If (SL(Pos) > 0) And (SL(Pos) >= LL(Pos)) Then
-            'MaxL = If(Pos >= MaxShortLen - 1, MaxShortLen, Pos + 1)  'MaxL=255 or less
-            'Else
-            MaxL = Math.Min(Pos + 1, MaxLongLen) 'If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)  'MaxL=255 or less
-            'End If
+            MaxLL = Math.Min(Pos + 1, MaxLongLen)   'If(Pos >= MaxLongLen - 1, MaxLongLen, Pos + 1)  'MaxL=255 or less
+            MaxSL = Math.Min(Pos + 1, MaxShortLen)  'If(Pos >= MaxShortLen - 1, MaxShortLen, Pos + 1)
 
             If (FirstRun) OrElse (SL(Pos) > 0) OrElse (LL(Pos) > 0) Then
                 SO(Pos) = 0
@@ -168,42 +161,11 @@ Err:
                 LO(Pos) = 0
                 LL(Pos) = 0
 
-                'Dim O As Integer = 1
-
-                'While (O <= MaxO) And (LL(Pos) < MaxLL) And (SL(Pos) < MaxSL)
-                ''Check if first byte matches at offset, if not go to next offset
-                'If Prg(Pos) = Prg(Pos + O) Then
-                'Dim L As Integer = 1
-                'While (Prg(Pos - L) = Prg(Pos + O - L))
-                'L += 1
-                'If L = MaxL Then Exit While
-                'End While
-                'If L >= 2 Then
-                'If O <= MaxShortOffset Then
-                'If (SL(Pos) < MaxShortLen) And (SL(Pos) < L) Then
-                'SL(Pos) = If(L > MaxShortLen, MaxShortLen, L)   'Short matches cannot be longer than 4 bytes
-                'SO(Pos) = O       'Keep Offset 1-based
-                'End If
-                'If LL(Pos) < L Then
-                'LL(Pos) = L
-                'LO(Pos) = O
-                'End If
-                'Else
-                'If (LL(Pos) < L) And (L > 2) Then 'Skip short (2-byte) Mid Matches
-                'LL(Pos) = L
-                'LO(Pos) = O
-                'End If
-                'End If
-                'End If
-                'End If
-                'O += 1
-                'End While
-
                 For O As Integer = 1 To MaxO                                    'O=1 to 255 or less
                     'Check if first byte matches at offset, if not go to next offset
                     If Prg(Pos) = Prg(Pos + O) Then
-                        For L As Integer = 1 To MaxL                            'L=1 to 254 or less
-                            If L = MaxL Then
+                        For L As Integer = 1 To MaxLL                            'L=1 to 254 or less
+                            If L = MaxLL Then
                                 GoTo Match
                             ElseIf Prg(Pos - L) <> Prg(Pos + O - L) Then
                                 'Find the first position where there is NO match -> this will give us the absolute length of the match
@@ -859,7 +821,7 @@ Err:
 
         FirstLitOfBlock = True
 
-        If SI < 0 Then Exit Function             'We have reached the end of the file -> exit
+        If SI < 0 Then Exit Function        'We have reached the end of the file -> exit
 
         'If we have not reached the end of the file, then update buffer
         Buffer(BytePtr) = (PrgAdd + SI) Mod 256
@@ -874,7 +836,7 @@ Err:
         Buffer(BytePtr - 1) = Int((PrgAdd + SI) / 256) Mod 256
         AdHiPos = BytePtr - 1
         BytePtr -= 2
-        LastByte = BytePtr              'LastByte = the first byte of the ByteStream after and Address Bytes (253 or 252 with blockCnt)
+        LastByte = BytePtr  'LastByte = the first byte of the ByteStream after and Address Bytes (253 or 252 with blockCnt)
 
         '------------------------------------------------------------------------------------------------------------------------------
         '"COLOR BUG"
@@ -891,8 +853,6 @@ Err:
         'LETHARGY BUG - Bits Left need to be calculated from Seq(SI+1) and NOT Seq(SI)
         'Add 4 bits if number of nibbles is odd
         Dim BitsLeftInBundle As Integer = Seq(SI + 1).TotalBits + ((Seq(SI + 1).Nibbles Mod 2) * 4)
-
-        'BitsNeededForNextBundle += If(MLen = 0, 0, 1)   'If last sequence was a Match, we also need a Match Bit
 
         'If the next block is the first one on a new track, no need to recalculate the sequence
         'As all previous blocks will be loaded from the previous track before this block gets loaded
@@ -1104,7 +1064,7 @@ NoGo:
         'BUG reported by Visage/Lethargy
         Dim BitsNeededForNextFile As Integer = 1
         'Type selector bit  (match vs literal) is not needed, the first byte of a file is always literal
-        'So this is the literal length bit: 0 - 1 literal, 1 - more than 1 literals, will also need a Nibble...
+        'So this is the literal length bit: 0 - 1 literal, 1 - more than 1 literals, would also need a Nibble...
         '...but here we only need to be able to fit 1 literal byte
 
         NextFileInBuffer = True

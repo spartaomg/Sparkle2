@@ -4,6 +4,7 @@
 
     Public ReadOnly UserDeskTop As String = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
     Public ReadOnly UserFolder As String = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+    Public ReadOnly Ascii2Petscii As Byte() = My.Resources.Ascii2DisplayCode
 
     'Public DiskLoop As Integer = 0
 
@@ -87,9 +88,13 @@
 
     Public D64Name As String = "" '= My.Computer.FileSystem.SpecialDirectories.MyDocuments
 
-    Public DiskHeader As String = "demo disk " + Year(Now).ToString
-    Public DiskID As String = "sprkl"
-    Public DemoName As String = "demo"
+    Public ReadOnly DefaultDiskHeader As String = "demo disk " + Year(Now).ToString
+    Public ReadOnly DefaultDiskID As String = "sprkl"
+    Public ReadOnly DefaultDemoName As String = "demo"
+
+    Public DiskHeader As String = DefaultDiskHeader
+    Public DiskID As String = DefaultDiskID
+    Public DemoName As String = DefaultDemoName
     Public DemoStart As String = ""
     Public LoaderZP As String = "02"
 
@@ -196,6 +201,8 @@
 
     Public SaverSupportsIO As Boolean = False
 
+    Private LoaderBlockCount As Byte
+
     Public Sub SetMaxSector()
         If DoOnErr Then On Error GoTo Err
 
@@ -268,7 +275,7 @@ NextLine:
 NextChar:
         If (Mid(Script, SE, 1) <> Chr(13)) And (Mid(Script, SE, 1) <> Chr(10)) Then   'Look for vbCrLf and vbLF
             SE += 1                                         'Not EOL
-            If SE <= Script.Length Then                     'Go to next char if we haven't reached the end of the script
+            If SE <= Len(Script) Then                     'Go to next char if we haven't reached the end of the script
                 GoTo NextChar
             Else
                 'ScriptEntry = Strings.Mid(Script, SS, SE - SS)    'Reached end of script, finish this entry
@@ -382,25 +389,31 @@ Err:
         Dim Cnt As Integer
 
         CP = Track(18)
-        Disk(CP) = &H12         'Track#18
-        Disk(CP + 1) = &H1      'Sector#1
-        Disk(CP + 2) = &H41     '"A"
+        Disk(CP) = &H12                             'Track#18
+        Disk(CP + 1) = &H1                          'Sector#1
+        Disk(CP + 2) = &H41                         '"A"
 
-        For Cnt = &H90 To &HAA  'Name, ID, DOS type
+        For Cnt = &H90 To &HAA                      'Name, ID, DOS type
             Disk(CP + Cnt) = &HA0
         Next
 
+        '-------------------------------------------
+
         For Cnt = 1 To Len(DiskHeader)
-            B = Asc(Mid(DiskHeader, Cnt, 1))
-            If B > &H5F Then B -= &H20
+            B = Ascii2Petscii(Asc(Mid(DiskHeader, Cnt, 1)))
+            'If B > &H5F Then B -= &H20
             Disk(CP + &H8F + Cnt) = B
         Next
 
+        '-------------------------------------------
+
         For Cnt = 1 To Len(DiskID)                  'SPRKL
-            B = Asc(Mid(DiskID, Cnt, 1))
-            If B > &H5F Then B -= &H20
+            B = Ascii2Petscii(Asc(Mid(DiskID, Cnt, 1)))
+            'If B > &H5F Then B -= &H20
             Disk(CP + &HA1 + Cnt) = B
         Next
+
+        '-------------------------------------------
 
         For Cnt = 4 To (36 * 4) - 1
             Disk(CP + Cnt) = 255
@@ -1107,8 +1120,7 @@ Err:
         InjectLoader = True
 
         Dim B, I, Cnt, W As Integer
-        Dim ST, SS, A, L, AdLo, AdHi As Byte
-        Dim DN As String
+        Dim ST, SS, A, AdLo, AdHi As Byte
 
         'Check if we have a Demo Start Address
         If DiskIndex > -1 Then
@@ -1147,15 +1159,15 @@ Err:
         Next
 
         'Number of blocks in Loader
-        L = Int(Loader.Length / 254)
+        LoaderBlockCount = Int(Loader.Length / 254)
         If (Loader.Length) Mod 254 <> 0 Then
-            L += 1
+            LoaderBlockCount += 1
         End If
 
         CT = T
         CS = S
 
-        For I = 0 To L - 1
+        For I = 0 To LoaderBlockCount - 1
             ST = CT
             SS = CS
             For Cnt = 0 To 253
@@ -1166,7 +1178,7 @@ Err:
             DeleteBit(CT, CS, False)
 
             AddInterleave(IL)   'Go to next free sector with Interleave IL
-            If I < L - 1 Then
+            If I < LoaderBlockCount - 1 Then
                 Disk(Track(ST) + (SS * 256) + 0) = CT
                 Disk(Track(ST) + (SS * 256) + 1) = CS
             Else
@@ -1179,6 +1191,41 @@ Err:
             End If
         Next
 
+        'AddDemoNameToDisk(DiskIndex, T, S)
+
+        Exit Function
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+        InjectLoader = False
+
+    End Function
+
+    Private Sub AddDemoNameToDisk(DiskIndex As Integer, T As Byte, S As Byte)
+        If DoOnErr Then On Error GoTo Err
+
+        Dim B, Cnt As Integer
+        Dim DN As String = ""
+        Dim A As Byte
+
+        If DiskIndex > -1 Then
+            DN = If(DemoNameA(DiskIndex) <> "", DemoNameA(DiskIndex), "")
+        Else
+            DN = If(DemoName <> "", DemoName, "")
+        End If
+
+        If DN = "" Then
+            'No DemoName defined, check if we have a DirArt file attached
+            If DirArtName <> "" Then
+                'Dirart attached, we will add first dir entry there
+                Exit Sub
+                'Else
+                'No DirArt - we need a default dir entry
+                'DemoName = DefaultDemoName
+            End If
+        End If
+
         CT = 18 : CS = 1
         Cnt = Track(CT) + (CS * 256)
 SeekNewDirBlock:
@@ -1189,6 +1236,7 @@ SeekNewDirBlock:
             B = 2
 SeekNewEntry:
             If Disk(Cnt + B) = &H0 Then
+
                 Disk(Cnt + B) = &H82
                 Disk(Cnt + B + 1) = T
                 Disk(Cnt + B + 2) = S
@@ -1196,18 +1244,12 @@ SeekNewEntry:
                     Disk(Cnt + B + 3 + W) = &HA0
                 Next
 
-                If DiskIndex > -1 Then
-                    DN = If(DemoNameA(DiskIndex) <> "", DemoNameA(DiskIndex), "demo")
-                Else
-                    DN = If(DemoName <> "", DemoName, "demo")
-                End If
-
                 For W = 0 To Len(DN) - 1
-                    A = Asc(Mid(DN, W + 1, 1))
-                    If A > &H5F Then A -= &H20
+                    A = Ascii2Petscii(Asc(Mid(DN, W + 1, 1)))
+                    'If A > &H5F Then A -= &H20
                     Disk(Cnt + B + 3 + W) = A
                 Next
-                Disk(Cnt + B + &H1C) = L    'Length of boot loader in blocks
+                Disk(Cnt + B + &H1C) = LoaderBlockCount    'Length of boot loader in blocks
             Else
                 B += 32
                 If B < 256 Then
@@ -1225,14 +1267,12 @@ SeekNewEntry:
             End If
         End If
 
-        Exit Function
+        Exit Sub
 Err:
         ErrCode = Err.Number
         MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
 
-        InjectLoader = False
-
-    End Function
+    End Sub
     Private Sub UpdateZP()
         If DoOnErr Then On Error GoTo Err
 
@@ -1363,7 +1403,7 @@ Err:
 
         ConvertIntToHex = LCase(Hex(HInt))
 
-        If ConvertIntToHex.Length < SLen Then
+        If Len(ConvertIntToHex) < SLen Then
             ConvertIntToHex = Left(StrDup(SLen, "0"), SLen - ConvertIntToHex.Length) + ConvertIntToHex
         End If
 
@@ -1391,25 +1431,31 @@ Err:
 
         If DiskHeaderA(DiskIndex) = "" Then DiskHeaderA(DiskIndex) = "demo disk" + If(DiskCnt > 0, " " + (DiskIndex + 1).ToString, "")
 
+        '-------------------------------------------
+
         For Cnt = 1 To Len(DiskHeaderA(DiskIndex))
-            B = Asc(Mid(DiskHeaderA(DiskIndex), Cnt, 1))
-            If B > &H5F Then B -= &H20
+            B = Ascii2Petscii(Asc(Mid(DiskHeaderA(DiskIndex), Cnt, 1)))
+            'If B > &H5F Then B -= &H20
             Disk(CP + &H8F + Cnt) = B
         Next
 
+        '-------------------------------------------
+
         If DiskIDA(DiskIndex) <> "" Then
             For Cnt = 1 To Len(DiskIDA(DiskIndex))
-                B = Asc(Mid(DiskIDA(DiskIndex), Cnt, 1))
-                If B > &H5F Then B -= &H20
+                B = Ascii2Petscii(Asc(Mid(DiskIDA(DiskIndex), Cnt, 1)))
+                'If B > &H5F Then B -= &H20
                 Disk(CP + &HA1 + Cnt) = B
             Next
         Else
             For Cnt = 1 To Len(DiskID)
-                B = Asc(Mid(DiskID, Cnt, 1))
-                If B > &H5F Then B -= &H20
+                B = Ascii2Petscii(Asc(Mid(DiskID, Cnt, 1)))
+                'If B > &H5F Then B -= &H20
                 Disk(CP + &HA1 + Cnt) = B
             Next
         End If
+
+        '-------------------------------------------
 
         Exit Function
 Err:
@@ -1534,7 +1580,9 @@ FindNext:
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
                     If ResetDiskVariables() = False Then GoTo NoDisk
                 End If
-                D64Name = ScriptEntryArray(0)
+                If ScriptEntryArray.Length > 0 Then
+                    D64Name = If(ScriptEntryArray(0) IsNot Nothing, ScriptEntryArray(0), "")
+                End If
                 NewBundle = True
             Case "header:"
                 If NewD = False Then
@@ -1542,7 +1590,9 @@ FindNext:
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
                     If ResetDiskVariables() = False Then GoTo NoDisk
                 End If
-                DiskHeader = ScriptEntryArray(0)
+                If ScriptEntryArray.Length > 0 Then
+                    DiskHeader = If(ScriptEntryArray(0) IsNot Nothing, ScriptEntryArray(0), "")
+                End If
                 NewBundle = True
             Case "id:"
                 If NewD = False Then
@@ -1550,7 +1600,9 @@ FindNext:
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
                     If ResetDiskVariables() = False Then GoTo NoDisk
                 End If
-                DiskID = ScriptEntryArray(0)
+                If ScriptEntryArray.Length > 0 Then
+                    DiskID = If(ScriptEntryArray(0) IsNot Nothing, ScriptEntryArray(0), "")
+                End If
                 NewBundle = True
             Case "name:"
                 If NewD = False Then
@@ -1558,7 +1610,9 @@ FindNext:
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
                     If ResetDiskVariables() = False Then GoTo NoDisk
                 End If
-                DemoName = ScriptEntryArray(0)
+                If ScriptEntryArray.Length > 0 Then
+                    DemoName = If(ScriptEntryArray(0) IsNot Nothing, ScriptEntryArray(0), "")
+                End If
                 NewBundle = True
             Case "start:"
                 If NewD = False Then
@@ -1566,7 +1620,9 @@ FindNext:
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
                     If ResetDiskVariables() = False Then GoTo NoDisk
                 End If
-                DemoStart = ScriptEntryArray(0)
+                If ScriptEntryArray.Length > 0 Then
+                    DemoStart = If(ScriptEntryArray(0) IsNot Nothing, ScriptEntryArray(0), "")
+                End If
                 NewBundle = True
             Case "dirart:"
                 If NewD = False Then
@@ -1574,13 +1630,13 @@ FindNext:
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
                     If ResetDiskVariables() = False Then GoTo NoDisk
                 End If
-                If ScriptEntryArray(0) <> "" Then
+                If (ScriptEntryArray.Length > 0) AndAlso (ScriptEntryArray(0) <> "") Then
                     If InStr(ScriptEntryArray(0), ":") = 0 Then
                         ScriptEntryArray(0) = ScriptPath + ScriptEntryArray(0)
                     End If
                     If IO.File.Exists(ScriptEntryArray(0)) Then
                         DirArtName = ScriptEntryArray(0)
-                        DirArt = IO.File.ReadAllText(DirArtName)
+                        'DirArt = IO.File.ReadAllText(DirArtName)
                     Else
                         MsgBox("The following DirArt file does not exist:" + vbNewLine + vbNewLine + ScriptEntryArray(0), vbOKOnly + vbExclamation, "DirArt file not found")
                     End If
@@ -1592,7 +1648,11 @@ FindNext:
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
                     If ResetDiskVariables() = False Then GoTo NoDisk
                 End If
-                If DiskCnt = 0 Then LoaderZP = ScriptEntryArray(0)  'ZP usage can only be set from first disk
+                If DiskCnt = 0 Then
+                    If (ScriptEntryArray.Length > 0) AndAlso (ScriptEntryArray(0) IsNot Nothing) Then
+                        LoaderZP = ScriptEntryArray(0)      'ZP usage can only be set from first disk
+                    End If
+                End If
                 NewBundle = True
         'Case "loop:"
         'DiskLoop = Convert.ToInt32(ScriptEntryArray(0), 10)
@@ -1602,7 +1662,7 @@ FindNext:
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
                     If ResetDiskVariables() = False Then GoTo NoDisk
                 End If
-                Dim TmpIL As Integer = Convert.ToInt32(ScriptEntryArray(0), 10)
+                Dim TmpIL As Integer = If(ScriptEntryArray.Length > 0, Convert.ToInt32(ScriptEntryArray(0), 10), 0)
                 IL0 = If(TmpIL Mod 21 > 0, TmpIL Mod 21, DefaultIL0)
                 NewBundle = True
             Case "il1:"
@@ -1611,7 +1671,7 @@ FindNext:
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
                     If ResetDiskVariables() = False Then GoTo NoDisk
                 End If
-                Dim TmpIL As Integer = Convert.ToInt32(ScriptEntryArray(0), 10)
+                Dim TmpIL As Integer = If(ScriptEntryArray.Length > 0, Convert.ToInt32(ScriptEntryArray(0), 10), 0)
                 IL1 = If(TmpIL Mod 19 > 0, TmpIL Mod 19, DefaultIL1)
                 NewBundle = True
             Case "il2:"
@@ -1620,7 +1680,7 @@ FindNext:
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
                     If ResetDiskVariables() = False Then GoTo NoDisk
                 End If
-                Dim TmpIL As Integer = Convert.ToInt32(ScriptEntryArray(0), 10)
+                Dim TmpIL As Integer = If(ScriptEntryArray.Length > 0, Convert.ToInt32(ScriptEntryArray(0), 10), 0)
                 IL2 = If(TmpIL Mod 18 > 0, TmpIL Mod 18, DefaultIL2)
                 NewBundle = True
             Case "il3:"
@@ -1629,7 +1689,7 @@ FindNext:
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
                     If ResetDiskVariables() = False Then GoTo NoDisk
                 End If
-                Dim TmpIL As Integer = Convert.ToInt32(ScriptEntryArray(0), 10)
+                Dim TmpIL As Integer = If(ScriptEntryArray.Length > 0, Convert.ToInt32(ScriptEntryArray(0), 10), 0)
                 IL3 = If(TmpIL Mod 17 > 0, TmpIL Mod 17, DefaultIL3)
                 NewBundle = True
             Case "prodid:"
@@ -1647,7 +1707,7 @@ FindNext:
                     End If
                 End If
                 NewBundle = True
-            Case "tracks:", "trackno:"
+            Case "tracks:"
                 If NewD = False Then
                     NewD = True
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
@@ -1667,7 +1727,7 @@ FindNext:
                     End If
                 End If
                 NewBundle = True
-            Case "hsfile:", "highscore:", "savefile:"
+            Case "hsfile:"
                 If NewD = False Then
                     NewD = True
                     If FinishDisk(False, SaveIt) = False Then GoTo NoDisk
@@ -1677,7 +1737,7 @@ FindNext:
                     If AddHSFile() = False Then GoTo NoDisk
                 End If
                 NewBundle = True
-            Case "list:", "script:"
+            Case "script:"
                 If InsertScript(ScriptEntryArray(0)) = False Then GoTo NoDisk
                 NewBundle = True    'Files in the embedded script will ALWAYS be in a new bundle (i.e. scripts cannot be embedded in a bundle)!!!
             Case "file:"
@@ -1685,7 +1745,7 @@ FindNext:
                 If AddFile() = False Then GoTo NoDisk
                 NewD = False    'We have added at least one file to this disk, so next disk info entry will be a new disk
                 NewBundle = False
-            Case "new block", "next block", "new sector", "align bundle", "align"
+            Case "align"    '"new block", "next block", "new sector", "align bundle"
                 If NewD = False Then
                     TmpSetNewblock = True
                 End If
@@ -1762,10 +1822,10 @@ NoDisk:
             Lines(I) = Lines(I).TrimEnd(Chr(13))    'Trim vbCR from end of lines if vbCrLf was used
 
             If InStr(Lines(I), vbTab) = 0 Then
-                ScriptEntryType = Lines(I)
+                ScriptEntryType = Replace(Lines(I), "", "")
                 ScriptEntry = ""
             Else
-                ScriptEntryType = Strings.Left(Lines(I), InStr(Lines(I), vbTab) - 1)
+                ScriptEntryType = Replace(Strings.Left(Lines(I), InStr(Lines(I), vbTab) - 1), " ", "")
                 ScriptEntry = Strings.Right(Lines(I), Len(Lines(I)) - InStr(Lines(I), vbTab)).TrimStart(vbTab)
             End If
 
@@ -1871,29 +1931,42 @@ Err:
 
         CP = Track(18)
 
-        For Cnt = &H90 To &HAA
+        For Cnt As Integer = &H90 To &HAA
             Disk(CP + Cnt) = &HA0
         Next
 
-        If DiskHeader.Length > 16 Then
+        If Len(DiskHeader) > 16 Then
             DiskHeader = Left(DiskHeader, 16)
         End If
 
-        For Cnt = 1 To Len(DiskHeader)
-            B = Asc(Mid(DiskHeader, Cnt, 1))
-            If B > &H5F Then B -= &H20
-            Disk(CP + &H8F + Cnt) = B
-        Next
+        If DiskHeader = "" Then
+            For Cnt As Integer = 1 To 16
+                Disk(CP + &H8F + Cnt) = 32
+            Next
+        Else
+            For Cnt As Integer = 1 To Len(DiskHeader)
+                B = Ascii2Petscii(Asc(Mid(DiskHeader, Cnt, 1)))
+                'If B > &H5F Then B -= &H20
+                Disk(CP + &H8F + Cnt) = B
+            Next
+        End If
 
-        If DiskID.Length > 5 Then
+        If Len(DiskID) > 5 Then
             DiskID = Left(DiskID, 5)
         End If
 
-        For Cnt = 1 To Len(DiskID)                  'Overwrites Disk ID and DOS type (5 characters max.)
-            B = Asc(Mid(DiskID, Cnt, 1))
-            If B > &H5F Then B -= &H20
-            Disk(CP + &HA1 + Cnt) = B
-        Next
+        If DiskID = "" Then
+            For Cnt As Integer = 1 To 5                           'Overwrites Disk ID and DOS type (5 characters max.)
+                Disk(CP + &HA1 + Cnt) = 32
+            Next
+        Else
+            For Cnt As Integer = 1 To Len(DiskID)                  'Overwrites Disk ID and DOS type (5 characters max.)
+                B = Ascii2Petscii(Asc(Mid(DiskID, Cnt, 1)))
+                'If B > &H5F Then B -= &H20
+                Disk(CP + &HA1 + Cnt) = B
+            Next
+        End If
+
 
         Exit Function
 Err:
@@ -1925,17 +1998,12 @@ Err:
 
         'Now add compressed parts to disk
         If AddCompressedBundlesToDisk() = False Then GoTo NoDisk
-        If AddHeaderAndID() = False Then GoTo NoDisk
         If InjectLoader(-1, 18, 7, 1) = False Then GoTo NoDisk
-
-        'If LastDisk = True Then
-        'If DiskLoop > DiskCnt + 1 Then
-        'DiskLoop = DiskCnt + 1
-        'End If
-        'End If
-
         If InjectDriveCode(DiskCnt, LoaderBundles, If(LastDisk = False, DiskCnt + 1, &H80)) = False Then GoTo NoDisk
-        If DirArt <> "" Then AddDirArt()
+
+        AddHeaderAndID()
+        AddDemoNameToDisk(-1, 18, 7)
+        AddDirArt()
 
         BytesSaved += Int(BitsSaved / 8)
         BitsSaved = BitsSaved Mod 8
@@ -2354,7 +2422,6 @@ SortDone:
         'We may be overcalculating here but that is safer than undercalculating which would result in buggy decompression
         'If the last block is not the actual last block of the bundle...
         'With overcalculation, worst case scenario is a little bit worse compression ratio of the last block
-        'BitsNeededForNextBundle = ((5 + CheckNextIO(tmpFileAddrA(0), tmpFileLenA(0), tmpFileIOA(0))) * 8) + 2
         BitsNeededForNextBundle = (6 + CheckNextIO(tmpFileAddrA(0), tmpFileLenA(0), tmpFileIOA(0))) * 8
         ' +/- 1 Match Bit which will be added later in CloseBuffer if needed
 
@@ -2391,38 +2458,57 @@ NoSort:
         'Correct file parameter length to 4-8 characters
         For I As Integer = 1 To ScriptEntryArray.Count - 1
 
-            'Remove HEX prefix
-            If Left(ScriptEntryArray(I), 1) = "$" Then
-                ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 1)
-            End If
-            Select Case LCase(Left(ScriptEntryArray(I), 2))
-                Case "&h", "0x"
-                    ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 2)
-            End Select
-
-            If IsHexString(ScriptEntryArray(I)) Then
-                NumParams = I + 1
+            If ParameterIsNumeric(I) Then
+                NumParams += 1
             Else
                 Exit For
             End If
 
-            'Remove unwanted spaces
-            Replace(ScriptEntryArray(I), " ", "")
+            CorrectParameterStringLength(I)
 
-            Select Case I
-                Case 2      'File Offset max. $ffff ffff (dword)
-                    If ScriptEntryArray(I).Length < 8 Then
-                        ScriptEntryArray(I) = Left("00000000", 8 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
-                    ElseIf (I = 2) And (ScriptEntryArray(I).Length > 8) Then
-                        ScriptEntryArray(I) = Right(ScriptEntryArray(I), 8)
-                    End If
-                Case Else   'File Address, File Length max. $ffff
-                    If ScriptEntryArray(I).Length < 4 Then
-                        ScriptEntryArray(I) = Left("0000", 4 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
-                    ElseIf ScriptEntryArray(I).Length > 4 Then
-                        ScriptEntryArray(I) = Right(ScriptEntryArray(I), 4)
-                    End If
-            End Select
+            ''Remove HEX prefix
+            'If Left(ScriptEntryArray(I), 1) = "$" Then
+            'ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 1)
+            'End If
+            'Select Case LCase(Left(ScriptEntryArray(I), 2))
+            'Case "&h", "0x"
+            'ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 2)
+            'End Select
+
+            'If Left(ScriptEntryArray(I), 1) = "." Then
+            'ScriptEntryArray(I) = ScriptEntryArray(I).TrimStart(".")
+            'If IsNumeric(ScriptEntryArray(I)) Then
+            'Dim ScriptEntryInt As Integer = Convert.ToInt32(ScriptEntryArray(I))
+            'ScriptEntryArray(I) = Hex(ScriptEntryInt)
+            'Else
+            'Exit For
+            'End If
+            'End If
+
+            'If IsNumeric("&H" + ScriptEntryArray(I)) Then
+            ''If IsHexString(ScriptEntryArray(I)) Then
+            'NumParams = I + 1
+            'Else
+            'Exit For
+            'End If
+
+            ''Remove unwanted spaces
+            'Replace(ScriptEntryArray(I), " ", "")
+
+            'Select Case I
+            'Case 2      'File Offset max. $ffff ffff (dword)
+            'If Len(ScriptEntryArray(I)) < 8 Then
+            'ScriptEntryArray(I) = Left("00000000", 8 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+            'ElseIf (I = 2) And (len(ScriptEntryArray(I)) > 8) Then
+            'ScriptEntryArray(I) = Right(ScriptEntryArray(I), 8)
+            'End If
+            'Case Else   'File Address, File Length max. $ffff
+            'If Len(ScriptEntryArray(I)) < 4 Then
+            'ScriptEntryArray(I) = Left("0000", 4 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+            'ElseIf Len(ScriptEntryArray(I)) > 4 Then
+            'ScriptEntryArray(I) = Right(ScriptEntryArray(I), 4)
+            'End If
+            'End Select
         Next
 
         'Get file variables from script, or get default values if there were none in the script entry
@@ -2558,6 +2644,68 @@ NoDisk:
         AddHSFile = False
 
     End Function
+    Private Function ParameterIsNumeric(I As Integer) As Boolean
+        If DoOnErr Then On Error GoTo Err
+
+        'Remove unwanted spaces
+        ScriptEntryArray(I) = Replace(ScriptEntryArray(I), " ", "")
+
+        'Remove HEX prefix
+        If Left(ScriptEntryArray(I), 1) = "$" Then
+            ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 1)
+        End If
+
+        Select Case LCase(Left(ScriptEntryArray(I), 2))
+            Case "&h", "0x"
+                ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 2)
+        End Select
+
+        'If decimal -> convert it to hex
+        If Left(ScriptEntryArray(I), 1) = "." Then
+            ScriptEntryArray(I) = ScriptEntryArray(I).TrimStart(".")
+            If IsNumeric(ScriptEntryArray(I)) Then
+                Dim ScriptEntryInt As Integer = Convert.ToInt32(ScriptEntryArray(I))
+                ScriptEntryArray(I) = Hex(ScriptEntryInt)
+            Else
+                ParameterIsNumeric = False
+                Exit Function
+            End If
+        End If
+
+        ParameterIsNumeric = IsNumeric("&H" + ScriptEntryArray(I))
+
+        Exit Function
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+
+    End Function
+
+    Private Sub CorrectParameterStringLength(I As Integer)
+        If DoOnErr Then On Error GoTo Err
+
+        Select Case I
+            Case 2      'File Offset max. $ffff ffff (dword)
+                If Len(ScriptEntryArray(I)) < 8 Then
+                    ScriptEntryArray(I) = Left("00000000", 8 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+                ElseIf (I = 2) And (Len(ScriptEntryArray(I)) > 8) Then
+                    ScriptEntryArray(I) = Right(ScriptEntryArray(I), 8)
+                End If
+            Case Else   'File Address, File Length max. $ffff
+                If Len(ScriptEntryArray(I)) < 4 Then
+                    ScriptEntryArray(I) = Left("0000", 4 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+                ElseIf Len(ScriptEntryArray(I)) > 4 Then
+                    ScriptEntryArray(I) = Right(ScriptEntryArray(I), 4)
+                End If
+        End Select
+
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+
+    End Sub
 
     Public Function AddFileToPart() As Boolean
         If DoOnErr Then On Error GoTo Err
@@ -2589,48 +2737,57 @@ NoDisk:
         'Correct file parameter length to 4-8 characters
         For I As Integer = 1 To ScriptEntryArray.Count - 1
 
-            'Remove HEX prefix
-            If Left(ScriptEntryArray(I), 1) = "$" Then
-                ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 1)
-            End If
-            Select Case LCase(Left(ScriptEntryArray(I), 2))
-                Case "&h", "0x"
-                    ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 2)
-            End Select
-
-            If IsHexString(ScriptEntryArray(I)) Then
-                NumParams = I + 1
+            If ParameterIsNumeric(I) Then
+                NumParams += 1
             Else
                 Exit For
             End If
 
-            'Remove unwanted spaces
-            Replace(ScriptEntryArray(I), " ", "")
+            CorrectParameterStringLength(I)
 
-            Select Case I
-                Case 2      'File Offset max. $ffff ffff (dword)
-                    If ScriptEntryArray(I).Length < 8 Then
-                        ScriptEntryArray(I) = Left("00000000", 8 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
-                    ElseIf (I = 2) And (ScriptEntryArray(I).Length > 8) Then
-                        ScriptEntryArray(I) = Right(ScriptEntryArray(I), 8)
-                    End If
-                Case Else   'File Address, File Length max. $ffff
-                    If ScriptEntryArray(I).Length < 4 Then
-                        ScriptEntryArray(I) = Left("0000", 4 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
-                    ElseIf ScriptEntryArray(I).Length > 4 Then
-                        ScriptEntryArray(I) = Right(ScriptEntryArray(I), 4)
-                    End If
-            End Select
+            ''Remove HEX prefix
+            'If Left(ScriptEntryArray(I), 1) = "$" Then
+            'ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 1)
+            'End If
+            'Select Case LCase(Left(ScriptEntryArray(I), 2))
+            'Case "&h", "0x"
+            'ScriptEntryArray(I) = Right(ScriptEntryArray(I), Len(ScriptEntryArray(I)) - 2)
+            'End Select
 
-            'If ScriptEntryArray(I).Length < 4 Then
-            'ScriptEntryArray(I) = Left("0000", 4 - Strings.Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
-            'ElseIf (I = 2) And (ScriptEntryArray(I).Length > 8) Then
-            ''Offset can be up to $ffff ffff (dword)
+            'If Left(ScriptEntryArray(I), 1) = "." Then
+            'ScriptEntryArray(I) = ScriptEntryArray(I).TrimStart(".")
+            'If IsNumeric(ScriptEntryArray(I)) Then
+            'Dim ScriptEntryInt As Integer = Convert.ToInt32(ScriptEntryArray(I))
+            'ScriptEntryArray(I) = Hex(ScriptEntryInt)
+            'Else
+            'Exit For
+            'End If
+            'End If
+
+            'If IsNumeric("&H" + ScriptEntryArray(I)) Then
+            ''If IsHexString(ScriptEntryArray(I)) Then
+            'NumParams = I + 1
+            'Else
+            'Exit For
+            'End If
+
+            ''Remove unwanted spaces
+            'Replace(ScriptEntryArray(I), " ", "")
+
+            'Select Case I
+            'Case 2      'File Offset max. $ffff ffff (dword)
+            'If Len(ScriptEntryArray(I)) < 8 Then
+            'ScriptEntryArray(I) = Left("00000000", 8 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+            'ElseIf (I = 2) And (Len(ScriptEntryArray(I)) > 8) Then
             'ScriptEntryArray(I) = Right(ScriptEntryArray(I), 8)
-            'ElseIf ScriptEntryArray(I).Length > 4 Then
-            ''File Address and File Length max $ffff (word)
+            'End If
+            'Case Else   'File Address, File Length max. $ffff
+            'If Len(ScriptEntryArray(I)) < 4 Then
+            'ScriptEntryArray(I) = Left("0000", 4 - Len(ScriptEntryArray(I))) + ScriptEntryArray(I)
+            'ElseIf Len(ScriptEntryArray(I)) > 4 Then
             'ScriptEntryArray(I) = Right(ScriptEntryArray(I), 4)
             'End If
+            'End Select
         Next
 
         'Get file variables from script, or get default values if there were none in the script entry
@@ -2749,15 +2906,18 @@ NoDisk:
         SplitScriptEntry = True
 
         If InStr(ScriptEntry, vbTab) = 0 Then
-            ScriptEntryType = ScriptEntry
+            ScriptEntryType = Replace(ScriptEntry, " ", "")
+            ScriptEntry = ""
         Else
-            ScriptEntryType = Left(ScriptEntry, InStr(ScriptEntry, vbTab) - 1)
-            ScriptEntry = Right(ScriptEntry, ScriptEntry.Length - InStr(ScriptEntry, vbTab))
+            ScriptEntryType = Replace(Left(ScriptEntry, InStr(ScriptEntry, vbTab) - 1), " ", "")
+            ScriptEntry = Right(ScriptEntry, Len(ScriptEntry) - InStr(ScriptEntry, vbTab))
         End If
 
         LastNonEmpty = -1
 
         ReDim ScriptEntryArray(LastNonEmpty)
+
+        If ScriptEntry = "" Then Exit Function
 
         ScriptEntryArray = Split(ScriptEntry, vbTab)
 
@@ -2822,6 +2982,15 @@ Err:
         ReDim ByteSt(-1)
         ResetBuffer()
 
+
+        D64Name = ""
+        DiskHeader = "" '"demo disk " + Year(Now).ToString
+        DiskID = "" '"sprkl"
+        DemoName = "" '"demo"
+        DemoStart = ""
+        DirArtName = ""
+        LoaderZP = "02"
+
         'Reset Disk image
         NewDisk()
 
@@ -2839,14 +3008,6 @@ Err:
         FirstFileOfDisk = True  'To save Start Address of first file on disk if Demo Start is not specified
 
         '-------------------------------------------------------------
-
-        D64Name = ""
-        DiskHeader = "demo disk " + Year(Now).ToString
-        DiskID = "sprkl"
-        DemoName = "demo"
-        DemoStart = ""
-        DirArt = ""
-        LoaderZP = "02"
 
         BundleCnt = -1        'WILL BE INCREASED TO 0 IN ResetPartVariables
         LoaderBundles = 1
@@ -2962,6 +3123,8 @@ NoDisk:
         If DirArtName Is Nothing Then DirArtName = ""
         If DirArt Is Nothing Then DirArt = ""
 
+        If DirArtName = "" Then Exit Function
+
         If IO.File.Exists(DirArtName) = False Then
             MsgBox("The following DirArt file does not exist: " + vbNewLine + vbNewLine + DirArtName, vbOKOnly + vbExclamation, "DirArt file cannot be found")
             GoTo NoDisk
@@ -2982,8 +3145,6 @@ NoDisk:
                 ConvertTxtToDirArt()
             Case "prg"
                 ConvertBintoDirArt(LCase(DirArtType))
-                'Case "bin"
-                'ConvertBintoDirArt(LCase(DirArtType))
             Case Else
                 ConvertBintoDirArt()
         End Select
@@ -3017,26 +3178,34 @@ NextSector:
                 Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2) = 7      'Sector 7 (sector pointer of boot loader)
 
                 For I As Integer = 0 To 15
-                    Select Case DA(B + I)
-                        Case 0 To 31
-                            NB = DA(B + I) + 64
-                        Case 32 To 63
-                            NB = DA(B + I)
-                        Case 64 To 95
-                            NB = DA(B + I) + 128
-                        Case 96 To 127
-                            NB = DA(B + I) + 64
-                        Case 128 To 159
-                            NB = DA(B + I) - 128
-                        Case 160 To 191
-                            NB = DA(B + I) - 64
-                        Case 192 To 223
-                            NB = DA(B + I) - 64
-                        Case 224 To 254
-                            NB = DA(B + I)
-                    End Select
-                    Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 3 + I) = NB
+                    If B + I < DA.Length Then
+                        Select Case DA(B + I)
+                            Case 0 To 31
+                                NB = DA(B + I) + 64
+                            Case 32 To 63
+                                NB = DA(B + I)
+                            Case 64 To 95
+                                NB = DA(B + I) + 128
+                            Case 96 To 127
+                                NB = DA(B + I) + 64
+                            Case 128 To 159
+                                NB = DA(B + I) - 128
+                            Case 160 To 191
+                                NB = DA(B + I) - 64
+                            Case 192 To 223
+                                NB = DA(B + I) - 64
+                            Case 224 To 254
+                                NB = DA(B + I)
+                        End Select
+                        Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 3 + I) = NB
+                    Else
+                        Exit For
+                    End If
                 Next
+                If (DirTrack = 18) AndAlso (DirSector = 1) AndAlso (DirPos = 2) Then
+                    'Very first dir entry, also add loader block count
+                    Disk(Track(DirTrack) + (DirSector * 256) + DirPos + &H1C) = LoaderBlockCount
+                End If
             Else
                 Exit For
             End If
@@ -3060,7 +3229,6 @@ Err:
         DirTrack = 18
         DirSector = 1
         Dim DirFull As Boolean = False
-
 NextSector:
         Dim DAPtr As Integer = Track(T) + (S * 256)
         For B As Integer = 2 To 255 Step 32
@@ -3076,6 +3244,11 @@ NextSector:
                     For I As Integer = 0 To 15
                         Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 3 + I) = DA(DAPtr + B + 3 + I)
                     Next
+
+                    If (DirTrack = 18) AndAlso (DirSector = 1) AndAlso (DirPos = 2) Then
+                        'Very first dir entry, also add loader block count
+                        Disk(Track(DirTrack) + (DirSector * 256) + DirPos + &H1C) = LoaderBlockCount
+                    End If
                 Else
                     DirFull = True
                     Exit For
@@ -3089,6 +3262,18 @@ NextSector:
             GoTo NextSector
         End If
 
+        If DiskHeader = "" Then
+            For I As Integer = 0 To 15
+                Disk(Track(18) + &H90 + I) = DA(Track(18) + &H90 + I)
+            Next
+        End If
+
+        If DiskID = "" Then
+            For I As Integer = 0 To 4
+                Disk(Track(18) + &HA2 + I) = DA(Track(18) + &HA2 + I)
+            Next
+        End If
+
         Exit Sub
 Err:
         ErrCode = Err.Number
@@ -3099,7 +3284,10 @@ Err:
     Private Sub ConvertTxtToDirArt()
         If DoOnErr Then On Error GoTo Err
 
+        DirArt = IO.File.ReadAllText(DirArtName)
+
         Dim DirEntries() As String = DirArt.Split(vbLf)
+
         DirTrack = 18
         DirSector = 1
         For I As Integer = 0 To DirEntries.Count - 1
@@ -3133,6 +3321,11 @@ Err:
         For I As Integer = 1 To 16
             Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2 + I) = Asc(Mid(UCase(DirEntry), I, 1))
         Next
+
+        If (DirTrack = 18) AndAlso (DirSector = 1) AndAlso (DirPos = 2) Then
+            'Very first dir entry, also add loader block count
+            Disk(Track(DirTrack) + (DirSector * 256) + DirPos + &H1C) = LoaderBlockCount
+        End If
 
         'Reset DirEntry
         DirEntry = ""
@@ -3230,7 +3423,7 @@ Err:
 
         For I As Integer = Len(Path) - 1 To 0 Step -1
             If Right(ScriptPath, 1) <> "\" Then
-                ScriptPath = Left(ScriptPath, ScriptPath.Length - 1)
+                ScriptPath = Left(ScriptPath, Len(ScriptPath) - 1)
             Else
                 Exit For
             End If
@@ -3385,25 +3578,25 @@ Err:
         MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
     End Sub
 
-    Public Function IsHexString(S As String) As Boolean
-        If DoOnErr Then On Error GoTo Err
+    'Public Function IsHexString(S As String) As Boolean
+    'If DoOnErr Then On Error GoTo Err
+    '
+    'IsHexString = True
 
-        IsHexString = True
+    'For I As Integer = 1 To S.Length
+    'Select Case Mid(LCase(S), I, 1)
+    'Case " ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"
+    'Case Else
+    'IsHexString = False
+    'Exit For
+    'End Select
+    'Next
 
-        For I As Integer = 1 To S.Length
-            Select Case Mid(LCase(S), I, 1)
-                Case " ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"
-                Case Else
-                    IsHexString = False
-                    Exit For
-            End Select
-        Next
+    'Exit Function
+    'Err:
+    'ErrCode = Err.Number
+    'MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
 
-        Exit Function
-Err:
-        ErrCode = Err.Number
-        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
-
-    End Function
+    'End Function
 
 End Module
