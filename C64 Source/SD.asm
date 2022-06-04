@@ -1083,11 +1083,6 @@ EndOfDriveCode:
 //--------------------------------------
 
 CodeStart:	sei
-		lda	#$7a
-		sta	$1802		//0  1  1  1  1  0  1  0  Set these 1800 bits to OUT (they read back as 0)
-		lda	#busy
-		sta	$1800		//0  0  0  1  0  0  1  0  CO=0, DO=1, AA=1 This reads as #$43 on $dd00
-					//AI|DN|DN|AA|CO|CI|DO|DI This also signals that the drive code has been installed
 //--------------------------------------
 //		Copy ZP code and tabs
 //--------------------------------------
@@ -1110,6 +1105,35 @@ ZPCopyLoop:	lda	ZPTab,x		//Copy Tables C, E & F and GCR Loop from $0600 to ZP
 		lda	#$d6		//1    1    0    1    0*   1*   1    0	We always start on Track 18, this is the default value
 		sta	$1c00		//SYNC BITR BITR WRTP LED  MOTR STEP STEP	Turn motor on and LED off
 
+		lda	#$7a
+		sta	$1802		//0  1  1  1  1  0  1  0  Set these 1800 bits to OUT (they read back as 0)
+
+		ldx	#busy	
+		ldy	$1801		//Detect buggy Ultimate firmware, original code by Krill
+		lda	$1803
+		pha
+		lda	#$ff
+		sta	$1803		//set all port pins as outputs (default value is #$66 on 1570/71 and #$ff on 1541)
+		arr	#$7f
+		bcs	IsUltimate	//C should be 0 (bit 7 after AND, before ROR goes to C, not bit 0)
+		lda	#$a4
+		sta	$1801
+		cmp	$1801
+		bne	IsUltimate
+		anc	#$80		//result should be A=#$80 & C=1
+		beq	IsUltimate
+		bcs	NotUltimate
+IsUltimate:	lda	#ready		//ready=#$08 ($dd00: #$8x), busy=#$10 ($dd00: #$4x)
+		sta	$1800
+		bit	$1800		//wait for drive busy signal ($dd00: #$f8 (buslock) -> $1800: #$0c -> #$8d)
+		bpl	*-3
+NotUltimate:	stx	$1800		//0  0  0  1  0  0  1  0  CO=0, DO=1, AA=1 This reads as #$43 on $dd00
+					//AI|DN|DN|AA|CO|CI|DO|DI This also signals that the drive code has been installed
+		
+		pla			//restore data directions and Data Port A value
+		sta	$1803
+		sty	$1801
+
 		jmp	Fetch		//Fetching block 3 (track 18, sector 16) WList+$10=#$ff, WantedCtr=1
 					//A, X, Y can be anything here
 //--------------------------------------
@@ -1128,7 +1152,6 @@ CCLoop:		pla			//=lda $0100,y
 		tya			//A=#$00 - Bundle #$00 to be loaded
 		jmp	CheckDir	//Load 1st Dir Sector and then first Bundle, Y=A=#$00
 CD:
-
 }
 
 //-----------------------------------------------------------------

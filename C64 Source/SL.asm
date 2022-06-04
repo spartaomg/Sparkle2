@@ -323,9 +323,43 @@ SkipNTSC:
 		lda	#>Sparkle_IRQ_RTI
 		sta	$fffb
 
-		lda	#busy			//=#$f8
 		bit	$dd00			//Wait for "drive busy" signal (DI=0 CI=1 dd00=#$4b)
+		bpl	DriveReady
+		bvs	*-5
+		
+		lda	$d020
+		pha
+		lda	$d021
+		pha
+		lda	#$02
+		sta	$d020
+		sta	$d021
+		lda	$d2			//Find active screen
+		and	#$fc
+		ora	#$03
+		sta	ScrnAddress+2	
+		ldx	#<Msg1541UEnd-Msg1541U-1	
+Msg1541ULoop:	lda	Msg1541U,x	
+ScrnAddress:	sta	$0798,x	
+		lda	#$01
+		sta	$db98,x
+		dex	
+		bpl	Msg1541ULoop	
+		
+		ldx	#150
+WaitLoop:	bit	$d011
+		bpl	*-3
+		bit	$d011
 		bmi	*-3
+		dex
+		bne	WaitLoop
+		
+		pla
+		sta	$d021
+		pla
+		sta	$d020
+		
+DriveReady:	lda	#busy			//=#$f8
 		sta	$dd00			//lock bus
 
 		//First loader call, returns with I=1
@@ -351,6 +385,12 @@ NDW:
 .byte	$20,$4e,$52,$55,$54,$20,$45,$53,$41,$45,$4c,$50
 //.text	"niaga daol dna no evird ruoy nrut esaelp"
 NDWEnd:
+
+Msg1541U:
+       //0123456789012345678901234567890123456789
+.text	" ultimate with buggy firmware detected. "
+.text	"             please update!"
+Msg1541UEnd:
 
 //-----------------------------------------------------------------------------------
 
@@ -746,8 +786,8 @@ EndLoader:
 
 .var myFile = createFile("Sparkle.inc")
 .eval myFile.writeln("//--------------------------------")
-.eval myFile.writeln("//	Sparkle loader labels	")
-.eval myFile.writeln("//	KickAss format		")
+.eval myFile.writeln("//	Sparkle loader constants")
+.eval myFile.writeln("//	KickAss format")
 .eval myFile.writeln("//--------------------------------")
 .eval myFile.writeln("#importonce")
 .eval myFile.writeln("")
