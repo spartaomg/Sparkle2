@@ -1107,8 +1107,10 @@ ZPCopyLoop:	lda	ZPTab,x		//Copy Tables C, E & F and GCR Loop from $0600 to ZP
 
 		lda	#$7a
 		sta	$1802		//0  1  1  1  1  0  1  0  Set these 1800 bits to OUT (they read back as 0)
-
-		ldx	#busy	
+		lda	#busy
+		sta	$1800		//0  0  0  1  0  0  1  0  CO=0, DO=1, AA=1 This reads as #$43 on $dd00
+					//AI|DN|DN|AA|CO|CI|DO|DI This also signals that the drive code has been installed
+/*		ldx	#busy	
 		ldy	$1801		//Detect buggy Ultimate firmware, original code by Krill
 		lda	$1803
 		pha
@@ -1133,7 +1135,7 @@ NotUltimate:	stx	$1800		//0  0  0  1  0  0  1  0  CO=0, DO=1, AA=1 This reads as
 		pla			//restore data directions and Data Port A value
 		sta	$1803
 		sty	$1801
-
+*/
 		jmp	Fetch		//Fetching block 3 (track 18, sector 16) WList+$10=#$ff, WantedCtr=1
 					//A, X, Y can be anything here
 //--------------------------------------

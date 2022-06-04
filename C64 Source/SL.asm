@@ -322,7 +322,12 @@ SkipNTSC:
 		sta	$fffa
 		lda	#>Sparkle_IRQ_RTI
 		sta	$fffb
-
+		
+		lda	#busy			//=#$f8
+		bit	$dd00			//Wait for "drive busy" signal (DI=0 CI=1 dd00=#$4b)
+		bmi	*-3
+		sta	$dd00			//lock bus
+/*		
 		bit	$dd00			//Wait for "drive busy" signal (DI=0 CI=1 dd00=#$4b)
 		bpl	DriveReady
 		bvs	*-5
@@ -358,9 +363,10 @@ WaitLoop:	bit	$d011
 		sta	$d021
 		pla
 		sta	$d020
-		
-DriveReady:	lda	#busy			//=#$f8
+DriveReady:	
+		lda	#busy			//=#$f8
 		sta	$dd00			//lock bus
+*/		
 
 		//First loader call, returns with I=1
 
@@ -385,13 +391,13 @@ NDW:
 .byte	$20,$4e,$52,$55,$54,$20,$45,$53,$41,$45,$4c,$50
 //.text	"niaga daol dna no evird ruoy nrut esaelp"
 NDWEnd:
-
+/*
 Msg1541U:
        //0123456789012345678901234567890123456789
 .text	" ultimate with buggy firmware detected. "
 .text	"             please update!"
 Msg1541UEnd:
-
+*/
 //-----------------------------------------------------------------------------------
 
 Cmd:
