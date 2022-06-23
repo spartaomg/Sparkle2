@@ -3,7 +3,7 @@
 //	SPARKLE
 //	Inspired by Lft, Bitbreaker, and Krill
 //	C64 Code
-//	Tested on 1541, 1541-II, 1571, the 1541 Ultimate series, and Oceanic drvies
+//	Tested on 1541, 1541-II, 1571, the 1541 Ultimate series, and Oceanic drives
 //----------------------------------------------------------------------
 //	Version history
 //
@@ -173,18 +173,12 @@
 .const	NTSC_DD00_1	=$dd00-ready
 .const	NTSC_DD00_2	=$dd00-NTSC_CLRATN
 
-//C64
-//Write	 0  0  X  X  X  0  0  0
-//Read	 X  X  0  0  0  1  X  X
-//dd00	80 40 20 10 08 04 02 01		Value after C64 reset:   #$97 = 10010111 (DI=1 CI=0 DO=0 CO=1 AO=0)
-//	DI|CI|DO|CO|AO|RS|VICII		Value after drive reset: #$c3	= 11000011 (DI=1 CI=1 DO=0 CO=0 AO=0)
-
-//Drive
-//1800	80 40 20 10 08 04 02 01		Value after C64 reset:   #$04 = 00000100 (D0=0 CO=0 DI=0 CI=1 AI=0 AA=0)
-//	AI|DN|DN|AA|CO|CI|DO|DI		Value after drive reset: #$00 = 00000000 (D0=0 CO=0 DI=0 CI=0 AI=0 AA=0)
+//------------------------------
 
 *=$0801	"Basic"				//Prg starts @ $0810
 BasicUpstart(Start)
+
+//------------------------------
 
 *=$0810	"Installer"
 
@@ -327,46 +321,6 @@ SkipNTSC:
 		bit	$dd00			//Wait for "drive busy" signal (DI=0 CI=1 dd00=#$4b)
 		bmi	*-3
 		sta	$dd00			//lock bus
-/*		
-		bit	$dd00			//Wait for "drive busy" signal (DI=0 CI=1 dd00=#$4b)
-		bpl	DriveReady
-		bvs	*-5
-		
-		lda	$d020
-		pha
-		lda	$d021
-		pha
-		lda	#$02
-		sta	$d020
-		sta	$d021
-		lda	$d2			//Find active screen
-		and	#$fc
-		ora	#$03
-		sta	ScrnAddress+2	
-		ldx	#<Msg1541UEnd-Msg1541U-1	
-Msg1541ULoop:	lda	Msg1541U,x	
-ScrnAddress:	sta	$0798,x	
-		lda	#$01
-		sta	$db98,x
-		dex	
-		bpl	Msg1541ULoop	
-		
-		ldx	#150
-WaitLoop:	bit	$d011
-		bpl	*-3
-		bit	$d011
-		bmi	*-3
-		dex
-		bne	WaitLoop
-		
-		pla
-		sta	$d021
-		pla
-		sta	$d020
-DriveReady:	
-		lda	#busy			//=#$f8
-		sta	$dd00			//lock bus
-*/		
 
 		//First loader call, returns with I=1
 
@@ -391,17 +345,11 @@ NDW:
 .byte	$20,$4e,$52,$55,$54,$20,$45,$53,$41,$45,$4c,$50
 //.text	"niaga daol dna no evird ruoy nrut esaelp"
 NDWEnd:
-/*
-Msg1541U:
-       //0123456789012345678901234567890123456789
-.text	" ultimate with buggy firmware detected. "
-.text	"             please update!"
-Msg1541UEnd:
-*/
+
 //-----------------------------------------------------------------------------------
 
 Cmd:
-//Load all 5 drive code blocks into buffers 0-4 at $300-$7ff on drive in one command!
+//Load all 5 drive code blocks into buffers 0-4 at $300-$7ff on drive in one command
 
 .byte	'M','-','E',$05,$02		//-0204	Command buffer: $0200-$0228
 

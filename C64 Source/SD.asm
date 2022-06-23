@@ -238,7 +238,7 @@
 .label	BPtr		=$23	//Byte Pointer within block for random access
 .label	StepDir		=$28	//Stepping  Direction
 .label	ScndBuff	=$29	//#$01 if last block of a Bundle is fetched, otherwise $00
-.label	WList		=$3e	//Wanted Sector list ($3e-$52) (00=unfetched, [-]=wanted, [+]=fetched)
+.label	WList		=$3e	//Wanted Sector list ($3e-$52) ([0]=unfetched, [-]=wanted, [+]=fetched)
 .label	NewBundle	=$54	//New Bundle Flag, #$00->#$01, stop motor if #$01
 .label	DirSector	=$56	//Initial value=#$c5 (<>#$10 or #$11)
 .label	NBC		=$5c	//New Block Count temporary storage
@@ -258,10 +258,10 @@
 .label	ZPProdID	=$78
 
 .label	ZP7f		=$30	//BitShufTab
-.label	ZP3e		=$32	//TabC
-.label	ZP12		=$3b	//TabF
-.label	ZP07		=$57	//TabF
-.label	ZP00		=$6b	//TabF
+.label	ZP3e		=$32	//TabC value
+.label	ZP12		=$3b	//TabF value
+.label	ZP07		=$57	//TabF value
+.label	ZP00		=$6b	//TabF value
 .label	ZP01ff		=$58	//$58/$59 = $01ff
 .label	ZP0101		=$59	//$59/$5a = $0101
 .label	ZP0200		=$7a	//$7a/$7b = $0200
@@ -463,8 +463,9 @@ Sync:		bit	$1c00		//fd-ff	Wait for sync mark
 		cmp	$1c01		//08-0a|05	*Read1 = AAAAABBB  ->	01010|010(01) for Header
 		clv			//0b   |07				01010|101(11) for Data
 		beq	SkipNOPs	//0c 0d|10
-ReFetch:	jmp	(FetchJmp)	//0e-10|..	Wrong block type, refetch everything, must be modified from SD!!!
-
+ReFetch:	jmp	(FetchJmp)	//0e-10|..	Wrong block type, refetch everything, vector is modified from SS!!!
+		//bne	Sync		//0e 0f|..	
+		//nop			//10   |..
 		.byte	$fa		//11   |..	TabG (NOP)
 		nop			//12   |..
 		.byte	$ea		//13   |..	TabG (NOP) 
@@ -472,6 +473,7 @@ SkipNOPs:	bvc	*		//14 15|00-01
 		lda	$1c01		//16-18|05*	*Read2 = BBCCCCCCD ->	01|CCCCC|D for Header
 AXS:		axs	#$00		//19 1a|07				11|CCCCC|D for Data
 		bne	ReFetch		//1b 1c|09	X = BB000000 - X1000000, if X = 0 then proper block type is fetched
+		//bne	FetchSHeader	//1b 1c|09
 		ldx	#$3e		//1d 1e|11
 		sax.z	tC+1		//1f 20|14
 		.byte	$7a		//21   |16	TabG (NOP)
@@ -1097,45 +1099,17 @@ ZPCopyLoop:	lda	ZPTab,x		//Copy Tables C, E & F and GCR Loop from $0600 to ZP
 
 		lda	#$ee		//Read mode, Set Overflow enabled
 		sta	$1c0c		//could use JSR $fe00 here...
-		
-		//lda	#$01		//Enable latching Port A, disable latching Port B
-		//sta	$1c0b		//Is this really needed? Default value is #$41
-					
-					//Turn motor and LED on
+
+					//Turn motor on and LED off
 		lda	#$d6		//1    1    0    1    0*   1*   1    0	We always start on Track 18, this is the default value
-		sta	$1c00		//SYNC BITR BITR WRTP LED  MOTR STEP STEP	Turn motor on and LED off
+		sta	$1c00		//SYNC BITR BITR WRTP LED  MOTR STEP STEP
 
 		lda	#$7a
 		sta	$1802		//0  1  1  1  1  0  1  0  Set these 1800 bits to OUT (they read back as 0)
 		lda	#busy
 		sta	$1800		//0  0  0  1  0  0  1  0  CO=0, DO=1, AA=1 This reads as #$43 on $dd00
 					//AI|DN|DN|AA|CO|CI|DO|DI This also signals that the drive code has been installed
-/*		ldx	#busy	
-		ldy	$1801		//Detect buggy Ultimate firmware, original code by Krill
-		lda	$1803
-		pha
-		lda	#$ff
-		sta	$1803		//set all port pins as outputs (default value is #$66 on 1570/71 and #$ff on 1541)
-		arr	#$7f
-		bcs	IsUltimate	//C should be 0 (bit 7 after AND, before ROR goes to C, not bit 0)
-		lda	#$a4
-		sta	$1801
-		cmp	$1801
-		bne	IsUltimate
-		anc	#$80		//result should be A=#$80 & C=1
-		beq	IsUltimate
-		bcs	NotUltimate
-IsUltimate:	lda	#ready		//ready=#$08 ($dd00: #$8x), busy=#$10 ($dd00: #$4x)
-		sta	$1800
-		bit	$1800		//wait for drive busy signal ($dd00: #$f8 (buslock) -> $1800: #$0c -> #$8d)
-		bpl	*-3
-NotUltimate:	stx	$1800		//0  0  0  1  0  0  1  0  CO=0, DO=1, AA=1 This reads as #$43 on $dd00
-					//AI|DN|DN|AA|CO|CI|DO|DI This also signals that the drive code has been installed
-		
-		pla			//restore data directions and Data Port A value
-		sta	$1803
-		sty	$1801
-*/
+
 		jmp	Fetch		//Fetching block 3 (track 18, sector 16) WList+$10=#$ff, WantedCtr=1
 					//A, X, Y can be anything here
 //--------------------------------------
@@ -1185,9 +1159,10 @@ GCRLoop:
 //--------------------------------------
 //	124-CYCLE GCR LOOP ON ZP
 //--------------------------------------
-//----------------------------------------------------------------------------------------------
-Mod2:		
-		//bne	Mod2b		//					--	85
+
+//------------------------------------------------------------------------------------------------------
+
+Mod2:		//bne	Mod2b		//					--	85
 Mod2b:		cmp	($08,x)		//$08 is a TabF value			--	91	7c 7d
 		nop			//					--	93	7e
 
@@ -1197,12 +1172,13 @@ Mod2a:		nop			//					87	95	7f
 		alr	#$fc		//					91	99	81 82
 		bne	LoopMod2+2	//					94	102	83 84
 		//tax			//					96	104	
-//----------------------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------------------------------
 
 GCRLoop0_2:	eor	$0102,x		//First pass: X=#$00	--	36	36	36	85-87
 		eor	$0103,x		//			--	40	40	40	88-8a
 
-//----------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------
 
 GCRLoop3:	sta.z	PartialCSum+1	//			35	43	43	43	8b 8c
 
@@ -1251,7 +1227,7 @@ tH:		eor	TabH,x		//10001011,000HHHHH	108	116	126	134	bf-c1
 
 					//Total length (cycles):124	132	142	150
 
-//----------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------
 
 		bvc	*		//			00-01				cc cd
 
@@ -1270,7 +1246,7 @@ tB:		eor	TabB,x		//-00000BBB,0BB00000	24				db-de
 		tsx			//SP = $00/$fc ...	29				e0
 GCREntry:	bne	GCRLoop0_2	//We start on Track 18	32				e1 e2
 
-//----------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------
 
 		eor	CSum+1		//			35	35	35	35	e3 e4
 		tax			//Store checksum in X	37	37	37	37	e5
@@ -1282,11 +1258,11 @@ GCREntry:	bne	GCRLoop0_2	//We start on Track 18	32				e1 e2
 		tay			//Y=DDDDD000		05				ee
 		txa			//Return checksum to A	07				ef
 		eor	TabD,y		//Checksum (D)/ID1 (H)	11				f0-f2
-		nop	$1c01		//Y=EFFFFFGG		15 (no longer needed)		f3-f5
-		ldx	tC+1		//X=00CCCCC0		18				f6 f7
+		nop	$1c01		//Y=EFFFFFGG		15 (no longer needed...)	f3-f5
+		ldx	tC+1		//X=00CCCCC0		18 (...left here for timing)	f6 f7
 		eor	TabC,x		//(ZP)			22				f8 f9
 		eor	$0102		//			26				fa-fc
 ModJmp:		jmp 	(HeaderJmp)	//Calc final checksum	31				fd-ff
 
-//----------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------
 }
