@@ -1545,7 +1545,7 @@ Done:
 
         Select Case FileType
             Case 1  'DirArt file
-                OpenFile("Open DirArt File", "All supoorted file formats (*.txt; *.d64; *.prg; *.bin; *.c)|*.txt; *.d64; *.prg; *.bin; *.c|Text Files (*.txt)|*.txt|D64 Files (*.d64)|*.d64|PRG Files (*.prg)|*.prg|Binary Files (*.bin)|*.bin|PETSCII Editor C array files (*.c)|*.c|All Files (*.*)|*.*", P)
+                OpenFile("Open DirArt File", "All supoorted file formats (*.txt; *.d64; *.prg; *.bin; *.c)|*.txt; *.d64; *.prg; *.bin; *.c|Text Files (*.txt)|*.txt|D64 Files (*.d64)|*.d64|PRG Files (*.prg)|*.prg|Binary Files (*.bin)|*.bin|Marq's PETSCII Editor C array files (*.c)|*.c|All Files (*.*)|*.*", P)
             Case 2  'Prg File
                 OpenFile("Open C64 Program File", "All Files (*.*)|*.*|PRG, SID, and Binary Files (*.prg; *.sid; *.bin)|*.prg; *.sid; *.bin|PRG Files (*.prg)|*.prg|Binary Files (*.bin)|*.bin|SID Files (*.sid)|*.sid", P)
             Case 3  'D64 file
