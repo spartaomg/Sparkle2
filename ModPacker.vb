@@ -165,13 +165,11 @@ Err:
                     'Check if first byte matches at offset, if not go to next offset
                     If Prg(Pos) = Prg(Pos + O) Then
                         For L As Integer = 1 To MaxLL                            'L=1 to 254 or less
-                            If L = MaxLL Then
-                                GoTo Match
-                            ElseIf Prg(Pos - L) <> Prg(Pos + O - L) Then
+                            If (L = MaxLL) OrElse (Prg(Pos - L) <> Prg(Pos + O - L)) Then
                                 'Find the first position where there is NO match -> this will give us the absolute length of the match
                                 'L=MatchLength + 1 here
                                 If L >= 2 Then
-Match:                              If (O <= MaxShortOffset) AndAlso (SL(Pos) < MaxSL) AndAlso (SL(Pos) < L) Then
+                                    If (O <= MaxShortOffset) AndAlso (SL(Pos) < MaxSL) AndAlso (SL(Pos) < L) Then
                                         SL(Pos) = Math.Min(MaxSL, L)  'If(L > MaxShortLen, MaxShortLen, L)   'Short matches cannot be longer than 4 bytes
                                         SO(Pos) = O       'Keep Offset 1-based
                                     End If
@@ -560,7 +558,9 @@ Err:
                 Buffer(AdHiPos) = 0                     'IO Flag to previous AdHi Position
                 BytePtr -= 1                            'Update BytePtr to next empty position in buffer
                 If NibblePtr > 0 Then NibblePtr -= 1    'Only update Nibble Pointer if it does not point to Byte(0)
-                If BitPtr > 0 Then BitPtr -= 1          'BitPtr also needs to be moved BUT ONLY IF > 0 - BUG reported by Raistlin/G*P
+                If (BitPtr > 0) AndAlso (BitPtr < AdHiPos) Then BitPtr -= 1
+                'Sparkle64k BUG - Don't move BitPtr if it's in its startup position (outside file address bytes)
+                'BitPtr also needs to be moved BUT ONLY IF > 0 - BUG reported by Raistlin/G*P
                 AdHiPos -= 1                            'Update AdHi Position in Buffer
                 BlockUnderIO = 1                        'Set BlockUnderIO Flag
             End If
