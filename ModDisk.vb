@@ -4,8 +4,8 @@
 
     Public ReadOnly UserDeskTop As String = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
     Public ReadOnly UserFolder As String = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-    Public ReadOnly Ascii2Petscii As Byte() = My.Resources.Ascii2DisplayCode
-
+    Public ReadOnly Ascii2DirArt As Byte() = My.Resources.Ascii2DirArt
+    Public ReadOnly Petscii2DirArt As Byte() = My.Resources.Petscii2DirArt
     'Public DiskLoop As Integer = 0
 
     Public Drive() As Byte
@@ -400,7 +400,7 @@ Err:
         '-------------------------------------------
 
         For Cnt = 1 To Len(DiskHeader)
-            B = Ascii2Petscii(Asc(Mid(DiskHeader, Cnt, 1)))
+            B = Ascii2DirArt(Asc(Mid(DiskHeader, Cnt, 1)))
             'If B > &H5F Then B -= &H20
             Disk(CP + &H8F + Cnt) = B
         Next
@@ -408,7 +408,7 @@ Err:
         '-------------------------------------------
 
         For Cnt = 1 To Len(DiskID)                  'SPRKL
-            B = Ascii2Petscii(Asc(Mid(DiskID, Cnt, 1)))
+            B = Ascii2DirArt(Asc(Mid(DiskID, Cnt, 1)))
             'If B > &H5F Then B -= &H20
             Disk(CP + &HA1 + Cnt) = B
         Next
@@ -1245,7 +1245,7 @@ SeekNewEntry:
                 Next
 
                 For W = 0 To Len(DN) - 1
-                    A = Ascii2Petscii(Asc(Mid(DN, W + 1, 1)))
+                    A = Ascii2DirArt(Asc(Mid(DN, W + 1, 1)))
                     'If A > &H5F Then A -= &H20
                     Disk(Cnt + B + 3 + W) = A
                 Next
@@ -1434,7 +1434,7 @@ Err:
         '-------------------------------------------
 
         For Cnt = 1 To Len(DiskHeaderA(DiskIndex))
-            B = Ascii2Petscii(Asc(Mid(DiskHeaderA(DiskIndex), Cnt, 1)))
+            B = Ascii2DirArt(Asc(Mid(DiskHeaderA(DiskIndex), Cnt, 1)))
             'If B > &H5F Then B -= &H20
             Disk(CP + &H8F + Cnt) = B
         Next
@@ -1443,13 +1443,13 @@ Err:
 
         If DiskIDA(DiskIndex) <> "" Then
             For Cnt = 1 To Len(DiskIDA(DiskIndex))
-                B = Ascii2Petscii(Asc(Mid(DiskIDA(DiskIndex), Cnt, 1)))
+                B = Ascii2DirArt(Asc(Mid(DiskIDA(DiskIndex), Cnt, 1)))
                 'If B > &H5F Then B -= &H20
                 Disk(CP + &HA1 + Cnt) = B
             Next
         Else
             For Cnt = 1 To Len(DiskID)
-                B = Ascii2Petscii(Asc(Mid(DiskID, Cnt, 1)))
+                B = Ascii2DirArt(Asc(Mid(DiskID, Cnt, 1)))
                 'If B > &H5F Then B -= &H20
                 Disk(CP + &HA1 + Cnt) = B
             Next
@@ -1945,7 +1945,7 @@ Err:
             Next
         Else
             For Cnt As Integer = 1 To Len(DiskHeader)
-                B = Ascii2Petscii(Asc(Mid(DiskHeader, Cnt, 1)))
+                B = Ascii2DirArt(Asc(Mid(DiskHeader, Cnt, 1)))
                 'If B > &H5F Then B -= &H20
                 Disk(CP + &H8F + Cnt) = B
             Next
@@ -1961,7 +1961,7 @@ Err:
             Next
         Else
             For Cnt As Integer = 1 To Len(DiskID)                  'Overwrites Disk ID and DOS type (5 characters max.)
-                B = Ascii2Petscii(Asc(Mid(DiskID, Cnt, 1)))
+                B = Ascii2DirArt(Asc(Mid(DiskID, Cnt, 1)))
                 'If B > &H5F Then B -= &H20
                 Disk(CP + &HA1 + Cnt) = B
             Next
@@ -3139,14 +3139,16 @@ NoDisk:
         End If
 
         Select Case LCase(DirArtType)
-            Case "d64"
+            Case "d64"                                  'Import DirArt from another D64
                 ConvertD64ToDirArt()
             Case "txt"
-                ConvertTxtToDirArt()
+                ConvertTxtToDirArt()                    'Import a simple text file, 16 characters per text line
             Case "prg"
-                ConvertBintoDirArt(LCase(DirArtType))
+                ConvertBintoDirArt(LCase(DirArtType))   'Import from a PRG file, first 16 bytes from each 40
+            Case "c"
+                ConvertCArrayToDirArt()                      'Convert a PETSCII Editor C array file to DirArt
             Case Else
-                ConvertBintoDirArt()
+                ConvertBintoDirArt()                    'Import from any other file, first 16 bytes of each 40
         End Select
 
         Exit Function
@@ -3158,6 +3160,85 @@ NoDisk:
 
     End Function
 
+    Private Sub ConvertCArrayToDirArt()
+        If DoOnErr Then On Error GoTo Err
+
+        Dim DA As String = IO.File.ReadAllText(DirArtName)
+        Dim BinFile() As Byte
+
+        Dim First, Last As Integer
+        First = InStr(DA, "{")
+        Last = InStr(DA, "}")
+
+        Dim CharPos As Integer = 0
+        Dim CharRow As Integer = 0
+        Dim CharCode As Byte
+        Dim NewChar As Boolean = True
+
+        ReDim BinFile(((CharRow + 1) * 16) - 1)
+
+        For I As Integer = First To Last
+            Select Case Mid(DA, I + 1, 1)
+                Case 0 To 9
+                    CharCode = (CharCode * 10) + (Asc(Mid(DA, I + 1, 1)) - &H30)
+                    NewChar = False
+                Case Else
+                    If NewChar = False Then
+
+                        If BinFile.Length < (CharRow + 1) * 16 Then
+                            ReDim Preserve BinFile(((CharRow + 1) * 16) - 1)
+                        End If
+
+                        If CharCode = 96 Then CharCode = 32
+
+                        BinFile((CharRow * 16) + CharPos) = CharCode
+                        CharPos += 1
+                        If CharPos = 16 Then
+                            CharRow += 1
+                            CharPos = 0
+                        End If
+                        NewChar = True
+                        CharCode = 0
+                    End If
+            End Select
+        Next
+
+        DirTrack = 18
+        DirSector = 1
+
+NextSector:
+        For B As Integer = 0 To BinFile.Length - 1 Step 16
+
+            FindNextDirPos()
+
+            If DirPos <> 0 Then
+                Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 0) = &H82   '"PRG" -  all dir entries will point at first file in dir
+                Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 1) = 18     'Track 18 (track pointer of boot loader)
+                Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2) = 7      'Sector 7 (sector pointer of boot loader)
+
+                For I As Integer = 0 To 15
+                    If B + I < BinFile.Length Then
+                        Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 3 + I) = Petscii2DirArt(BinFile(B + I))
+                    Else
+                        Exit For
+                    End If
+                Next
+                If (DirTrack = 18) AndAlso (DirSector = 1) AndAlso (DirPos = 2) Then
+                    'Very first dir entry, also add loader block count
+                    Disk(Track(DirTrack) + (DirSector * 256) + DirPos + &H1C) = LoaderBlockCount
+                End If
+            Else
+                Exit For
+            End If
+        Next
+
+
+        Exit Sub
+Err:
+        ErrCode = Err.Number
+        MsgBox(ErrorToString(), vbOKOnly + vbExclamation, Reflection.MethodBase.GetCurrentMethod.Name + " Error")
+    End Sub
+
     Private Sub ConvertBintoDirArt(Optional DirArtType As String = "bin")
         If DoOnErr Then On Error GoTo Err
 
@@ -3165,7 +3246,7 @@ NoDisk:
 
         DirTrack = 18
         DirSector = 1
-        Dim NB As Byte = 0
+        'Dim NB As Byte = 0
         Dim DAPtr As Integer = If(DirArtType = "prg", 2, 0)
 NextSector:
         For B As Integer = DAPtr To DA.Length - 1 Step 40
@@ -3179,25 +3260,25 @@ NextSector:
 
                 For I As Integer = 0 To 15
                     If B + I < DA.Length Then
-                        Select Case DA(B + I)
-                            Case 0 To 31
-                                NB = DA(B + I) + 64
-                            Case 32 To 63
-                                NB = DA(B + I)
-                            Case 64 To 95
-                                NB = DA(B + I) + 128
-                            Case 96 To 127
-                                NB = DA(B + I) + 64
-                            Case 128 To 159
-                                NB = DA(B + I) - 128
-                            Case 160 To 191
-                                NB = DA(B + I) - 64
-                            Case 192 To 223
-                                NB = DA(B + I) - 64
-                            Case 224 To 254
-                                NB = DA(B + I)
-                        End Select
-                        Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 3 + I) = NB
+                        'Select Case DA(B + I)
+                        'Case 0 To 31
+                        'NB = DA(B + I) + 64
+                        'Case 32 To 63
+                        'NB = DA(B + I)
+                        'Case 64 To 95
+                        'NB = DA(B + I) + 128
+                        'Case 96 To 127
+                        'NB = DA(B + I) + 64
+                        'Case 128 To 159
+                        'NB = DA(B + I) - 128
+                        'Case 160 To 191
+                        'NB = DA(B + I) - 64
+                        'Case 192 To 223
+                        'NB = DA(B + I) - 64
+                        'Case 224 To 254
+                        'NB = DA(B + I)
+                        'End Select
+                        Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 3 + I) = Petscii2DirArt(DA(B + I))
                     Else
                         Exit For
                     End If
@@ -3319,7 +3400,7 @@ Err:
 
         'Copy only the first 16 characters of the edited DirEntry to the Disk Directory
         For I As Integer = 1 To 16
-            Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2 + I) = Asc(Mid(UCase(DirEntry), I, 1))
+            Disk(Track(DirTrack) + (DirSector * 256) + DirPos + 2 + I) = Ascii2DirArt(Asc(Mid(UCase(DirEntry), I, 1)))
         Next
 
         If (DirTrack = 18) AndAlso (DirSector = 1) AndAlso (DirPos = 2) Then

@@ -63,9 +63,9 @@ Namespace My.Resources
         '''<summary>
         '''  Looks up a localized resource of type System.Byte[].
         '''</summary>
-        Friend ReadOnly Property Ascii2DisplayCode() As Byte()
+        Friend ReadOnly Property Ascii2DirArt() As Byte()
             Get
-                Dim obj As Object = ResourceManager.GetObject("Ascii2DisplayCode", resourceCulture)
+                Dim obj As Object = ResourceManager.GetObject("Ascii2DirArt", resourceCulture)
                 Return CType(obj,Byte())
             End Get
         End Property
@@ -77,6 +77,16 @@ Namespace My.Resources
             Get
                 Dim obj As Object = ResourceManager.GetObject("PETSCII_BW", resourceCulture)
                 Return CType(obj,System.Drawing.Bitmap)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized resource of type System.Byte[].
+        '''</summary>
+        Friend ReadOnly Property Petscii2DirArt() As Byte()
+            Get
+                Dim obj As Object = ResourceManager.GetObject("Petscii2DirArt", resourceCulture)
+                Return CType(obj,Byte())
             End Get
         End Property
         

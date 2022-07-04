@@ -192,9 +192,8 @@
       <LastGenOutput>Settings.Designer.vb</LastGenOutput>
     </None>
     <None Include="App.config" />
-    <None Include="Resources\Ascii2DisplayCode.bin">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <None Include="Resources\Ascii2DirArt.bin" />
+    <None Include="Resources\Petscii2DirArt.bin" />
     <None Include="Resources\SD.prg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
