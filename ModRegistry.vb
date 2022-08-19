@@ -1,7 +1,5 @@
 ﻿Imports System.IO
 Imports Microsoft.Win32
-Imports System.Text
-Imports System.Runtime.CompilerServices
 
 Friend Module ModRegistry
 
@@ -74,7 +72,7 @@ Friend Module ModRegistry
     End Sub
 
     Public Sub UpdatePath()
-        If DoOnErr  then On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         CheckDefaultFolder()
 
@@ -106,7 +104,7 @@ Err:
     End Sub
 
     Public Sub AssociateSLS()
-        If DoOnErr  then On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If My.Computer.Registry.ClassesRoot.OpenSubKey("Sparkle Loader Script\shell\open\command", True) Is Nothing Then
             If MsgBox("Do you want to associate the .sls file extension with Sparkle?", vbYesNo + vbQuestion, "Sparkle Admin Mode") = vbYes Then
@@ -148,7 +146,7 @@ Err:
     End Sub
 
     Public Sub DeleteAssociation()
-        If DoOnErr  then On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         If MsgBox("Do you want to delete the .sls file association with Sparkle?", vbYesNo + vbQuestion, "Sparkle Admin Mode") = vbYes Then
 
@@ -184,7 +182,7 @@ Err:
     End Sub
 
     Public Function DotNetVersion() As Boolean
-        If DoOnErr  then On Error GoTo Err
+        If DoOnErr Then On Error GoTo Err
 
         Const SubKey As String = "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\"
 
@@ -203,15 +201,10 @@ Err:
 
     End Function
 
-    'Checking the version using >= will enable forward compatibility.
     Private Function CheckFor48PlusVersion(releaseKey As Integer) As Boolean
         If DoOnErr Then On Error GoTo Err
 
-        If releaseKey >= DotNet48ReleaseKey Then    'Minimum releaseKey for .Net 4.8: 528040 (requires at least Windows 7 SP1)
-            CheckFor48PlusVersion = True
-        Else
-            CheckFor48PlusVersion = False
-        End If
+        CheckFor48PlusVersion = releaseKey >= DotNet48ReleaseKey
 
         Exit Function
 Err:

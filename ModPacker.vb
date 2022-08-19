@@ -557,10 +557,13 @@ Err:
                 Next
                 Buffer(AdHiPos) = 0                     'IO Flag to previous AdHi Position
                 BytePtr -= 1                            'Update BytePtr to next empty position in buffer
-                If NibblePtr > 0 Then NibblePtr -= 1    'Only update Nibble Pointer if it does not point to Byte(0)
-                If (BitPtr > 0) AndAlso (BitPtr < AdHiPos) Then BitPtr -= 1
-                'Sparkle64k BUG - Don't move BitPtr if it's in its startup position (outside file address bytes)
-                'BitPtr also needs to be moved BUT ONLY IF > 0 - BUG reported by Raistlin/G*P
+                'Sparkle64k BUG - Don't move BitPtr and NibblePtr if they are in their startup positions (0 or outside file address bytes)
+                If (NibblePtr > 0) AndAlso (NibblePtr < AdHiPos) Then
+                    NibblePtr -= 1                      'Only update Nibble Pointer if it does not point to Byte(0)
+                End If
+                If (BitPtr > 0) AndAlso (BitPtr < AdHiPos) Then
+                    BitPtr -= 1                         'BitPtr also needs to be moved BUT ONLY IF > 0 - BUG reported by Raistlin/G*P
+                End If
                 AdHiPos -= 1                            'Update AdHi Position in Buffer
                 BlockUnderIO = 1                        'Set BlockUnderIO Flag
             End If

@@ -22,7 +22,7 @@ Sparkle2
   resource lookups using this strongly typed resource class.
 </summary>
 </member>
-<member name="P:Sparkle2.My.Resources.Resources.Ascii2DisplayCode">
+<member name="P:Sparkle2.My.Resources.Resources.Ascii2DirArt">
 <summary>
   Looks up a localized resource of type System.Byte[].
 </summary>
@@ -30,6 +30,11 @@ Sparkle2
 <member name="P:Sparkle2.My.Resources.Resources.PETSCII_BW">
 <summary>
   Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:Sparkle2.My.Resources.Resources.Petscii2DirArt">
+<summary>
+  Looks up a localized resource of type System.Byte[].
 </summary>
 </member>
 <member name="P:Sparkle2.My.Resources.Resources.SD">

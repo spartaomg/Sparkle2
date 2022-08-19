@@ -30,8 +30,8 @@
     <PublisherName>Sparta of OMG 2019</PublisherName>
     <SuiteName>Sparkle</SuiteName>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>704</ApplicationRevision>
-    <ApplicationVersion>2.2.22.0704</ApplicationVersion>
+    <ApplicationRevision>814</ApplicationRevision>
+    <ApplicationVersion>2.2.22.0814</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -118,6 +118,12 @@
     <Compile Include="FrmAbout.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="FrmDialog.Designer.vb">
+      <DependentUpon>FrmDialog.vb</DependentUpon>
+    </Compile>
+    <Compile Include="FrmDialog.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="FrmDisk.Designer.vb">
       <DependentUpon>FrmDisk.vb</DependentUpon>
     </Compile>
@@ -160,6 +166,9 @@
   <ItemGroup>
     <EmbeddedResource Include="FrmAbout.resx">
       <DependentUpon>FrmAbout.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FrmDialog.resx">
+      <DependentUpon>FrmDialog.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FrmDisk.resx">
       <DependentUpon>FrmDisk.vb</DependentUpon>

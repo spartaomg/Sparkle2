@@ -19,8 +19,13 @@ Public Class FrmMain
         If DoOnErr Then If DoOnErr Then On Error GoTo Err
 
         If DotNetVersion() = False Then
-            MsgBox("Sparkle requires .NET Framework version 4.8 or later!", vbOKOnly, "Please install .NET Framework")
-            End
+
+            If My.Settings.FrameworkDontShowDlg = False Then
+                Dim frmDlg As New FrmDialog
+                frmDlg.ShowDialog(Me)
+            End If
+            'MsgBox("Sparkle requires .NET Framework version 4.8 or later!", vbOKOnly, "Please install .NET Framework")
+            'End
         End If
 
         'Check if Sparkle is run as Administrator

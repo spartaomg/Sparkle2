@@ -475,7 +475,7 @@ Err:
         Dim BP As Integer   'BAM Position for Bit Change
         Dim BB As Integer   'BAM Bit
 
-        BP = Track(18) + T * 4 + 1 + Int(S / 8)
+        BP = Track(18) + (T * 4) + 1 + Int(S / 8) + If(T > 35, 7 * 4, 0)
         BB = 2 ^ (S Mod 8)    '=0-7
         If (Disk(BP) And BB) = 0 Then   'Block is already used
             SectorOK = False
@@ -3146,7 +3146,7 @@ NoDisk:
             Case "prg"
                 ConvertBintoDirArt(LCase(DirArtType))   'Import from a PRG file, first 16 bytes from each 40
             Case "c"
-                ConvertCArrayToDirArt()                      'Convert a PETSCII Editor C array file to DirArt
+                ConvertCArrayToDirArt()                 'Convert a PETSCII Editor C array file to DirArt
             Case Else
                 ConvertBintoDirArt()                    'Import from any other file, first 16 bytes of each 40
         End Select
@@ -3179,7 +3179,7 @@ NoDisk:
 
         For I As Integer = First To Last
             Select Case Mid(DA, I + 1, 1)
-                Case 0 To 9
+                Case "0" To "9"
                     CharCode = (CharCode * 10) + (Asc(Mid(DA, I + 1, 1)) - &H30)
                     NewChar = False
                 Case Else
